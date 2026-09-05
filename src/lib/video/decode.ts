@@ -72,18 +72,43 @@ export interface ExtractOptions {
 }
 
 /**
- * Decode the frame shown at each timestamp and return them as JPEG blobs.
- * If the requested time is beyond the last frame, the last frame is reused.
+ * Keeps one decoder open for a video so repeated extractions (page previews,
+ * the full print run) do not pay the open/seek/decoder-init cost each time.
+ * Requests are queued and run one at a time; WebCodecs does not like many
+ * concurrent decoders on the same file.
  */
-export async function extractFrames(file: Blob, timestamps: number[], options: ExtractOptions = {}): Promise<ExtractedFrame[]> {
-  const quality = options.quality ?? 0.92
-  const input = openInput(file)
-  const out: ExtractedFrame[] = []
-  try {
+export class FrameExtractor {
+  private readonly input: Input
+  private readonly ready: Promise<CanvasSink>
+  private queue: Promise<unknown> = Promise.resolve()
+  private disposed = false
+
+  constructor(file: Blob) {
+    const input = openInput(file)
+    this.input = input
+    this.ready = FrameExtractor.open(input)
+    this.ready.catch(() => {})
+  }
+
+  private static async open(input: Input): Promise<CanvasSink> {
     const video = await input.getPrimaryVideoTrack()
     if (!video) throw new Error('映像トラックがありません')
     if (!(await video.canDecode())) throw new Error(`このブラウザでは ${video.codec ?? '不明な'} コーデックをデコードできません`)
-    const sink = new CanvasSink(video, { poolSize: 2 })
+    return new CanvasSink(video, { poolSize: 2 })
+  }
+
+  /** Decode the frame shown at each timestamp as JPEG. Past the end, the last frame is reused. */
+  extract(timestamps: number[], options: ExtractOptions = {}): Promise<ExtractedFrame[]> {
+    const run = this.queue.then(() => this.run(timestamps, options))
+    this.queue = run.catch(() => {})
+    return run
+  }
+
+  private async run(timestamps: number[], options: ExtractOptions): Promise<ExtractedFrame[]> {
+    if (this.disposed) throw new Error('extractor disposed')
+    const quality = options.quality ?? 0.92
+    const sink = await this.ready
+    const out: ExtractedFrame[] = []
     let index = 0
     let last: ExtractedFrame | null = null
     for await (const wrapped of sink.canvasesAtTimestamps(timestamps)) {
@@ -104,8 +129,22 @@ export async function extractFrames(file: Blob, timestamps: number[], options: E
       index++
     }
     return out
+  }
+
+  async dispose(): Promise<void> {
+    this.disposed = true
+    await this.queue
+    await this.input.dispose()
+  }
+}
+
+/** One-shot convenience around FrameExtractor. */
+export async function extractFrames(file: Blob, timestamps: number[], options: ExtractOptions = {}): Promise<ExtractedFrame[]> {
+  const extractor = new FrameExtractor(file)
+  try {
+    return await extractor.extract(timestamps, options)
   } finally {
-    await input.dispose()
+    await extractor.dispose()
   }
 }
 

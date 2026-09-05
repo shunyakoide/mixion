@@ -21,11 +21,16 @@ export function PagePreview() {
     return () => ro.disconnect()
   }, [])
 
-  // Make sure the frames of the shown page are decoded.
+  // Make sure the frames of the shown page are decoded, then prefetch the next page.
   const pageFrames = settings ? previewFrameNumbers(settings, previewPage) : []
   const missing = pageFrames.some((f) => !frames.has(f))
   useEffect(() => {
-    if (settings && missing) void ensureFrames(pageFrames)
+    if (!settings) return
+    if (missing) {
+      void ensureFrames(pageFrames)
+    } else if (previewPage < settings.pageCount) {
+      void ensureFrames(previewFrameNumbers(settings, previewPage + 1))
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.projectId, settings?.fps, previewPage, missing])
 
@@ -86,7 +91,17 @@ export function PagePreview() {
           </button>
         </div>
       </div>
-      <canvas ref={canvasRef} className="w-full rounded border border-neutral-200 shadow-sm" />
+      <div className="relative">
+        <canvas ref={canvasRef} className="w-full rounded border border-neutral-200 shadow-sm" />
+        {missing && (
+          <div className="absolute inset-x-0 top-3 flex justify-center" aria-live="polite">
+            <span className="flex items-center gap-2 rounded-full bg-neutral-900/80 px-3 py-1 text-xs text-white">
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
+              フレームを読み込み中…
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

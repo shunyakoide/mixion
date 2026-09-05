@@ -4,7 +4,7 @@ import { GRID_PRESETS, type GridPreset, type Layout } from '../domain/layout'
 import { createProjectSettings, generateProjectId, isValidFps, layoutFromSettings, type ProjectSettings } from '../domain/settings'
 import { buildPrintPdf } from '../features/print/buildPdf'
 import { saveBlob } from '../lib/files'
-import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
+import { FrameExtractor, probeVideo, type VideoInfo } from '../lib/video/decode'
 
 export type Step = 'print' | 'draw' | 'scan'
 
@@ -19,6 +19,8 @@ export interface Progress {
 interface PrintSlice {
   file: File | null
   info: VideoInfo | null
+  /** Long-lived decoder for `file`. */
+  extractor: FrameExtractor | null
   probing: boolean
   loadError: string | null
   fps: number
@@ -73,6 +75,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   step: 'print',
   file: null,
   info: null,
+  extractor: null,
   probing: false,
   loadError: null,
   fps: 8,
@@ -88,7 +91,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setStep: (step) => set({ step }),
 
   loadVideo: async (file) => {
-    set({ file, info: null, probing: true, loadError: null, frames: new Map(), previewPage: 1, status: 'idle', pdfError: null, lastSaved: null, projectId: generateProjectId() })
+    void get().extractor?.dispose()
+    set({ file, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), previewPage: 1, status: 'idle', pdfError: null, lastSaved: null, projectId: generateProjectId() })
     try {
       const info = await probeVideo(file)
       if (get().file !== file) return
@@ -96,14 +100,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ probing: false, loadError: `このブラウザでは ${info.videoCodec ?? '不明な'} コーデックの動画をデコードできません` })
         return
       }
-      set({ info, probing: false })
+      set({ info, probing: false, extractor: new FrameExtractor(file) })
     } catch (e) {
       if (get().file !== file) return
       set({ probing: false, loadError: e instanceof Error ? e.message : String(e) })
     }
   },
 
-  clearVideo: () => set({ file: null, info: null, probing: false, loadError: null, frames: new Map(), previewPage: 1, status: 'idle', progress: null, pdfError: null, lastSaved: null }),
+  clearVideo: () => {
+    void get().extractor?.dispose()
+    set({ file: null, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), previewPage: 1, status: 'idle', progress: null, pdfError: null, lastSaved: null })
+  },
 
   setFps: (fps) => {
     if (fps === get().fps) return
@@ -115,14 +122,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPreviewPage: (page) => set({ previewPage: page }),
 
   ensureFrames: async (frameNumbers) => {
-    const { file, fps, frames } = get()
-    if (!file) return
+    const { file, fps, frames, extractor } = get()
+    if (!file || !extractor) return
     const missing = frameNumbers.filter((f) => !frames.has(f))
     if (missing.length === 0) return
-    const extracted = await extractFrames(
-      file,
-      missing.map((f) => frameTimestamp(f, fps)),
-    )
+    const extracted = await extractor.extract(missing.map((f) => frameTimestamp(f, fps)))
     // Ignore results if the source changed meanwhile.
     const now = get()
     if (now.file !== file || now.fps !== fps) return
@@ -135,14 +139,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = get()
     const settings = deriveSettings(state)
     const file = state.file
-    if (!settings || !file) return
+    const extractor = state.extractor
+    if (!settings || !file || !extractor) return
     const all = Array.from({ length: settings.frameCount }, (_, i) => i + 1)
     set({ status: 'extracting', progress: { label: 'フレームを抽出中', done: 0, total: all.length }, pdfError: null, lastSaved: null })
     try {
       const missing = all.filter((f) => !state.frames.has(f))
       if (missing.length > 0) {
-        const extracted = await extractFrames(
-          file,
+        const extracted = await extractor.extract(
           missing.map((f) => frameTimestamp(f, state.fps)),
           { onFrame: (_f, total) => set((s) => ({ progress: { label: 'フレームを抽出中', done: (s.progress?.done ?? 0) + 1, total } })) },
         )
