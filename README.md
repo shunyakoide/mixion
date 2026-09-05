@@ -5,6 +5,8 @@ Mixed Media Animation のための小さなウェブアプリ。
 
 **Print → Draw → Scan → Animate**
 
+画面は Print / Scan / Animate の 3 ステップ。Draw は紙の上の工程なので、注意書きを PDF 保存後と Scan の最初に表示する。
+
 - サーバー・データベース・アカウントなし。すべてブラウザ内で処理する
 - 状態を保存しない。印刷ページの QR に設定（fps、グリッド、ページ番号、フレーム数、元動画サイズ）が入っているので、スキャン側はそれを読んで復元する
 - 対応ブラウザ: Chrome / Edge（WebCodecs と保存ダイアログを使用）
