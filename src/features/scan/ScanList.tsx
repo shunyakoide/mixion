@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button'
 
 const STATUS_LABEL: Record<ScanItem['status'], { text: string; cls: string }> = {
   reading: { text: '読み込み中', cls: 'text-ink-3' },
+  detecting: { text: '検出中', cls: 'text-ink-3' },
   needs_corners: { text: '未指定', cls: 'text-warn' },
   ready: { text: 'Apply 待ち', cls: 'text-accent' },
   applying: { text: '処理中…', cls: 'text-accent' },

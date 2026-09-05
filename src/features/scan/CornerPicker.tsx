@@ -235,7 +235,12 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           {complete ? (
             <>
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
-              4 点そろいました。ずれていれば点をドラッグして、Apply
+              {scan.cornerSource === 'auto' ? '四隅を自動で検出しました。緑の枠がずれていれば点をドラッグ' : '4 点そろいました。ずれていれば点をドラッグして、Apply'}
+            </>
+          ) : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? (
+            <>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-warn text-[11px] font-semibold">{4 - scan.missingCorners.length}</span>
+              {4 - scan.missingCorners.length} 点は自動で見つかりました。<strong className="font-semibold">{CORNER_LABEL[nextCorner as Corner]}</strong> の ■ の中心をクリック
             </>
           ) : (
             <>

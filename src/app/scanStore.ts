@@ -4,12 +4,13 @@ import { pageToScanHomography, reprojectionError, type Homography } from '../dom
 import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
 import { readPageQr } from '../features/scan/qrPage'
+import { detectMarkers } from '../features/scan/detectMarkers'
 import { warpCells } from '../features/scan/warpClient'
 import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rgbaToBlob } from '../lib/image'
 import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
 import { frameTimestamp } from '../domain/frameMap'
 
-export type ScanStatus = 'reading' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
+export type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
 
 export interface ScanItem {
   id: string
@@ -23,6 +24,10 @@ export interface ScanItem {
   page: number | null
   pageSource: 'qr' | 'manual' | 'order' | null
   corners: Partial<Record<Corner, Point>>
+  /** How the corners were obtained. */
+  cornerSource: 'auto' | 'manual' | null
+  /** Markers the detector could not find (shown so the user knows what to click). */
+  missingCorners: Corner[]
   status: ScanStatus
   error: string | null
   /** RMS reprojection error of the last apply, in scan px (0 for 4 exact points). */
@@ -82,7 +87,7 @@ function cornersComplete(c: Partial<Record<Corner, Point>>): c is Record<Corner,
 }
 
 function statusFor(item: ScanItem): ScanStatus {
-  if (item.status === 'applied' || item.status === 'applying' || item.status === 'reading') return item.status
+  if (item.status === 'applied' || item.status === 'applying' || item.status === 'reading' || item.status === 'detecting') return item.status
   if (item.error) return 'error'
   return cornersComplete(item.corners) && item.page !== null ? 'ready' : 'needs_corners'
 }
@@ -189,6 +194,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
         page: null,
         pageSource: null,
         corners: {},
+        cornerSource: null,
+        missingCorners: [],
         status: 'reading',
         error: null,
         fitError: null,
@@ -198,6 +205,18 @@ export const useScanStore = create<ScanState>((set, get) => ({
         const bitmap = await loadBitmap(file)
         const { width, height } = bitmap
         const qr = readPageQr(bitmap)
+        let detected: { corners: Partial<Record<Corner, Point>>; missing: Corner[] } | null = null
+        if (qr.ok) {
+          set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
+          const settingsNow = get().settings ?? settingsFromQr(qr.payload)
+          try {
+            const rgba = bitmapToRgba(bitmap)
+            const r = detectMarkers(rgba, layoutFromSettings(settingsNow), qr.corners)
+            detected = { corners: r.corners, missing: ([0, 1, 2, 3] as Corner[]).filter((c) => !r.found.includes(c)) }
+          } catch {
+            detected = null
+          }
+        }
         bitmap.close()
         set((s) => {
           let settings = s.settings
@@ -229,13 +248,29 @@ export const useScanStore = create<ScanState>((set, get) => ({
               }
             }
           }
+          const corners = detected?.corners ?? {}
           const scans = s.scans.map((x) =>
             x.id === id
-              ? statusUpdate({ ...x, width, height, qr: qr.ok ? qr.payload : null, qrNote, page, pageSource, status: 'needs_corners' })
+              ? statusUpdate({
+                  ...x,
+                  width,
+                  height,
+                  qr: qr.ok ? qr.payload : null,
+                  qrNote,
+                  page,
+                  pageSource,
+                  corners,
+                  cornerSource: detected ? 'auto' : null,
+                  missingCorners: detected?.missing ?? [],
+                  status: 'needs_corners',
+                })
               : x,
           )
           return { scans, settings, settingsSource }
         })
+        // Everything found: cut the page out right away.
+        const after = get().scans.find((x) => x.id === id)
+        if (after && after.status === 'ready') await get().applyScan(id)
       } catch (e) {
         set((s) => ({
           scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)),
@@ -265,13 +300,13 @@ export const useScanStore = create<ScanState>((set, get) => ({
   setCorner: (id, corner, point) =>
     set((s) => ({
       scans: s.scans.map((x) =>
-        x.id === id ? statusUpdate({ ...x, corners: { ...x.corners, [corner]: point }, status: x.status === 'applied' ? 'needs_corners' : x.status, error: null }) : x,
+        x.id === id ? statusUpdate({ ...x, corners: { ...x.corners, [corner]: point }, cornerSource: 'manual', missingCorners: x.missingCorners.filter((c) => c !== corner), status: x.status === 'applied' ? 'needs_corners' : x.status, error: null }) : x,
       ),
     })),
 
   resetCorners: (id) =>
     set((s) => ({
-      scans: s.scans.map((x) => (x.id === id ? statusUpdate({ ...x, corners: {}, status: 'needs_corners', error: null, fitError: null }) : x)),
+      scans: s.scans.map((x) => (x.id === id ? statusUpdate({ ...x, corners: {}, cornerSource: null, missingCorners: [], status: 'needs_corners', error: null, fitError: null }) : x)),
     })),
 
   setManualSettings: (settings) => set({ settings, settingsSource: 'manual' }),

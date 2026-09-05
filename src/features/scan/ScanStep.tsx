@@ -34,8 +34,8 @@ export function ScanStep() {
         <ScanList />
         <div>
           {selected && settings && layout ? (
-            selected.status === 'reading' ? (
-              <p className="text-sm text-ink-2">読み込み中…</p>
+            selected.status === 'reading' || selected.status === 'detecting' ? (
+              <p className="text-sm text-ink-2">{selected.status === 'detecting' ? 'マーカーを検出中…' : '読み込み中…'}</p>
             ) : (
               <CornerPicker key={selected.id} scan={selected} settings={settings} layout={layout} />
             )
