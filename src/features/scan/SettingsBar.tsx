@@ -12,14 +12,14 @@ export function SettingsBar() {
 
   if (settings && !open) {
     return (
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-neutral-100 px-4 py-2 text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-rule/40 px-4 py-2 text-sm">
         <span className="font-medium">Project {settings.projectId}</span>
         <span>{settings.fps} fps</span>
         <span>{settings.grid.cols}×{settings.grid.rows}</span>
         <span>{settings.frameCount} frames / {settings.pageCount} pages</span>
         <span>{settings.dims.width}×{settings.dims.height}</span>
-        <span className="text-neutral-500">{settingsSource === 'qr' ? 'QR から復元' : '手入力'}</span>
-        <button type="button" className="ml-auto text-neutral-500 underline" onClick={() => setOpen(true)}>
+        <span className="text-ink-2">{settingsSource === 'qr' ? 'QR から復元' : '手入力'}</span>
+        <button type="button" className="ml-auto text-ink-2 underline" onClick={() => setOpen(true)}>
           変更
         </button>
       </div>
@@ -52,11 +52,11 @@ function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: Project
       pageCount: pageCount(frameCount, framesPerPage(grid)),
     })
   }
-  const field = 'w-24 rounded border border-neutral-300 px-2 py-1 text-sm'
+  const field = 'w-24 rounded border border-rule-2 px-2 py-1 text-sm'
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4 text-sm">
-      <div className="mb-3 text-neutral-600">QR が読めない場合は、印刷時の設定を入力してください（ページのヘッダに印刷されています）。</div>
+    <div className="rounded-lg border border-rule bg-panel p-4 text-sm">
+      <div className="mb-3 text-ink-2">QR が読めない場合は、印刷時の設定を入力してください（ページのヘッダに印刷されています）。</div>
       <div className="flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1">
           fps

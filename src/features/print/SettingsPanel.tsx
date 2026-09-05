@@ -39,9 +39,9 @@ export function SettingsPanel() {
             disabled={busy}
             aria-label="custom fps"
             className={[
-              'w-20 rounded-full border px-3 py-1 text-sm',
-              customActive ? 'border-neutral-900' : 'border-neutral-300',
-              custom !== '' && !isValidFps(Number(custom)) ? 'border-red-500' : '',
+              'h-9 w-24 rounded-md border px-3 text-sm',
+              customActive ? 'border-ink bg-ink text-white' : 'border-rule-2 bg-panel',
+              custom !== '' && !isValidFps(Number(custom)) ? 'border-danger text-danger' : '',
             ].join(' ')}
           />
         </div>
@@ -58,18 +58,18 @@ export function SettingsPanel() {
         </div>
       </div>
 
-      <div className="rounded-lg bg-neutral-100 p-3 text-sm" aria-live="polite">
+      <div className="rounded-lg bg-rule/40 p-3 text-sm" aria-live="polite">
         {settings && layout ? (
           <>
             <div className="text-base font-medium">
               {settings.frameCount} frames → {settings.pageCount} pages
             </div>
-            <div className="mt-1 text-neutral-600">
+            <div className="mt-1 text-ink-2">
               A4 {layout.orientation === 'landscape' ? '横' : '縦'} · 1 フレーム {layout.cells[0].imageRect.w.toFixed(0)}×{layout.cells[0].imageRect.h.toFixed(0)} mm · Project {settings.projectId}
             </div>
           </>
         ) : (
-          <div className="text-neutral-500">動画を読み込むと枚数が表示されます</div>
+          <div className="text-ink-2">動画を読み込むと枚数が表示されます</div>
         )}
       </div>
     </div>

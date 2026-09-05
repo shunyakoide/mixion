@@ -3,12 +3,12 @@ import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Button } from '../../components/ui/Button'
 
 const STATUS_LABEL: Record<ScanItem['status'], { text: string; cls: string }> = {
-  reading: { text: '読み込み中', cls: 'text-neutral-400' },
-  needs_corners: { text: '四隅未指定', cls: 'text-amber-600' },
-  ready: { text: '適用待ち', cls: 'text-blue-600' },
-  applying: { text: '処理中…', cls: 'text-blue-600' },
-  applied: { text: 'OK', cls: 'text-green-600' },
-  error: { text: 'エラー', cls: 'text-red-600' },
+  reading: { text: '読み込み中', cls: 'text-ink-3' },
+  needs_corners: { text: '未指定', cls: 'text-warn' },
+  ready: { text: 'Apply 待ち', cls: 'text-accent' },
+  applying: { text: '処理中…', cls: 'text-accent' },
+  applied: { text: 'OK', cls: 'text-ok' },
+  error: { text: 'エラー', cls: 'text-danger' },
 }
 
 export function ScanList() {
@@ -40,9 +40,9 @@ export function ScanList() {
           e.target.value = ''
         }}
       />
-      {importError && <p className="text-sm text-red-600">{importError}</p>}
-      <ul className={['min-h-40 flex-1 space-y-1 overflow-auto rounded-lg border p-1', over ? 'border-neutral-900 bg-neutral-100' : 'border-neutral-200 bg-white'].join(' ')}>
-        {scans.length === 0 && <li className="p-3 text-sm text-neutral-400">スキャン画像をここにドロップ</li>}
+      {importError && <p className="text-sm text-danger">{importError}</p>}
+      <ul className={['min-h-40 flex-1 space-y-1 overflow-auto rounded-lg border p-1', over ? 'border-ink bg-rule/40' : 'border-rule bg-panel'].join(' ')}>
+        {scans.length === 0 && <li className="p-3 text-sm text-ink-3">スキャン画像をここにドロップ</li>}
         {scans.map((s) => {
           const st = STATUS_LABEL[s.status]
           return (
@@ -50,9 +50,9 @@ export function ScanList() {
               <button
                 type="button"
                 onClick={() => select(s.id)}
-                className={['flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm', s.id === selectedId ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100'].join(' ')}
+                className={['flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm', s.id === selectedId ? 'bg-ink text-white' : 'hover:bg-rule/40'].join(' ')}
               >
-                <span className="w-8 shrink-0 tabular-nums opacity-70">{s.page !== null ? `P${s.page}` : '—'}</span>
+                <span className="w-7 shrink-0 tabular-nums opacity-70">{s.page !== null ? `P${s.page}` : '—'}</span>
                 <span className="min-w-0 flex-1 truncate" title={s.name}>
                   {s.name}
                 </span>

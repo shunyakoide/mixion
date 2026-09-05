@@ -50,6 +50,9 @@ interface ScanState {
   outputFrames: Map<number, OutputFrame>
   importing: boolean
   importError: string | null
+  /** Last export per format (file name), for the step indicator. */
+  exported: { mp4: string | null; gif: string | null }
+  markExported: (kind: 'mp4' | 'gif', name: string) => void
   /** Optional source video: audio and fallback frames. */
   original: { file: File; info: VideoInfo } | null
   originalLoading: boolean
@@ -92,6 +95,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
   outputFrames: new Map(),
   importing: false,
   importError: null,
+  exported: { mp4: null, gif: null },
+  markExported: (kind, name) => set((s) => ({ exported: { ...s.exported, [kind]: name } })),
   original: null,
   originalLoading: false,
   originalError: null,

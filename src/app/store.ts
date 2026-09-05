@@ -6,7 +6,8 @@ import { buildPrintPdf } from '../features/print/buildPdf'
 import { saveBlob } from '../lib/files'
 import { FrameExtractor, probeVideo, type VideoInfo } from '../lib/video/decode'
 
-export type Step = 'print' | 'draw' | 'scan'
+export type Step = 'print' | 'scan' | 'animate'
+export const STEP_ORDER: readonly Step[] = ['print', 'scan', 'animate']
 
 export type PrintStatus = 'idle' | 'extracting' | 'building' | 'saving' | 'done'
 

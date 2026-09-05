@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ResolvedFrames } from '../../app/scanStore'
+import { Pause, Play } from '../../components/ui/icons'
 import type { ProjectSettings } from '../../domain/settings'
 
 const SOURCE_LABEL = { scan: 'scan', original: 'original', hold: 'hold', blank: 'blank' } as const
@@ -31,15 +32,15 @@ export function Player({ settings, resolved }: { settings: ProjectSettings; reso
   }, [playing, urls, settings.fps])
 
   if (!resolved || urls.length === 0) {
-    return <div className="flex aspect-video items-center justify-center rounded-lg bg-neutral-200 text-sm text-neutral-500">Preview</div>
+    return <div className="flex aspect-video items-center justify-center rounded-lg bg-rule text-sm text-ink-2">Preview</div>
   }
 
   return (
     <div className="space-y-2">
       <img src={urls[index]} alt={`frame ${index + 1}`} className="aspect-video w-full rounded-lg bg-black object-contain" />
-      <div className="flex items-center gap-2 text-xs text-neutral-600">
-        <button type="button" onClick={() => setPlaying((p) => !p)} className="rounded border border-neutral-300 px-2 py-0.5">
-          {playing ? '❚❚' : '▶'}
+      <div className="flex items-center gap-2 text-xs text-ink-2">
+        <button type="button" onClick={() => setPlaying((p) => !p)} aria-label={playing ? '一時停止' : '再生'} className="flex h-8 w-8 items-center justify-center rounded border border-rule-2 hover:border-ink-3">
+          {playing ? <Pause size={14} /> : <Play size={14} />}
         </button>
         <span className="tabular-nums">
           #{index + 1} / {urls.length}

@@ -204,7 +204,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           <select
             value={scan.page ?? ''}
             onChange={(e) => setPage(scan.id, e.target.value === '' ? null : Number(e.target.value))}
-            className="rounded border border-neutral-300 px-2 py-1"
+            className="rounded border border-rule-2 px-2 py-1"
             disabled={busy}
           >
             <option value="">—</option>
@@ -214,13 +214,10 @@ export function CornerPicker({ scan, settings, layout }: Props) {
               </option>
             ))}
           </select>
-          {scan.pageSource === 'qr' && <span className="text-xs text-green-700">QR</span>}
-          {scan.pageSource === 'order' && <span className="text-xs text-amber-600">取り込み順（要確認）</span>}
+          {scan.pageSource === 'qr' && <span className="text-xs text-ok">QR</span>}
+          {scan.pageSource === 'order' && <span className="text-xs text-warn">取り込み順（要確認）</span>}
         </label>
-        {scan.qrNote && <span className="text-xs text-amber-600">{scan.qrNote}</span>}
-        <span className="ml-auto text-neutral-500">
-          {complete ? '点をドラッグで微調整' : `クリック: ${CORNER_LABEL[nextCorner as Corner]}のマーカー中心 (${(nextCorner as number) + 1}/4)`}
-        </span>
+        {scan.qrNote && <span className="text-xs text-warn">{scan.qrNote}</span>}
       </div>
 
       <div ref={wrapRef} className="relative">
@@ -230,22 +227,36 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={() => { onMouseUp(); setCursor(null) }}
-          className="w-full cursor-crosshair rounded border border-neutral-200 bg-neutral-100"
+          className="w-full cursor-crosshair rounded border border-rule bg-rule/40"
           style={{ height: cssHeight }}
         />
-        <canvas ref={loupeRef} className="pointer-events-none absolute right-2 top-2 rounded border border-neutral-300 bg-white shadow" style={{ width: LOUPE.size, height: LOUPE.size }} />
-        {!loaded && <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-400">読み込み中…</div>}
+        <canvas ref={loupeRef} className="pointer-events-none absolute right-2 top-2 rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size }} hidden={cursor === null} />
+        <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-2 rounded-md bg-ink/85 px-3 py-1.5 text-sm text-white shadow" aria-live="polite">
+          {complete ? (
+            <>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
+              4 点そろいました。ずれていれば点をドラッグして、Apply
+            </>
+          ) : (
+            <>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] font-semibold">{(nextCorner as number) + 1}</span>
+              次は <strong className="font-semibold">{CORNER_LABEL[nextCorner as Corner]}</strong> の ■ の中心をクリック
+              <span className="text-white/60">{(nextCorner as number) + 1} / 4</span>
+            </>
+          )}
+        </div>
+        {!loaded && <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-3">読み込み中…</div>}
       </div>
 
       <div className="flex items-center gap-3">
-        <Button variant="secondary" onClick={() => resetCorners(scan.id)} disabled={busy || Object.keys(scan.corners).length === 0}>
-          Reset
-        </Button>
         <Button id="apply-scan" onClick={() => void applyScan(scan.id)} disabled={!canApply}>
-          {busy ? '切り出し中…' : scan.status === 'applied' ? '再適用' : 'Apply'}
+          {busy ? '切り出し中…' : scan.status === 'applied' ? 'もう一度切り出す' : 'Apply: このページを切り出す'}
         </Button>
-        {scan.status === 'applied' && <span className="text-sm text-green-700">切り出し済み{scan.fitError !== null ? ` (fit ${scan.fitError.toFixed(2)} px)` : ''}</span>}
-        {scan.error && <span className="text-sm text-red-600">{scan.error}</span>}
+        <Button variant="ghost" onClick={() => resetCorners(scan.id)} disabled={busy || Object.keys(scan.corners).length === 0}>
+          四隅をやり直す
+        </Button>
+        {scan.status === 'applied' && <span className="text-sm text-ok">切り出し済み{scan.fitError !== null ? ` (fit ${scan.fitError.toFixed(2)} px)` : ''}</span>}
+        {scan.error && <span className="text-sm text-danger">{scan.error}</span>}
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { deriveLayout, deriveSettings, previewFrameNumbers, useAppStore } from '../../app/store'
+import { ChevronLeft, ChevronRight } from '../../components/ui/icons'
 import { CanvasPainter } from './canvasPainter'
 import { buildPageSpec, paintPage } from './pagePainter'
 
@@ -69,7 +70,7 @@ export function PagePreview() {
 
   if (!settings || !layout) {
     return (
-      <div ref={wrapRef} className="flex aspect-[297/210] items-center justify-center rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-400">
+      <div ref={wrapRef} className="flex aspect-[297/210] items-center justify-center rounded-lg border border-dashed border-rule-2 text-sm text-ink-3">
         Preview
       </div>
     )
@@ -80,22 +81,22 @@ export function PagePreview() {
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">Preview</span>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setPreviewPage(Math.max(1, previewPage - 1))} disabled={previewPage <= 1} className="rounded border border-neutral-300 px-2 py-0.5 disabled:opacity-40" aria-label="previous page">
-            ◀
+          <button type="button" onClick={() => setPreviewPage(Math.max(1, previewPage - 1))} disabled={previewPage <= 1} className="flex h-8 w-8 items-center justify-center rounded border border-rule-2 hover:border-ink-3 disabled:opacity-40" aria-label="前のページ">
+            <ChevronLeft />
           </button>
           <span className="tabular-nums">
             {previewPage} / {settings.pageCount}
           </span>
-          <button type="button" onClick={() => setPreviewPage(Math.min(settings.pageCount, previewPage + 1))} disabled={previewPage >= settings.pageCount} className="rounded border border-neutral-300 px-2 py-0.5 disabled:opacity-40" aria-label="next page">
-            ▶
+          <button type="button" onClick={() => setPreviewPage(Math.min(settings.pageCount, previewPage + 1))} disabled={previewPage >= settings.pageCount} className="flex h-8 w-8 items-center justify-center rounded border border-rule-2 hover:border-ink-3 disabled:opacity-40" aria-label="次のページ">
+            <ChevronRight />
           </button>
         </div>
       </div>
       <div className="relative">
-        <canvas ref={canvasRef} className="w-full rounded border border-neutral-200 shadow-sm" />
+        <canvas ref={canvasRef} className="w-full rounded border border-rule shadow-sm" />
         {missing && (
           <div className="absolute inset-x-0 top-3 flex justify-center" aria-live="polite">
-            <span className="flex items-center gap-2 rounded-full bg-neutral-900/80 px-3 py-1 text-xs text-white">
+            <span className="flex items-center gap-2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
               フレームを読み込み中…
             </span>
