@@ -23,7 +23,7 @@ export function ScanEmpty() {
   return (
     <div className="mx-auto max-w-2xl pt-10">
       <h1 className="text-2xl font-semibold tracking-tight">描いたページを取り込む</h1>
-      <p className="mt-2 max-w-prose text-ink-2">1 ページ 1 ファイルでスキャンした画像（JPEG / PNG）を入れてください。ページの QR から印刷時の設定とページ番号を読み取ります。</p>
+      <p className="mt-2 max-w-prose text-ink-2">1 ページ 1 ファイルでスキャンした画像（JPEG / PNG）を入れてください。QR と四隅のマーカーを読み取って、自動でコマに切り出します。QR やマーカーが隠れているページだけ、その場で指定をお願いします。</p>
 
       <div
         onDragOver={(e) => { e.preventDefault(); setOver(true) }}
@@ -43,9 +43,9 @@ export function ScanEmpty() {
 
       <ol className="mt-8 grid gap-4 sm:grid-cols-3">
         {[
-          ['取り込む', 'ページごとの画像を入れる'],
-          ['四隅を指定', '各ページの ■ を 4 つクリックする'],
-          ['Apply', 'コマが切り出され、Animate に進める'],
+          ['取り込む', 'ページごとの画像をまとめて入れる'],
+          ['自動で切り出し', 'QR と四隅の ■ を読み取って、コマを元の順番に並べる'],
+          ['確認', '緑の枠がずれていないか見て、Animate へ'],
         ].map(([t, d], i) => (
           <li key={t} className="rounded-lg border border-rule bg-panel p-4">
             <div className="flex items-center gap-2 text-sm font-medium">

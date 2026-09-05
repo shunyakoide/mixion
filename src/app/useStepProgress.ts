@@ -36,7 +36,7 @@ export function useStepProgress(): { steps: StepInfo[]; current: Step; currentIn
         applied > 0
           ? `${applied}${settings ? ` / ${settings.frameCount}` : ''} フレームを切り出しました`
           : scansImported > 0
-            ? '各ページの四隅を指定して Apply します'
+            ? '見つからなかった隅をクリックして Apply します'
             : 'スキャンした画像を取り込みます',
     },
     {
