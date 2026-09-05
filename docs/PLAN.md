@@ -306,10 +306,11 @@ mixion/
 │   │   │   ├── ScanList.tsx
 │   │   │   ├── SettingsBar.tsx    # QR 復元結果 / 手入力フォーム
 │   │   │   ├── CornerPicker.tsx
+│   │   │   ├── ScanProgress.tsx   # 切り出し済み数と未取得ページ
 │   │   │   ├── slicer.ts          # Worker 呼び出し、セル → 出力フレーム
 │   │   │   └── qrPage.ts          # jsQR
 │   │   └── animate/
-│   │       ├── FrameStrip.tsx
+│   │       ├── FrameStrip.tsx     # 全コマのサムネイル。クリックで Player がそのコマへ
 │   │       ├── Player.tsx
 │   │       └── ExportPanel.tsx
 │   ├── lib/

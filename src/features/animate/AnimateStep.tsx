@@ -1,7 +1,8 @@
+import { useCallback, useState } from 'react'
 import { useAppStore } from '../../app/store'
 import { useScanStore } from '../../app/scanStore'
 import { Button } from '../../components/ui/Button'
-import { FrameStrip } from '../scan/FrameStrip'
+import { FrameStrip } from './FrameStrip'
 import { ExportPanel } from './ExportPanel'
 import { OriginalDrop } from './OriginalDrop'
 import { Player } from './Player'
@@ -12,6 +13,9 @@ export function AnimateStep() {
   const applied = useScanStore((s) => s.outputFrames.size)
   const setStep = useAppStore((s) => s.setStep)
   const { resolved } = useResolvedFrames()
+  const [seek, setSeek] = useState<{ index: number; nonce: number } | null>(null)
+  const [current, setCurrent] = useState(0)
+  const onFrame = useCallback((i: number) => setCurrent(i), [])
 
   if (!settings || applied === 0) {
     return (
@@ -28,8 +32,8 @@ export function AnimateStep() {
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <div className="space-y-4">
-        <Player settings={settings} resolved={resolved} />
-        <FrameStrip settings={settings} />
+        <Player settings={settings} resolved={resolved} seek={seek} onFrame={onFrame} />
+        <FrameStrip settings={settings} resolved={resolved} current={current} onSelect={(i) => setSeek({ index: i, nonce: Date.now() })} />
       </div>
       <div className="space-y-5">
         <OriginalDrop />

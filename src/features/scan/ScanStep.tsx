@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/Button'
 import { ArrowRight, Check } from '../../components/ui/icons'
 import { layoutFromSettings } from '../../domain/settings'
 import { CornerPicker } from './CornerPicker'
-import { FrameStrip } from './FrameStrip'
+import { ScanProgress } from './ScanProgress'
 import { ScanEmpty } from './ScanEmpty'
 import { ScanList } from './ScanList'
 import { SettingsBar } from './SettingsBar'
@@ -45,7 +45,7 @@ export function ScanStep() {
             </div>
           )}
         </div>
-        <div>{settings && <FrameStrip settings={settings} />}</div>
+        <div>{settings && <ScanProgress settings={settings} />}</div>
       </div>
     </div>
   )
