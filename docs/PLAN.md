@@ -434,3 +434,29 @@ Milestone: `M1 Print` / `M2 Scan` / `M3 Animate` / `M4 E2E`。Size: S(半日) / 
 - デスクトップアプリ化（Tauri）。必要になったら同じコードを包むだけ
 - i18n
 - サーバー・DB・アカウント・共有（方針としてやらない）
+
+---
+
+## 実装状況（2026-09-05 時点）
+
+| Issue | 状態 | メモ |
+|---|---|---|
+| 1〜7 | 完了 | スキャフォールド、domain 層、マーカー、ページ描画、PDF |
+| 8 | **未実施（実機）** | `npx tsx scripts/dummy-pdf.ts` で `out/dummy-print.pdf` を印刷 → 落書き → スキャンして、余白・マーカーの妥当性と QR の読み取りを確認する |
+| 9〜13 | 完了 | WebCodecs（mediabunny）で 40 フレーム抽出 0.35s、Print 画面、PDF 保存 |
+| 14〜19 | 完了 | ホモグラフィ、ワープ（Worker）、Scan 画面（QR 復元、四隅クリック、Apply） |
+| 20〜24 | 完了 | 元動画の補完、Player、MP4（音声コピー）/ GIF 書き出し |
+| 25 | **未実施（実機）** | 疑似スキャン（`window.__dev.simulateScan`）での通しは確認済み。実際の印刷・スキャンで通す |
+| 26 | ほぼ完了 | README、`fixtures/sample-5s.mp4`。実スキャンのフィクスチャは 25 の後に追加 |
+| 27 | 一部 | 非対応コーデック・QR 不整合・別プロジェクト混入は表示する。メモリ超過の案内は未 |
+| 28 | 完了 | beforeunload |
+
+### 実機テストで見るポイント
+- スキャナの端で四隅マーカーが欠けないか（欠けるなら `LAYOUT_CONSTANTS.outerMargin` を増やす）
+- 300dpi スキャンで QR が読めるか（読めないなら `qrSize` を大きくする）
+- 「用紙に合わせる」で印刷しても Apply 後の切り出しがずれないか
+- 絵の具で紙が波打った場合の位置ズレ（v0.2 以降の課題として記録）
+
+### 既知の小さな課題
+- 本番ビルドに `fixtures/sample-5s.mp4` と `?spike=video` のページが含まれる（開発用フックが `new URL(..., import.meta.url)` を使っているため）。配布前に外す
+- Safari / Firefox は未確認
