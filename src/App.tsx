@@ -1,6 +1,8 @@
 import { Steps } from './app/Steps'
+import { VideoSpike } from './features/spike/VideoSpike'
 
 export default function App() {
+  const spike = import.meta.env.DEV && new URLSearchParams(location.search).get('spike')
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <header className="border-b border-neutral-200 bg-white px-6 py-3">
@@ -10,7 +12,7 @@ export default function App() {
         </div>
       </header>
       <main className="p-6">
-        <p className="text-sm text-neutral-500">Print → Draw → Scan → Animate</p>
+        {spike === 'video' ? <VideoSpike /> : <p className="text-sm text-neutral-500">Print → Draw → Scan → Animate</p>}
       </main>
     </div>
   )
