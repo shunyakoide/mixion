@@ -7,10 +7,10 @@ function css(c: Color): string {
 
 /** Paints a page onto a 2D canvas context at `pxPerMm` pixels per millimetre. */
 export class CanvasPainter implements Painter<CanvasImageSource> {
-  private readonly ctx: CanvasRenderingContext2D
+  private readonly ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
   private readonly pxPerMm: number
 
-  constructor(ctx: CanvasRenderingContext2D, pxPerMm: number) {
+  constructor(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, pxPerMm: number) {
     this.ctx = ctx
     this.pxPerMm = pxPerMm
   }
