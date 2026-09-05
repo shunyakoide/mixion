@@ -1,5 +1,9 @@
 import { useScanStore } from '../../app/scanStore'
 import { layoutFromSettings } from '../../domain/settings'
+import { ExportPanel } from '../animate/ExportPanel'
+import { OriginalDrop } from '../animate/OriginalDrop'
+import { Player } from '../animate/Player'
+import { useResolvedFrames } from '../animate/useResolvedFrames'
 import { CornerPicker } from './CornerPicker'
 import { FrameStrip } from './FrameStrip'
 import { ScanList } from './ScanList'
@@ -9,11 +13,15 @@ export function ScanStep() {
   const { settings, scans, selectedId } = useScanStore()
   const selected = scans.find((s) => s.id === selectedId) ?? null
   const layout = settings ? layoutFromSettings(settings) : null
+  const { resolved } = useResolvedFrames()
 
   return (
     <div className="space-y-4">
-      <SettingsBar />
-      <div className="grid gap-6 lg:grid-cols-[240px_1fr_220px]">
+      <div className="grid gap-3 lg:grid-cols-[1fr_360px]">
+        <SettingsBar />
+        <OriginalDrop />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[240px_1fr_260px]">
         <ScanList />
         <div>
           {selected && settings && layout ? (
@@ -28,7 +36,13 @@ export function ScanStep() {
             </div>
           )}
         </div>
-        <div>{settings && <FrameStrip settings={settings} />}</div>
+        {settings && (
+          <div className="space-y-5">
+            <FrameStrip settings={settings} />
+            <Player settings={settings} resolved={resolved} />
+            <ExportPanel settings={settings} resolved={resolved} />
+          </div>
+        )}
       </div>
     </div>
   )

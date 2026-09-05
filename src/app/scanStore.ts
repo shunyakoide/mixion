@@ -6,6 +6,8 @@ import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, 
 import { readPageQr } from '../features/scan/qrPage'
 import { warpCells } from '../features/scan/warpClient'
 import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rgbaToBlob } from '../lib/image'
+import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
+import { frameTimestamp } from '../domain/frameMap'
 
 export type ScanStatus = 'reading' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
 
@@ -27,6 +29,13 @@ export interface ScanItem {
   fitError: number | null
 }
 
+export type FrameSource = 'scan' | 'original' | 'hold' | 'blank'
+
+export interface ResolvedFrames {
+  frames: Blob[]
+  sources: FrameSource[]
+}
+
 export interface OutputFrame {
   blob: Blob
   source: 'scan' | 'original'
@@ -41,7 +50,17 @@ interface ScanState {
   outputFrames: Map<number, OutputFrame>
   importing: boolean
   importError: string | null
+  /** Optional source video: audio and fallback frames. */
+  original: { file: File; info: VideoInfo } | null
+  originalLoading: boolean
+  originalError: string | null
+  /** Frames extracted from the original at the project fps, by frame number. */
+  originalFrames: Map<number, Blob>
 
+  loadOriginal: (file: File) => Promise<void>
+  clearOriginal: () => void
+  /** Final frame list for export/preview, filling gaps from the original or by holding the previous frame. */
+  resolveFrames: () => Promise<ResolvedFrames>
   importScans: (files: File[]) => Promise<void>
   removeScan: (id: string) => void
   select: (id: string | null) => void
@@ -73,6 +92,76 @@ export const useScanStore = create<ScanState>((set, get) => ({
   outputFrames: new Map(),
   importing: false,
   importError: null,
+  original: null,
+  originalLoading: false,
+  originalError: null,
+  originalFrames: new Map(),
+
+  loadOriginal: async (file) => {
+    set({ originalLoading: true, originalError: null, original: null, originalFrames: new Map() })
+    try {
+      const info = await probeVideo(file)
+      set({ original: { file, info }, originalLoading: false })
+    } catch (e) {
+      set({ originalLoading: false, originalError: e instanceof Error ? e.message : String(e) })
+    }
+  },
+
+  clearOriginal: () => set({ original: null, originalError: null, originalFrames: new Map() }),
+
+  resolveFrames: async () => {
+    const { settings, outputFrames, original } = get()
+    if (!settings) throw new Error('設定がありません')
+    const n = settings.frameCount
+    const missing: number[] = []
+    for (let f = 1; f <= n; f++) if (!outputFrames.has(f)) missing.push(f)
+
+    let originalFrames = get().originalFrames
+    if (original && missing.length > 0) {
+      const need = missing.filter((f) => !originalFrames.has(f))
+      if (need.length > 0) {
+        const extracted = await extractFrames(original.file, need.map((f) => frameTimestamp(f, settings.fps)))
+        originalFrames = new Map(originalFrames)
+        extracted.forEach((e, i) => originalFrames.set(need[i], e.blob))
+        set({ originalFrames })
+      }
+    }
+
+    const frames: Blob[] = []
+    const sources: FrameSource[] = []
+    let blank: Blob | null = null
+    for (let f = 1; f <= n; f++) {
+      const out = outputFrames.get(f)
+      if (out) {
+        frames.push(out.blob)
+        sources.push('scan')
+        continue
+      }
+      const orig = original ? originalFrames.get(f) : undefined
+      if (orig) {
+        frames.push(orig)
+        sources.push('original')
+        continue
+      }
+      if (frames.length > 0) {
+        frames.push(frames[frames.length - 1])
+        sources.push('hold')
+        continue
+      }
+      if (!blank) {
+        const c = new OffscreenCanvas(settings.dims.width, settings.dims.height)
+        const ctx = c.getContext('2d')
+        if (ctx) {
+          ctx.fillStyle = '#fff'
+          ctx.fillRect(0, 0, c.width, c.height)
+        }
+        blank = await c.convertToBlob({ type: 'image/jpeg', quality: 0.8 })
+      }
+      frames.push(blank)
+      sources.push('blank')
+    }
+    return { frames, sources }
+  },
 
   importScans: async (files) => {
     const images = files.filter(isImageFile).sort((a, b) => compareNames(a.name, b.name))

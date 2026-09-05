@@ -1,5 +1,6 @@
 import { Steps } from './app/Steps'
 import { useAppStore } from './app/store'
+import { useUnloadGuard } from './app/useUnloadGuard'
 import { DrawStep } from './features/draw/DrawStep'
 import { PrintStep } from './features/print/PrintStep'
 import { ScanStep } from './features/scan/ScanStep'
@@ -7,6 +8,7 @@ import { VideoSpike } from './features/spike/VideoSpike'
 
 export default function App() {
   const step = useAppStore((s) => s.step)
+  useUnloadGuard()
   const spike = import.meta.env.DEV && new URLSearchParams(location.search).get('spike')
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">

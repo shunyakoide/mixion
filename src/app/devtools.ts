@@ -3,6 +3,8 @@
  * Not imported in production builds.
  */
 import { renderPageToBlob } from '../features/print/renderPage'
+import { encodeMp4 } from '../lib/video/encode'
+import { encodeGif } from '../lib/video/gif'
 import { layoutFromSettings } from '../domain/settings'
 import { deriveSettings, useAppStore } from './store'
 import { useScanStore } from './scanStore'
@@ -40,6 +42,6 @@ async function simulateScan(page: number, options: { dpi?: number; rotateDeg?: n
   return { file, markerCentersPx: rendered.markerCentersPx, width: rendered.width, height: rendered.height }
 }
 
-const dev = { renderPageToBlob, imageDiff, simulateScan, appStore: useAppStore, scanStore: useScanStore }
+const dev = { renderPageToBlob, imageDiff, simulateScan, encodeMp4, encodeGif, appStore: useAppStore, scanStore: useScanStore }
 ;(window as unknown as { __dev?: typeof dev }).__dev = dev
 export type DevTools = typeof dev

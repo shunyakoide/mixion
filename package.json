@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "gifenc": "^1.0.3",
     "jsqr": "^1.4.0",
     "mediabunny": "^1.55.7",
     "pdf-lib": "^1.17.1",
