@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 /**
  * MP4 writing on top of WebCodecs via mediabunny. Video is encoded as H.264;
  * the audio track of the source file, when given, is copied packet by packet
@@ -46,10 +47,10 @@ function evenDims(width: number, height: number): { width: number; height: numbe
 
 export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Result> {
   const { frames, fps } = options
-  if (frames.length === 0) throw new Error('フレームがありません')
+  if (frames.length === 0) throw new Error(t().errors.noFrames)
   const { width, height } = evenDims(options.width, options.height)
   if (!(await canEncodeVideo('avc', { width, height }))) {
-    throw new Error('このブラウザでは H.264 (avc) をエンコードできません')
+    throw new Error(t().errors.cannotEncodeH264)
   }
 
   const output = new Output({
@@ -74,8 +75,8 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
   if (options.audioFrom) {
     audioInput = new Input({ formats: ALL_FORMATS, source: new BlobSource(options.audioFrom) })
     const track = await audioInput.getPrimaryAudioTrack()
-    if (!track) audioNote = '元動画に音声トラックがありません'
-    else if (!track.codec) audioNote = '音声コーデックを判別できません'
+    if (!track) audioNote = t().errors.noAudioTrack
+    else if (!track.codec) audioNote = t().errors.unknownAudioCodec
     else {
       audioCodec = track.codec
       audioDecoderConfig = await track.getDecoderConfig()
@@ -122,7 +123,7 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
       }
       audioSource.close()
       audioCopied = count > 0
-      if (!audioCopied) audioNote = '音声パケットがありませんでした'
+      if (!audioCopied) audioNote = t().errors.noAudioPackets
     }
 
     await output.finalize()
@@ -131,6 +132,6 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
   }
 
   const buffer = output.target.buffer
-  if (!buffer) throw new Error('MP4 の書き出しに失敗しました')
+  if (!buffer) throw new Error(t().errors.mp4Failed)
   return { blob: new Blob([buffer], { type: 'video/mp4' }), audioCopied, audioNote }
 }

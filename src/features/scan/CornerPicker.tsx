@@ -7,8 +7,8 @@ import { pageToScanHomography, projectRect, type Homography } from '../../domain
 import { CORNERS, type Corner, type Layout, type Point } from '../../domain/layout'
 import { framesOnPage, framesPerPage } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
+import { useT } from '../../i18n'
 
-const CORNER_LABEL: Record<Corner, string> = { 0: '左上', 1: '右上', 2: '右下', 3: '左下' }
 const HIT_RADIUS = { mouse: 14, touch: 28 }
 const LOUPE = { size: 160, zoom: 4 }
 
@@ -36,6 +36,7 @@ interface Props {
  */
 export function CornerPicker({ scan, settings, layout }: Props) {
   const { setCorner, resetCorners, restoreDetectedCorners, setPage, applyScan } = useScanStore()
+  const t = useT()
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const loupeRef = useRef<HTMLCanvasElement>(null)
@@ -254,7 +255,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <span className="font-medium">{scan.name}</span>
         <label className="flex items-center gap-2">
-          Page
+          {t.scan.page}
           <select
             value={scan.page ?? ''}
             onChange={(e) => setPage(scan.id, e.target.value === '' ? null : Number(e.target.value))}
@@ -269,7 +270,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             ))}
           </select>
           {scan.pageSource === 'qr' && <span className="text-xs text-ok">QR</span>}
-          {scan.pageSource === 'order' && <span className="text-xs text-warn">取り込み順（要確認）</span>}
+          {scan.pageSource === 'order' && <span className="text-xs text-warn">{t.scan.orderSource}</span>}
         </label>
         {scan.qrNote && <span className="text-xs text-warn">{scan.qrNote}</span>}
       </div>
@@ -278,25 +279,24 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         {complete && !consistent ? (
           <>
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-semibold">!</span>
-            四隅の対応が合っていません。点を正しいマーカーまでドラッグするか、「四隅をやり直す」
+            {t.scan.inconsistent}
           </>
         ) : complete ? (
           <>
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
             <span className="min-w-0 flex-1">
-              {scan.status === 'applied' ? '切り出しました。' : '4 点そろいました。'}
-              緑の枠がコマの範囲です。ずれていたら隅の点をマーカーの中心へドラッグして{scan.status === 'applied' ? '「もう一度切り出す」' : ' Apply'}
+              {scan.status === 'applied' ? t.scan.cut : t.scan.fourSet} {t.scan.adjust(scan.status === 'applied')}
             </span>
           </>
         ) : (
           <>
             <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', qrHint ? 'bg-danger' : scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{qrHint ? '!' : 4 - remaining.length}</span>
-            {qrHint ? 'それは QR コードです。マーカーは紙の四隅にあります。' : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
-            紙の隅にある、このマーカーの中心をクリック:
+            {qrHint ? t.scan.qrHint : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? t.scan.autoFound(4 - scan.missingCorners.length) : ''}
+            {t.scan.clickMarker}
             {remaining.map((c) => (
               <span key={c} className="flex items-center gap-1">
                 <MarkerGlyph page={scan.page} corner={c} className="rounded-sm" />
-                <strong className="font-semibold">{CORNER_LABEL[c]}</strong>
+                <strong className="font-semibold">{t.scan.corners[c]}</strong>
               </span>
             ))}
             <span className="text-white/60">{4 - remaining.length} / 4</span>
@@ -316,27 +316,27 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           style={{ height: cssHeight }}
         />
         <canvas ref={loupeRef} className="pointer-events-none absolute rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size, ...(cursor ? loupePosition(cursor, scale, cssWidth, cssHeight) : {}) }} hidden={cursor === null} />
-        {!loaded && <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-3">読み込み中…</div>}
+        {!loaded && <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-3">{t.common.loading}</div>}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button id="apply-scan" onClick={() => void applyScan(scan.id)} disabled={!canApply}>
-          {busy ? '切り出し中…' : scan.status === 'applied' ? 'もう一度切り出す' : 'Apply: このページを切り出す'}
+          {busy ? t.scan.cutting : scan.status === 'applied' ? t.scan.cutAgain : t.scan.apply}
         </Button>
         {undo.length > 0 && (
-          <Button variant="ghost" onClick={undoLast} disabled={busy} title="直前のドラッグを取り消す">
-            元に戻す
+          <Button variant="ghost" onClick={undoLast} disabled={busy} title={t.scan.undoTitle}>
+            {t.scan.undo}
           </Button>
         )}
         {Object.keys(scan.detectedCorners).length > 0 && detectedDiffers && (
           <Button variant="ghost" onClick={() => { restoreDetectedCorners(scan.id); setUndo([]) }} disabled={busy}>
-            自動検出の位置に戻す
+            {t.scan.restoreDetected}
           </Button>
         )}
         <Button variant="ghost" onClick={() => { resetCorners(scan.id); setUndo([]) }} disabled={busy || Object.keys(scan.corners).length === 0}>
-          四隅をやり直す
+          {t.scan.resetCorners}
         </Button>
-        {scan.status === 'applied' && <span className="text-sm text-ok">切り出し済み</span>}
+        {scan.status === 'applied' && <span className="text-sm text-ok">{t.scan.cutDone}</span>}
         {scan.error && <span className="text-sm text-danger">{scan.error}</span>}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { t } from '../i18n'
 import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { pageToScanHomography, reprojectionError, type Homography } from '../domain/homography'
 import type { Corner, Point } from '../domain/layout'
@@ -139,7 +140,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
 
   resolveFrames: async () => {
     const { settings, outputFrames, original } = get()
-    if (!settings) throw new Error('設定がありません')
+    if (!settings) throw new Error(t().scan.errNoSettings)
     const n = settings.frameCount
     const missing: number[] = []
     for (let f = 1; f <= n; f++) if (!outputFrames.has(f)) missing.push(f)
@@ -194,7 +195,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
   importScans: async (files) => {
     const images = files.filter(isImageFile).sort((a, b) => compareNames(a.name, b.name))
     if (images.length === 0) {
-      set({ importError: '画像ファイル（JPEG / PNG）を選んでください' })
+      set({ importError: t().scan.errChooseImages })
       return
     }
     set({ importing: true, importError: null })
@@ -247,7 +248,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
           if (qr.ok) {
             const first = s.scans.find((x) => x.qr)?.qr
             if (first && !sameProject(first, qr.payload)) {
-              qrNote = `別のプロジェクト (${qr.payload.p}) のページです`
+              qrNote = t().scan.errOtherProject(qr.payload.p)
             } else {
               if (!settings || settingsSource !== 'qr') {
                 settings = settingsFromQr(qr.payload)
@@ -387,7 +388,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
     try {
       h = pageToScanHomography(layout, item.corners)
     } catch (e) {
-      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: `四隅の位置が不正です (${e instanceof Error ? e.message : e})` } : x)) }))
+      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: t().scan.errBadCorners(e instanceof Error ? e.message : String(e)) } : x)) }))
       return
     }
     const fitError = reprojectionError(

@@ -1,21 +1,23 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Button } from '../../components/ui/Button'
+import { useT } from '../../i18n'
 
-const STATUS_LABEL: Record<ScanItem['status'], { text: string; cls: string }> = {
-  reading: { text: '読み込み中', cls: 'text-ink-3' },
-  detecting: { text: '検出中', cls: 'text-ink-3' },
-  needs_corners: { text: '未指定', cls: 'text-warn' },
-  ready: { text: 'Apply 待ち', cls: 'text-accent' },
-  applying: { text: '処理中…', cls: 'text-accent' },
-  applied: { text: 'OK', cls: 'text-ok' },
-  error: { text: 'エラー', cls: 'text-danger' },
+const STATUS_CLASS: Record<ScanItem['status'], string> = {
+  reading: 'text-ink-3',
+  detecting: 'text-ink-3',
+  needs_corners: 'text-warn',
+  ready: 'text-accent',
+  applying: 'text-accent',
+  applied: 'text-ok',
+  error: 'text-danger',
 }
 
 export function ScanList() {
   const { scans, selectedId, select, importScans, importing, importError, removeScan, clearScans } = useScanStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
+  const t = useT()
 
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
@@ -27,7 +29,7 @@ export function ScanList() {
   return (
     <div className="flex h-full flex-col gap-3" onDragOver={(e) => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}>
       <Button id="import-scans" onClick={() => inputRef.current?.click()} disabled={importing} className="w-full">
-        {importing ? '読み込み中…' : 'Import Scans'}
+        {importing ? t.scan.importing : t.scan.importButton}
       </Button>
       <input
         ref={inputRef}
@@ -43,9 +45,8 @@ export function ScanList() {
       />
       {importError && <p className="text-sm text-danger">{importError}</p>}
       <ul className={['min-h-40 flex-1 space-y-1 overflow-auto rounded-lg border p-1', over ? 'border-ink bg-rule/40' : 'border-rule bg-panel'].join(' ')}>
-        {scans.length === 0 && <li className="p-3 text-sm text-ink-3">スキャン画像をここにドロップ</li>}
+        {scans.length === 0 && <li className="p-3 text-sm text-ink-3">{t.scan.dropScans}</li>}
         {scans.map((s) => {
-          const st = STATUS_LABEL[s.status]
           return (
             <li key={s.id}>
               <button
@@ -57,11 +58,11 @@ export function ScanList() {
                 <span className="min-w-0 flex-1 truncate" title={s.name}>
                   {s.name}
                 </span>
-                <span className={[s.id === selectedId ? 'text-white/80' : st.cls, 'shrink-0 text-xs'].join(' ')}>{st.text}</span>
+                <span className={[s.id === selectedId ? 'text-white/80' : STATUS_CLASS[s.status], 'shrink-0 text-xs'].join(' ')}>{t.scan.status[s.status]}</span>
                 <span
                   role="button"
                   tabIndex={0}
-                  aria-label="remove"
+                  aria-label={t.scan.remove}
                   onClick={(e) => { e.stopPropagation(); removeScan(s.id) }}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); removeScan(s.id) } }}
                   className="-my-2 shrink-0 px-3 py-2 opacity-50 hover:opacity-100 sm:-my-1 sm:px-1 sm:py-1"
@@ -77,12 +78,12 @@ export function ScanList() {
         <button
           type="button"
           onClick={() => {
-            if (window.confirm('取り込んだページと切り出したコマをすべて消して、やり直しますか？')) clearScans()
+            if (window.confirm(t.scan.confirmRestart)) clearScans()
           }}
           disabled={importing}
           className="self-start py-2 text-sm text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-40"
         >
-          取り込みをやり直す
+          {t.scan.restart}
         </button>
       )}
     </div>

@@ -7,6 +7,7 @@ import { ExportPanel } from './ExportPanel'
 import { OriginalDrop } from './OriginalDrop'
 import { Player } from './Player'
 import { useResolvedFrames } from './useResolvedFrames'
+import { useT } from '../../i18n'
 
 export function AnimateStep() {
   const settings = useScanStore((s) => s.settings)
@@ -16,14 +17,15 @@ export function AnimateStep() {
   const [seek, setSeek] = useState<{ index: number; nonce: number } | null>(null)
   const [current, setCurrent] = useState(0)
   const onFrame = useCallback((i: number) => setCurrent(i), [])
+  const t = useT()
 
   if (!settings || applied === 0) {
     return (
       <div className="mx-auto max-w-xl pt-10 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">まだ動画にするコマがありません</h1>
-        <p className="mt-2 text-ink-2">Scan でページを取り込み、四隅を指定して Apply すると、ここで再生と書き出しができます。</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.animate.emptyTitle}</h1>
+        <p className="mt-2 text-ink-2">{t.animate.emptyBody}</p>
         <Button className="mt-6" onClick={() => setStep('scan')}>
-          Scan へ
+          {t.animate.goScan}
         </Button>
       </div>
     )

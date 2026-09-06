@@ -1,10 +1,11 @@
 import type { RgbaImage } from '../features/scan/warp'
+import { t } from '../i18n'
 
 export async function loadBitmap(file: Blob): Promise<ImageBitmap> {
   try {
     return await createImageBitmap(file)
   } catch {
-    throw new Error(`画像を読み込めません: ${(file as File).name ?? ''}`)
+    throw new Error(t().errors.cannotLoadImage((file as File).name ?? ''))
   }
 }
 

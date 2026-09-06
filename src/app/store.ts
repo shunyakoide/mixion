@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { t } from '../i18n'
 import { frameTimestamp, framesOnPage, framesPerPage } from '../domain/frameMap'
 import { GRID_PRESETS, type GridPreset, type Layout } from '../domain/layout'
 import { createProjectSettings, generateProjectId, isValidFps, layoutFromSettings, type ProjectSettings } from '../domain/settings'
@@ -98,7 +99,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const info = await probeVideo(file)
       if (get().file !== file) return
       if (!info.canDecodeVideo) {
-        set({ probing: false, loadError: `このブラウザでは ${info.videoCodec ?? '不明な'} コーデックの動画をデコードできません` })
+        set({ probing: false, loadError: t().app.cannotDecode(info.videoCodec ?? null) })
         return
       }
       set({ info, probing: false, extractor: new FrameExtractor(file) })
@@ -142,27 +143,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     const extractor = state.extractor
     if (!settings || !file || !extractor) return
     const all = Array.from({ length: settings.frameCount }, (_, i) => i + 1)
-    set({ status: 'extracting', progress: { label: 'フレームを抽出中', done: 0, total: all.length }, pdfError: null, lastSaved: null })
+    set({ status: 'extracting', progress: { label: t().app.extractingFrames, done: 0, total: all.length }, pdfError: null, lastSaved: null })
     try {
       const missing = all.filter((f) => !state.frames.has(f))
       if (missing.length > 0) {
         const extracted = await extractor.extract(
           missing.map((f) => frameTimestamp(f, state.fps)),
-          { onFrame: (_f, total) => set((s) => ({ progress: { label: 'フレームを抽出中', done: (s.progress?.done ?? 0) + 1, total } })) },
+          { onFrame: (_f, total) => set((s) => ({ progress: { label: t().app.extractingFrames, done: (s.progress?.done ?? 0) + 1, total } })) },
         )
         const next = new Map(get().frames)
         extracted.forEach((e, i) => next.set(missing[i], e.blob))
         set({ frames: next })
       }
       const frames = get().frames
-      set({ status: 'building', progress: { label: 'PDF を作成中', done: 0, total: settings.pageCount } })
+      set({ status: 'building', progress: { label: t().app.buildingPdf, done: 0, total: settings.pageCount } })
       const bytes = await buildPrintPdf({
         settings,
         getFrameImage: async (frame) => {
           const blob = frames.get(frame)
           return blob ? { kind: 'jpeg', bytes: new Uint8Array(await blob.arrayBuffer()) } : null
         },
-        onProgress: (done, total) => set({ progress: { label: 'PDF を作成中', done, total } }),
+        onProgress: (done, total) => set({ progress: { label: t().app.buildingPdf, done, total } }),
       })
       set({ status: 'saving', progress: null })
       const filename = `mixion-${settings.projectId}-${settings.fps}fps-${settings.grid.cols}x${settings.grid.rows}.pdf`

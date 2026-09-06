@@ -2,11 +2,13 @@ import { Button } from '../components/ui/Button'
 import { ChevronLeft, ChevronRight } from '../components/ui/icons'
 import { STEP_ORDER, useAppStore } from './store'
 import { useStepProgress } from './useStepProgress'
+import { useT } from '../i18n'
 
 /** Fixed bottom bar: where you are, what is missing, and the way forward. */
 export function StepBar() {
   const setStep = useAppStore((s) => s.setStep)
   const { steps, currentIndex } = useStepProgress()
+  const t = useT()
   const info = steps[currentIndex]
   const prev = STEP_ORDER[currentIndex - 1]
   const next = STEP_ORDER[currentIndex + 1]
@@ -22,14 +24,14 @@ export function StepBar() {
           <span className="ml-3 hidden text-ink-2 md:inline">{info.hint}</span>
         </div>
         {prev && (
-          <Button variant="secondary" onClick={() => setStep(prev)} aria-label={`前へ: ${steps[currentIndex - 1].label}`} className="px-3 sm:px-4">
+          <Button variant="secondary" onClick={() => setStep(prev)} aria-label={t.steps.back(steps[currentIndex - 1].label)} className="px-3 sm:px-4">
             <ChevronLeft className="sm:-ml-1 sm:mr-1" />
             <span className="hidden sm:inline">{steps[currentIndex - 1].label}</span>
           </Button>
         )}
         {nextInfo && (
           <Button variant={info.done ? 'primary' : 'secondary'} onClick={() => setStep(nextInfo.id)} id="step-next">
-            次へ: {nextInfo.label}
+            {t.steps.next(nextInfo.label)}
             <ChevronRight className="-mr-1 ml-1" />
           </Button>
         )}

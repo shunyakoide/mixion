@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import type { ResolvedFrames } from '../../app/scanStore'
 import { frameLabel } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
+import { useT } from '../../i18n'
 
 const RING = {
   scan: 'ring-transparent',
@@ -21,22 +22,23 @@ interface Props {
 export function FrameStrip({ settings, resolved, current, onSelect }: Props) {
   const urls = useMemo(() => resolved?.frames.map((b) => URL.createObjectURL(b)) ?? [], [resolved])
   useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls])
+  const t = useT()
   if (!resolved) return null
   const counts = resolved.sources.reduce<Record<string, number>>((a, s) => ({ ...a, [s]: (a[s] ?? 0) + 1 }), {})
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
-        <span className="font-medium">コマ一覧</span>
-        <span className="text-ink-2">スキャンから {counts.scan ?? 0}</span>
+        <span className="font-medium">{t.animate.framesTitle}</span>
+        <span className="text-ink-2">{t.animate.fromScan(counts.scan ?? 0)}</span>
         {counts.original ? (
           <span className="flex items-center gap-1 text-ink-2">
-            <span className="h-2.5 w-2.5 rounded-sm ring-2 ring-warn" aria-hidden /> 元動画で補完 {counts.original}
+            <span className="h-2.5 w-2.5 rounded-sm ring-2 ring-warn" aria-hidden /> {t.animate.fromOriginal(counts.original)}
           </span>
         ) : null}
         {(counts.hold ?? 0) + (counts.blank ?? 0) > 0 ? (
           <span className="flex items-center gap-1 text-ink-2">
-            <span className="h-2.5 w-2.5 rounded-sm ring-2 ring-rule-2" aria-hidden /> 前のコマを流用 {(counts.hold ?? 0) + (counts.blank ?? 0)}
+            <span className="h-2.5 w-2.5 rounded-sm ring-2 ring-rule-2" aria-hidden /> {t.animate.held((counts.hold ?? 0) + (counts.blank ?? 0))}
           </span>
         ) : null}
       </div>

@@ -1,4 +1,5 @@
 import jsQR from 'jsqr'
+import { t } from '../../i18n'
 import { decodeQrPayload, type QrPayload } from '../../domain/settings'
 import { bitmapToRgba } from '../../lib/image'
 import type { QrCornersPx } from './detectMarkers'
@@ -22,7 +23,7 @@ export function readPageQr(bitmap: ImageBitmap): QrReadResult {
     if (!res) continue
     lastText = res.data
     const decoded = decodeQrPayload(res.data)
-    if (!decoded.ok) return { ok: false, error: `QR は読めましたが Mixion の形式ではありません (${decoded.error})`, text: res.data }
+    if (!decoded.ok) return { ok: false, error: t().scan.errNotMixionQr(decoded.error), text: res.data }
     const k = bitmap.width / img.width
     const scale = (p: { x: number; y: number }) => ({ x: p.x * k, y: p.y * k })
     return {
@@ -37,5 +38,5 @@ export function readPageQr(bitmap: ImageBitmap): QrReadResult {
       },
     }
   }
-  return { ok: false, error: 'QR コードが見つかりません', text: lastText }
+  return { ok: false, error: t().scan.errNoQr, text: lastText }
 }

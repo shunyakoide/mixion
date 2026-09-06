@@ -3,12 +3,14 @@ import { deriveLayout, deriveSettings, useAppStore } from '../../app/store'
 import { GRID_PRESETS, type GridPreset } from '../../domain/layout'
 import { FPS_MAX, FPS_MIN, FPS_PRESETS, isValidFps } from '../../domain/settings'
 import { Chip } from '../../components/ui/Chip'
+import { useT } from '../../i18n'
 
 export function SettingsPanel() {
   const { fps, gridKey, setFps, setGrid, info, projectId, status } = useAppStore()
   const busy = status === 'extracting' || status === 'building' || status === 'saving'
   const settings = deriveSettings({ info, fps, gridKey, projectId })
   const layout = deriveLayout(settings)
+  const t = useT()
   const [custom, setCustom] = useState<string>(FPS_PRESETS.includes(fps as (typeof FPS_PRESETS)[number]) ? '' : String(fps))
   const customActive = custom !== '' && Number(custom) === fps
 
@@ -21,7 +23,7 @@ export function SettingsPanel() {
   return (
     <div className="space-y-5">
       <div>
-        <div className="mb-2 text-sm font-medium">FPS</div>
+        <div className="mb-2 text-sm font-medium">{t.settings.fps}</div>
         <div className="flex flex-wrap items-center gap-2">
           {FPS_PRESETS.map((p) => (
             <Chip key={p} selected={fps === p && !customActive} onClick={() => { setCustom(''); setFps(p) }} disabled={busy}>
@@ -35,7 +37,7 @@ export function SettingsPanel() {
             step={1}
             value={custom}
             onChange={(e) => onCustom(e.target.value)}
-            placeholder="任意"
+            placeholder={t.settings.customFps}
             disabled={busy}
             aria-label="custom fps"
             className={[
@@ -48,7 +50,7 @@ export function SettingsPanel() {
       </div>
 
       <div>
-        <div className="mb-2 text-sm font-medium">Frames per Page</div>
+        <div className="mb-2 text-sm font-medium">{t.settings.framesPerPage}</div>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(GRID_PRESETS) as GridPreset[]).map((k) => (
             <Chip key={k} selected={gridKey === k} onClick={() => setGrid(k)} disabled={busy}>
@@ -62,14 +64,14 @@ export function SettingsPanel() {
         {settings && layout ? (
           <>
             <div className="text-base font-medium">
-              {settings.frameCount} frames → {settings.pageCount} pages
+              {t.settings.summary(settings.frameCount, settings.pageCount)}
             </div>
             <div className="mt-1 text-ink-2">
-              A4 {layout.orientation === 'landscape' ? '横' : '縦'} · 1 フレーム {layout.cells[0].imageRect.w.toFixed(0)}×{layout.cells[0].imageRect.h.toFixed(0)} mm · Project {settings.projectId}
+              {t.settings.layoutLine(layout.orientation === 'landscape', layout.cells[0].imageRect.w.toFixed(0), layout.cells[0].imageRect.h.toFixed(0), settings.projectId)}
             </div>
           </>
         ) : (
-          <div className="text-ink-2">動画を読み込むと枚数が表示されます</div>
+          <div className="text-ink-2">{t.settings.loadVideoFirst}</div>
         )}
       </div>
     </div>

@@ -4,6 +4,7 @@ import type { Layout } from '../../domain/layout'
 import type { ProjectSettings } from '../../domain/settings'
 import { CanvasPainter } from './canvasPainter'
 import { buildPageSpec, paintPage } from './pagePainter'
+import { useT } from '../../i18n'
 
 /** All pages in order, painted with the same painter the PDF uses. Pages render as they scroll into view. */
 export function PagePreview() {
@@ -21,10 +22,11 @@ export function PagePreview() {
     return () => ro.disconnect()
   }, [])
 
+  const t = useT()
   if (!settings || !layout) {
     return (
       <div ref={wrapRef} className="flex aspect-[297/210] items-center justify-center rounded-lg border border-dashed border-rule-2 text-sm text-ink-3">
-        Preview
+        {t.print.preview}
       </div>
     )
   }
@@ -32,8 +34,8 @@ export function PagePreview() {
   return (
     <div ref={wrapRef} className="space-y-3">
       <div className="flex items-baseline justify-between text-sm">
-        <span className="font-medium">Preview</span>
-        <span className="tabular-nums text-ink-2">{settings.pageCount} pages</span>
+        <span className="font-medium">{t.print.preview}</span>
+        <span className="tabular-nums text-ink-2">{t.print.pages(settings.pageCount)}</span>
       </div>
       <ol className="space-y-6">
         {Array.from({ length: settings.pageCount }, (_, i) => (
@@ -49,6 +51,7 @@ export function PagePreview() {
 function PageCard({ settings, layout, page, width }: { settings: ProjectSettings; layout: Layout; page: number; width: number }) {
   const frames = useAppStore((s) => s.frames)
   const ensureFrames = useAppStore((s) => s.ensureFrames)
+  const t = useT()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [visible, setVisible] = useState(false)
   const pageFrames = previewFrameNumbers(settings, page)
@@ -125,7 +128,7 @@ function PageCard({ settings, layout, page, width }: { settings: ProjectSettings
     <div className="relative">
       <div className="mb-1.5 flex items-baseline justify-between text-xs text-ink-2">
         <span className="tabular-nums">
-          Page {page} / {settings.pageCount}
+          {t.print.pageOf(page, settings.pageCount)}
         </span>
         <span className="tabular-nums">
           #{String(pageFrames[0]).padStart(2, '0')} – #{String(pageFrames[pageFrames.length - 1]).padStart(2, '0')}
@@ -136,7 +139,7 @@ function PageCard({ settings, layout, page, width }: { settings: ProjectSettings
         <div className="absolute inset-x-0 top-9 flex justify-center" aria-live="polite">
           <span className="flex items-center gap-2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
-            フレームを読み込み中…
+            {t.print.loadingFrames}
           </span>
         </div>
       )}

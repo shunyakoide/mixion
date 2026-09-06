@@ -3,6 +3,7 @@
  * browser; nothing is uploaded.
  */
 import { ALL_FORMATS, BlobSource, CanvasSink, Input } from 'mediabunny'
+import { t } from '../../i18n'
 
 export interface VideoInfo {
   duration: number
@@ -24,7 +25,7 @@ export async function probeVideo(file: Blob): Promise<VideoInfo> {
   const input = openInput(file)
   try {
     const video = await input.getPrimaryVideoTrack()
-    if (!video) throw new Error('この動画ファイルには映像トラックがありません')
+    if (!video) throw new Error(t().errors.noVideoTrackInFile)
     const audio = await input.getPrimaryAudioTrack()
     const [duration, width, height, canDecodeVideo] = await Promise.all([
       input.computeDuration(),
@@ -92,8 +93,8 @@ export class FrameExtractor {
 
   private static async open(input: Input): Promise<CanvasSink> {
     const video = await input.getPrimaryVideoTrack()
-    if (!video) throw new Error('映像トラックがありません')
-    if (!(await video.canDecode())) throw new Error(`このブラウザでは ${video.codec ?? '不明な'} コーデックをデコードできません`)
+    if (!video) throw new Error(t().errors.noVideoTrack)
+    if (!(await video.canDecode())) throw new Error(t().errors.cannotDecodeCodec(video.codec ?? null))
     return new CanvasSink(video, { poolSize: 2 })
   }
 
@@ -121,7 +122,7 @@ export class FrameExtractor {
       } else if (last) {
         frame = { ...last, index, requested }
       } else {
-        throw new Error(`t=${requested}s のフレームを取得できませんでした`)
+        throw new Error(t().errors.frameFailed(requested))
       }
       out.push(frame)
       last = frame

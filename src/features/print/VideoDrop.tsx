@@ -3,6 +3,7 @@ import { useAppStore } from '../../app/store'
 import { Button } from '../../components/ui/Button'
 import { Film, Spinner, Upload } from '../../components/ui/icons'
 import { firstFileFromDrop, formatBytes, isVideoFile } from '../../lib/files'
+import { useT } from '../../i18n'
 
 /** Page-wide drag target: while a file is dragged anywhere over the window, show where to drop it. */
 function usePageDrop(enabled: boolean, onFile: (f: File) => void) {
@@ -44,6 +45,7 @@ function usePageDrop(enabled: boolean, onFile: (f: File) => void) {
 export function VideoDrop() {
   const { file, info, probing, loadError, loadVideo } = useAppStore()
   const inputRef = useRef<HTMLInputElement>(null)
+  const t = useT()
   // Dropping a video anywhere on the page loads it, and replaces the current one if there is one.
   const dragging = usePageDrop(true, loadVideo)
 
@@ -71,10 +73,10 @@ export function VideoDrop() {
     const meta: string[] = info
       ? [
           `${info.width}×${info.height}`,
-          `${info.duration.toFixed(2)} 秒`,
+          t.common.seconds(info.duration.toFixed(2)),
           ...(info.frameRate ? [`${Math.round(info.frameRate * 100) / 100} fps`] : []),
           formatBytes(file.size),
-          info.hasAudio ? '音声あり' : '音声なし',
+          info.hasAudio ? t.common.withAudio : t.common.noAudio,
         ]
       : []
     return (
@@ -92,7 +94,7 @@ export function VideoDrop() {
             <div className="mt-1 text-sm text-ink-2">
               {probing && (
                 <span className="flex items-center gap-2">
-                  <Spinner size={14} /> 読み込み中…
+                  <Spinner size={14} /> {t.common.loading}
                 </span>
               )}
               {loadError && <span className="text-danger">{loadError}</span>}
@@ -111,9 +113,9 @@ export function VideoDrop() {
         </div>
         <Button variant="secondary" className="mt-4 w-full" onClick={() => inputRef.current?.click()} disabled={probing}>
           <Upload size={16} className="mr-2" />
-          {dragging ? 'ここに離すと差し替えます' : '別の動画を選ぶ'}
+          {dragging ? t.videoDrop.dropToReplace : t.videoDrop.chooseAnother}
         </Button>
-        <p className="mt-2 text-center text-xs text-ink-3">ページのどこにドロップしても差し替わります</p>
+        <p className="mt-2 text-center text-xs text-ink-3">{t.videoDrop.dropAnywhere}</p>
         {input}
       </div>
     )
@@ -129,10 +131,10 @@ export function VideoDrop() {
       ].join(' ')}
     >
       <Upload size={28} className={dragging ? 'text-accent' : 'text-ink-3'} />
-      <div className="mt-4 text-lg font-medium">{dragging ? 'ここに離すと読み込みます' : '動画をここにドロップ'}</div>
-      <div className="mt-1 text-sm text-ink-2">mp4 / mov / webm。ファイルはこのブラウザの中だけで処理されます</div>
+      <div className="mt-4 text-lg font-medium">{dragging ? t.videoDrop.dropToLoad : t.videoDrop.dropVideo}</div>
+      <div className="mt-1 text-sm text-ink-2">{t.videoDrop.formats}</div>
       <Button className="mt-6" onClick={() => inputRef.current?.click()}>
-        ファイルを選ぶ
+        {t.common.chooseFile}
       </Button>
       {input}
     </div>

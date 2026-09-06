@@ -4,11 +4,13 @@ import { Button } from '../../components/ui/Button'
 import { GRID_PRESETS, parseGrid, type GridPreset } from '../../domain/layout'
 import { FPS_MAX, FPS_MIN, isValidFps, type ProjectSettings } from '../../domain/settings'
 import { framesPerPage, pageCount } from '../../domain/frameMap'
+import { useT } from '../../i18n'
 
 /** Shows the settings restored from the QR, or a small form to enter them by hand. */
 export function SettingsBar() {
   const { settings, settingsSource, setManualSettings, clearSettings, scans } = useScanStore()
   const [open, setOpen] = useState(false)
+  const t = useT()
 
   if (settings && !open) {
     return (
@@ -18,9 +20,9 @@ export function SettingsBar() {
         <span>{settings.grid.cols}×{settings.grid.rows}</span>
         <span>{settings.frameCount} frames / {settings.pageCount} pages</span>
         <span>{settings.dims.width}×{settings.dims.height}</span>
-        <span className="text-ink-2">{settingsSource === 'qr' ? 'QR から復元' : '手入力'}</span>
+        <span className="text-ink-2">{settingsSource === 'qr' ? t.scan.fromQr : t.scan.enteredByHand}</span>
         <button type="button" className="ml-auto text-ink-2 underline" onClick={() => setOpen(true)}>
-          変更
+          {t.scan.change}
         </button>
       </div>
     )
@@ -36,6 +38,7 @@ function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: Project
   const [w, setW] = useState(String(initial?.dims.width ?? 1920))
   const [h, setH] = useState(String(initial?.dims.height ?? 1080))
   const [projectId, setProjectId] = useState(initial?.projectId ?? 'manual')
+  const t = useT()
 
   const grid = parseGrid(gridKey)
   const valid = isValidFps(Number(fps)) && grid && Number(frames) >= 1 && Number(w) >= 2 && Number(h) >= 2
@@ -56,14 +59,14 @@ function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: Project
 
   return (
     <div className="rounded-lg border border-rule bg-panel p-4 text-sm">
-      <div className="mb-3 text-ink-2">QR が読めない場合は、印刷時の設定を入力してください（ページのヘッダに印刷されています）。</div>
+      <div className="mb-3 text-ink-2">{t.scan.manualIntro}</div>
       <div className="flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1">
           fps
           <input className={field} type="number" min={FPS_MIN} max={FPS_MAX} value={fps} onChange={(e) => setFps(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1">
-          Grid
+          {t.scan.grid}
           <select className={field} value={gridKey} onChange={(e) => setGridKey(e.target.value)}>
             {(Object.keys(GRID_PRESETS) as GridPreset[]).map((k) => (
               <option key={k} value={k}>
@@ -73,32 +76,32 @@ function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: Project
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          総フレーム数
+          {t.scan.totalFrames}
           <input className={field} type="number" min={1} value={frames} onChange={(e) => setFrames(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1">
-          幅 px
+          {t.scan.widthPx}
           <input className={field} type="number" min={2} value={w} onChange={(e) => setW(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1">
-          高さ px
+          {t.scan.heightPx}
           <input className={field} type="number" min={2} value={h} onChange={(e) => setH(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1">
-          Project ID
+          {t.scan.projectId}
           <input className={field} value={projectId} onChange={(e) => setProjectId(e.target.value)} />
         </label>
         <Button onClick={submit} disabled={!valid}>
-          設定する
+          {t.scan.useSettings}
         </Button>
         {onCancel && (
           <Button variant="secondary" onClick={onCancel}>
-            キャンセル
+            {t.common.cancel}
           </Button>
         )}
         {onClear && (
           <Button variant="secondary" onClick={onClear}>
-            クリア
+            {t.common.clear}
           </Button>
         )}
       </div>

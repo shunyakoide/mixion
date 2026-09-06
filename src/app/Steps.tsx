@@ -1,12 +1,14 @@
 import { Check } from '../components/ui/icons'
 import { useAppStore } from './store'
 import { useStepProgress } from './useStepProgress'
+import { useT } from '../i18n'
 
 export function Steps() {
   const setStep = useAppStore((s) => s.setStep)
   const { steps, current } = useStepProgress()
+  const t = useT()
   return (
-    <ol className="flex min-w-0 items-stretch gap-1 overflow-x-auto" aria-label="手順">
+    <ol className="flex min-w-0 items-stretch gap-1 overflow-x-auto" aria-label={t.header.steps}>
       {steps.map((s) => {
         const active = s.id === current
         return (

@@ -1,5 +1,6 @@
 import { useScanStore } from './scanStore'
 import { STEP_ORDER, useAppStore, type Step } from './store'
+import { useT } from '../i18n'
 
 export interface StepInfo {
   id: Step
@@ -18,33 +19,34 @@ export function useStepProgress(): { steps: StepInfo[]; current: Step; currentIn
   const applied = useScanStore((s) => s.outputFrames.size)
   const settings = useScanStore((s) => s.settings)
   const exported = useScanStore((s) => s.exported)
+  const t = useT()
 
   const steps: StepInfo[] = [
     {
       id: 'print',
       index: 0,
-      label: 'Print',
+      label: t.steps.print,
       done: printDone,
-      hint: printDone ? 'PDF を保存しました' : hasVideo ? 'Create Print PDF で印刷用 PDF を保存します' : '動画を読み込むと PDF を作れます',
+      hint: printDone ? t.steps.hintPrintDone : hasVideo ? t.steps.hintPrintHasVideo : t.steps.hintPrintNoVideo,
     },
     {
       id: 'scan',
       index: 1,
-      label: 'Scan',
+      label: t.steps.scan,
       done: applied > 0,
       hint:
         applied > 0
-          ? `${applied}${settings ? ` / ${settings.frameCount}` : ''} フレームを切り出しました`
+          ? t.steps.hintScanApplied(applied, settings ? settings.frameCount : null)
           : scansImported > 0
-            ? '見つからなかった隅をクリックして Apply します'
-            : 'スキャンした画像を取り込みます',
+            ? t.steps.hintScanImported
+            : t.steps.hintScanEmpty,
     },
     {
       id: 'animate',
       index: 2,
-      label: 'Animate',
+      label: t.steps.animate,
       done: exported.mp4 !== null || exported.gif !== null,
-      hint: exported.mp4 || exported.gif ? '書き出しました' : applied > 0 ? 'MP4 か GIF に書き出します' : 'Scan でフレームを切り出すと書き出せます',
+      hint: exported.mp4 || exported.gif ? t.steps.hintAnimateExported : applied > 0 ? t.steps.hintAnimateReady : t.steps.hintAnimateEmpty,
     },
   ]
   return { steps, current, currentIndex: STEP_ORDER.indexOf(current) }
