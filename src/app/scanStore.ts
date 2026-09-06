@@ -20,6 +20,8 @@ export interface ScanItem {
   width: number
   height: number
   qr: QrPayload | null
+  /** Bounding box of the QR in scan px, so a click on it can be told apart from a marker. */
+  qrRect: { x: number; y: number; w: number; h: number } | null
   qrNote: string | null
   page: number | null
   pageSource: 'qr' | 'manual' | 'order' | null
@@ -85,6 +87,14 @@ interface ScanState {
 }
 
 let nextId = 1
+
+function bbox(pts: Point[]): { x: number; y: number; w: number; h: number } {
+  const xs = pts.map((p) => p.x)
+  const ys = pts.map((p) => p.y)
+  const x = Math.min(...xs)
+  const y = Math.min(...ys)
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }
+}
 
 function cornersComplete(c: Partial<Record<Corner, Point>>): c is Record<Corner, Point> {
   return c[0] !== undefined && c[1] !== undefined && c[2] !== undefined && c[3] !== undefined
@@ -194,6 +204,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
         width: 0,
         height: 0,
         qr: null,
+        qrRect: null,
         qrNote: null,
         page: null,
         pageSource: null,
@@ -260,6 +271,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
                   width,
                   height,
                   qr: qr.ok ? qr.payload : null,
+                  qrRect: qr.ok ? bbox([qr.corners.topLeft, qr.corners.topRight, qr.corners.bottomRight, qr.corners.bottomLeft]) : null,
                   qrNote,
                   page,
                   pageSource,

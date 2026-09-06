@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { MarkerGlyph } from './MarkerGlyph'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Button } from '../../components/ui/Button'
 import { pageToScanHomography, projectRect, type Homography } from '../../domain/homography'
@@ -65,6 +66,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   const loaded = loadedUrl === scan.url
   const [cssWidth, setCssWidth] = useState(600)
   const [cursor, setCursor] = useState<Point | null>(null)
+  const [qrHint, setQrHint] = useState(false)
   const dragging = useRef<Corner | null>(null)
 
   // Load the scan image.
@@ -216,6 +218,13 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       return
     }
     if (nextCorner !== null) {
+      // A click on the QR is a common slip: say so instead of taking it as a corner.
+      const q = scan.qrRect
+      if (q && p.x >= q.x - q.w * 0.15 && p.x <= q.x + q.w * 1.15 && p.y >= q.y - q.h * 0.15 && p.y <= q.y + q.h * 1.15) {
+        setQrHint(true)
+        return
+      }
+      setQrHint(false)
       // The quadrant decides which corner this is, so the markers can be clicked in any order.
       const corner = cornerFromPosition(p, scan.width, scan.height)
       setCorner(scan.id, corner, p)
@@ -283,9 +292,15 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             </>
           ) : (
             <>
-              <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{4 - remaining.length}</span>
-              {scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
-              残りの ■ の中心をクリック: <strong className="font-semibold">{remaining.map((c) => CORNER_LABEL[c]).join('・')}</strong>
+              <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', qrHint ? 'bg-danger' : scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{qrHint ? '!' : 4 - remaining.length}</span>
+              {qrHint ? 'それは QR コードです。' : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
+              紙の隅にあるこのマークの中心をクリック:
+              {remaining.map((c) => (
+                <span key={c} className="flex items-center gap-1">
+                  <MarkerGlyph page={scan.page} corner={c} className="rounded-sm" />
+                  <strong className="font-semibold">{CORNER_LABEL[c]}</strong>
+                </span>
+              ))}
               <span className="text-white/60">{4 - remaining.length} / 4</span>
             </>
           )}
