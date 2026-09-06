@@ -24,6 +24,8 @@ interface PrintSlice {
   extractor: FrameExtractor | null
   probing: boolean
   loadError: string | null
+  /** True while the bundled sample clip is the source. */
+  sample: boolean
   fps: number
   gridKey: GridPreset
   projectId: string
@@ -37,7 +39,7 @@ interface PrintSlice {
 
 interface Actions {
   setStep: (step: Step) => void
-  loadVideo: (file: File) => Promise<void>
+  loadVideo: (file: File, options?: { sample?: boolean }) => Promise<void>
   clearVideo: () => void
   setFps: (fps: number) => void
   setGrid: (key: GridPreset) => void
@@ -73,6 +75,7 @@ export function deriveLayout(settings: ProjectSettings | null): Layout | null {
 export const useAppStore = create<AppState>((set, get) => ({
   step: 'print',
   file: null,
+  sample: false,
   info: null,
   extractor: null,
   probing: false,
@@ -88,9 +91,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setStep: (step) => set({ step }),
 
-  loadVideo: async (file) => {
+  loadVideo: async (file, options) => {
     void get().extractor?.dispose()
-    set({ file, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), status: 'idle', pdfError: null, lastSaved: null, projectId: generateProjectId() })
+    set({ file, sample: options?.sample === true, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), status: 'idle', pdfError: null, lastSaved: null, projectId: generateProjectId() })
     try {
       const info = await probeVideo(file)
       if (get().file !== file) return
@@ -107,7 +110,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   clearVideo: () => {
     void get().extractor?.dispose()
-    set({ file: null, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), status: 'idle', progress: null, pdfError: null, lastSaved: null })
+    set({ file: null, sample: false, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), status: 'idle', progress: null, pdfError: null, lastSaved: null })
   },
 
   setFps: (fps) => {

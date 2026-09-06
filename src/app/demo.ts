@@ -24,7 +24,7 @@ export async function loadSampleVideo(): Promise<void> {
   const res = await fetch(SAMPLE_URL)
   if (!res.ok) throw new Error(`サンプル動画を読み込めませんでした (${res.status})`)
   const blob = await res.blob()
-  await useAppStore.getState().loadVideo(new File([blob], 'sample.mp4', { type: 'video/mp4' }))
+  await useAppStore.getState().loadVideo(new File([blob], 'sample.mp4', { type: 'video/mp4' }), { sample: true })
   const { loadError } = useAppStore.getState()
   if (loadError) throw new Error(loadError)
 }
@@ -74,4 +74,12 @@ export async function runScanWithoutPaper(): Promise<void> {
   } catch (e) {
     useDemoStore.setState({ running: false, label: null, error: e instanceof Error ? e.message : String(e) })
   }
+}
+
+/** Back to the empty start page, dropping the sample and everything made from it. */
+export function leaveSample(): void {
+  useScanStore.getState().reset()
+  useAppStore.getState().clearVideo()
+  useAppStore.getState().setStep('print')
+  useDemoStore.setState({ running: false, label: null, error: null })
 }

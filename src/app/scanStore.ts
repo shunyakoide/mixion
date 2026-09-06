@@ -77,6 +77,8 @@ interface ScanState {
   resetCorners: (id: string) => void
   setManualSettings: (settings: ProjectSettings) => void
   clearSettings: () => void
+  /** Forget everything: scans, cut frames, settings, original video. */
+  reset: () => void
   applyScan: (id: string) => Promise<void>
 }
 
@@ -312,6 +314,24 @@ export const useScanStore = create<ScanState>((set, get) => ({
   setManualSettings: (settings) => set({ settings, settingsSource: 'manual' }),
 
   clearSettings: () => set({ settings: null, settingsSource: null }),
+
+  reset: () => {
+    for (const item of get().scans) URL.revokeObjectURL(item.url)
+    set({
+      settings: null,
+      settingsSource: null,
+      scans: [],
+      selectedId: null,
+      outputFrames: new Map(),
+      importing: false,
+      importError: null,
+      exported: { mp4: null, gif: null },
+      original: null,
+      originalLoading: false,
+      originalError: null,
+      originalFrames: new Map(),
+    })
+  },
 
   applyScan: async (id) => {
     const { settings } = get()
