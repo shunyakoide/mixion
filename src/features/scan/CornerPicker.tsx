@@ -10,6 +10,29 @@ const CORNER_LABEL: Record<Corner, string> = { 0: '左上', 1: '右上', 2: '右
 const HIT_RADIUS = 14
 const LOUPE = { size: 160, zoom: 4 }
 
+/** Which corner a click means, from where it lands on the scan. Click order then does not matter. */
+function cornerFromPosition(p: Point, width: number, height: number): Corner {
+  const left = p.x < width / 2
+  const top = p.y < height / 2
+  if (top) return left ? 0 : 1
+  return left ? 3 : 2
+}
+
+/** True when TL→TR→BR→BL goes clockwise around a convex shape, i.e. the four points are labelled consistently. */
+function cornersConsistent(c: Partial<Record<Corner, Point>>): boolean {
+  const pts = [c[0], c[1], c[2], c[3]]
+  if (pts.some((q) => q === undefined)) return true
+  const q = pts as Point[]
+  for (let i = 0; i < 4; i++) {
+    const a = q[i]
+    const b = q[(i + 1) % 4]
+    const d = q[(i + 2) % 4]
+    const cross = (b.x - a.x) * (d.y - b.y) - (b.y - a.y) * (d.x - b.x)
+    if (cross <= 0) return false
+  }
+  return true
+}
+
 /** Put the loupe beside the cursor, flipping to the other side near the edges, so it never sits on a marker. */
 function loupePosition(cursor: Point, scale: number, cssWidth: number, cssHeight: number): { left: number; top: number } {
   const gap = 24
@@ -69,6 +92,8 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   const cssHeight = scan.height * scale
   const nextCorner = CORNERS.find((c) => scan.corners[c] === undefined) ?? null
   const complete = nextCorner === null
+  const remaining = CORNERS.filter((c) => scan.corners[c] === undefined)
+  const consistent = cornersConsistent(scan.corners)
 
   let homography: Homography | null = null
   if (complete) {
@@ -191,8 +216,10 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       return
     }
     if (nextCorner !== null) {
-      setCorner(scan.id, nextCorner, p)
-      dragging.current = nextCorner
+      // The quadrant decides which corner this is, so the markers can be clicked in any order.
+      const corner = cornerFromPosition(p, scan.width, scan.height)
+      setCorner(scan.id, corner, p)
+      dragging.current = corner
     }
   }
   const onMouseMove = (e: MouseEvent<HTMLCanvasElement>) => {
@@ -205,7 +232,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   }
 
   const busy = scan.status === 'applying'
-  const canApply = complete && homography !== null && scan.page !== null && !busy
+  const canApply = (complete && homography !== null && scan.page !== null && !busy) && consistent
 
   return (
     <div className="space-y-3">
@@ -244,21 +271,22 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         />
         <canvas ref={loupeRef} className="pointer-events-none absolute rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size, ...(cursor ? loupePosition(cursor, scale, cssWidth, cssHeight) : {}) }} hidden={cursor === null} />
         <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-2 rounded-md bg-ink/85 px-3 py-1.5 text-sm text-white shadow" aria-live="polite">
-          {complete ? (
+          {complete && !consistent ? (
+            <>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-semibold">!</span>
+              四隅の対応が合っていません。点を正しい ■ までドラッグするか、「四隅をやり直す」
+            </>
+          ) : complete ? (
             <>
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
               {scan.cornerSource === 'auto' ? '四隅を自動で検出しました。緑の枠がずれていれば点をドラッグ' : '4 点そろいました。ずれていれば点をドラッグして、Apply'}
             </>
-          ) : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? (
-            <>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-warn text-[11px] font-semibold">{4 - scan.missingCorners.length}</span>
-              {4 - scan.missingCorners.length} 点は自動で見つかりました。<strong className="font-semibold">{CORNER_LABEL[nextCorner as Corner]}</strong> の ■ の中心をクリック
-            </>
           ) : (
             <>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] font-semibold">{(nextCorner as number) + 1}</span>
-              次は <strong className="font-semibold">{CORNER_LABEL[nextCorner as Corner]}</strong> の ■ の中心をクリック
-              <span className="text-white/60">{(nextCorner as number) + 1} / 4</span>
+              <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{4 - remaining.length}</span>
+              {scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
+              残りの ■ の中心をクリック: <strong className="font-semibold">{remaining.map((c) => CORNER_LABEL[c]).join('・')}</strong>
+              <span className="text-white/60">{4 - remaining.length} / 4</span>
             </>
           )}
         </div>
@@ -272,7 +300,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         <Button variant="ghost" onClick={() => resetCorners(scan.id)} disabled={busy || Object.keys(scan.corners).length === 0}>
           四隅をやり直す
         </Button>
-        {scan.status === 'applied' && <span className="text-sm text-ok">切り出し済み{scan.fitError !== null ? ` (fit ${scan.fitError.toFixed(2)} px)` : ''}</span>}
+        {scan.status === 'applied' && <span className="text-sm text-ok">切り出し済み</span>}
         {scan.error && <span className="text-sm text-danger">{scan.error}</span>}
       </div>
     </div>
