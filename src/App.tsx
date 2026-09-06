@@ -24,9 +24,9 @@ export default function App() {
     <div className="min-h-screen bg-paper text-ink">
       <header className="sticky top-0 z-10 border-b border-rule bg-white/92 backdrop-blur-[12px]">
         <div className="mx-auto flex h-15 max-w-[1280px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
-          <span className="flex shrink-0 items-center gap-2 text-xl font-bold tracking-[-0.04em]">
-            <Logo size={22} />
-            Mixion
+          <span className="flex shrink-0 items-center gap-[5px] font-logo text-2xl font-bold leading-none tracking-[-0.04em]">
+            <Logo size={24} />
+            mixion
           </span>
           <Steps />
           <div className="flex shrink-0 items-center gap-2">
