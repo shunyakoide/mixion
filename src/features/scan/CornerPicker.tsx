@@ -277,7 +277,11 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         ) : complete ? (
           <>
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
-            {scan.cornerSource === 'auto' ? '四隅を自動で検出しました。緑の枠がずれていれば点をドラッグ' : '4 点そろいました。ずれていれば点をドラッグして、Apply'}
+            <span className="min-w-0 flex-1">
+              {scan.status === 'applied' ? '切り出しました。' : '4 点そろいました。'}
+              緑の枠が、コマとして切り出す範囲です。絵とぴったり重なっていれば{scan.status === 'applied' ? 'このままで OK です' : '「Apply」を押してください'}。
+              ずれていたら、隅の赤い点をドラッグして ■ の中心に合わせ{scan.status === 'applied' ? '、「もう一度切り出す」' : 'てください'}
+            </span>
           </>
         ) : (
           <>
