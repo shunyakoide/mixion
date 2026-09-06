@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { MarkerGlyph } from './MarkerGlyph'
 import { cornerFromPosition, cornersConsistent } from './cornerGeometry'
+import { checkOrientation } from './orientation'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Check, RotateCw } from '../../components/ui/icons'
 import { Button } from '../../components/ui/Button'
@@ -82,6 +83,8 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   const complete = nextCorner === null
   const remaining = CORNERS.filter((c) => scan.corners[c] === undefined)
   const consistent = cornersConsistent(scan.corners)
+  // Only worth warning while corners still have to be clicked: a detected set already knows where the page is.
+  const orientation = scan.status === 'needs_corners' && scan.width > 0 ? checkOrientation(scan, scan.qrRect, layout) : { kind: 'ok' as const }
 
   let homography: Homography | null = null
   if (complete) {
@@ -294,7 +297,23 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-[14px] bg-ink px-3.5 py-3 text-sm text-white" aria-live="polite">
-        {complete && !consistent ? (
+        {orientation.kind !== 'ok' ? (
+          <>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warn font-mono text-xs font-semibold">!</span>
+            <span className="min-w-0 flex-1">
+              {orientation.kind === 'qr_misplaced' ? t.scan.qrMisplaced(t.scan.corners[orientation.expected]) : t.scan.aspectMismatch}
+            </span>
+            <button
+              type="button"
+              onClick={() => void rotateScan(scan.id)}
+              disabled={busy}
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-white px-3 text-[13px] font-medium text-ink transition-colors hover:bg-surface disabled:opacity-35"
+            >
+              <RotateCw size={14} />
+              {t.scan.rotate}
+            </button>
+          </>
+        ) : complete && !consistent ? (
           <>
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-danger font-mono text-xs font-semibold">!</span>
             <span className="min-w-0 flex-1">{t.scan.inconsistent}</span>

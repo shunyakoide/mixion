@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { orientationMismatch, quarterTurnsToUpright } from '../src/features/scan/orientation'
+import { checkOrientation, orientationMismatch, quarterTurnsToUpright } from '../src/features/scan/orientation'
 
 /** A 100 px QR whose page has been turned `deg` clockwise on the scan. */
 function qrTurned(deg: number) {
@@ -26,5 +26,20 @@ describe('orientationMismatch', () => {
   it('flags a portrait scan of a landscape page', () => {
     expect(orientationMismatch({ width: 2480, height: 3508 }, { w: 297, h: 210 })).toBe(true)
     expect(orientationMismatch({ width: 3508, height: 2480 }, { w: 297, h: 210 })).toBe(false)
+  })
+})
+
+describe('checkOrientation', () => {
+  const layout = { pageSize: { w: 297, h: 210 }, qrRect: { x: 260, y: 8, w: 20, h: 20 } } // QR printed top-right
+  const landscape = { width: 3508, height: 2480 }
+  it('is ok when the QR sits in the printed quadrant', () => {
+    expect(checkOrientation(landscape, { x: 3100, y: 80, w: 200, h: 200 }, layout)).toEqual({ kind: 'ok' })
+  })
+  it('asks for a turn when the QR is in another quadrant', () => {
+    expect(checkOrientation(landscape, { x: 100, y: 2200, w: 200, h: 200 }, layout)).toEqual({ kind: 'qr_misplaced', expected: 1 })
+  })
+  it('falls back to the aspect ratio without a QR', () => {
+    expect(checkOrientation({ width: 2480, height: 3508 }, null, layout)).toEqual({ kind: 'aspect_mismatch' })
+    expect(checkOrientation(landscape, null, layout)).toEqual({ kind: 'ok' })
   })
 })

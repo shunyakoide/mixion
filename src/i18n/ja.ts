@@ -156,6 +156,8 @@ export const ja: Dict = {
     cutPage: (page, frames) => `${page !== null ? `P${page} を` : ''}切り出しました（${frames} コマ）`,
     fourSet: '4 点そろいました。',
     adjust: (applied) => `緑の枠がコマの範囲です。ずれていたら隅の点をマーカーの中心へドラッグして${applied ? '「もう一度切り出す」' : '「このページを切り出す」'}`,
+    qrMisplaced: (corner) => `QR が${corner}にありません。「90° 回転」で${corner}に来るまで回してから、隅を指定してください。`,
+    aspectMismatch: '画像の向きが印刷ページと合っていません。「90° 回転」で向きを直してから、隅を指定してください。',
     qrHint: 'それは QR コードです。マーカーは紙の四隅にあります。',
     autoFound: (n) => `${n} 点は自動で見つかりました。`,
     clickMarker: '紙の隅にある、このマーカーの中心をクリック:',

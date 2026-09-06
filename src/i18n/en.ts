@@ -155,6 +155,8 @@ export const en = {
     cutPage: (page: number | null, frames: number) => `${page !== null ? `Page ${page}` : 'Page'} cut (${frames} frames)`,
     fourSet: 'All 4 points set.',
     adjust: (applied: boolean) => `The green frame is what gets cut. If it is off, drag the corner points to the marker centres and ${applied ? 'cut again' : 'apply'}.`,
+    qrMisplaced: (corner: string) => `The QR code is not at the ${corner}. Rotate 90° until it is, then pick the corners.`,
+    aspectMismatch: 'The image is turned the wrong way for this page. Rotate it 90° to match, then pick the corners.',
     qrHint: 'That is the QR code. The markers are at the four corners of the page.',
     autoFound: (n: number) => `${n} found automatically.`,
     clickMarker: 'Click the centre of this marker at the corner of the page:',
