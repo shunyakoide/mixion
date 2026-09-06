@@ -11,6 +11,9 @@ import type { ProjectSettings } from '../../domain/settings'
 import { useT } from '../../i18n'
 
 const HIT_RADIUS = { mouse: 14, touch: 28 }
+/** Corner handles and marker outlines: orange so they stand apart from the black-and-white markers and the green frame boxes. */
+const CORNER_COLOR = '#f26a1b'
+
 const LOUPE = { size: 160, zoom: 4 }
 
 /** Put the loupe beside the cursor, flipping to the other side near the edges, so it never sits on a marker. */
@@ -122,8 +125,8 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           ctx.fillText(`#${frames[i]}`, poly[0].x + 4, poly[0].y + 14)
         }
       })
-      ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(14,14,14,0.8)'
+      ctx.lineWidth = 1.5
+      ctx.strokeStyle = CORNER_COLOR
       for (const m of layout.markers) {
         const poly = projectRect(homography, m.rect).map(toCss)
         ctx.beginPath()
@@ -139,7 +142,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       const q = toCss(p)
       ctx.beginPath()
       ctx.arc(q.x, q.y, 8, 0, Math.PI * 2)
-      ctx.fillStyle = '#0e0e0e'
+      ctx.fillStyle = CORNER_COLOR
       ctx.fill()
       ctx.strokeStyle = '#fff'
       ctx.lineWidth = 2
@@ -170,7 +173,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
     const src = size / zoom
     ctx.imageSmoothingEnabled = false
     ctx.drawImage(img, cursor.x - src / 2, cursor.y - src / 2, src, src, 0, 0, size, size)
-    ctx.strokeStyle = 'rgba(14,14,14,0.9)'
+    ctx.strokeStyle = CORNER_COLOR
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(size / 2, 0)
