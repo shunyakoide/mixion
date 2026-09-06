@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { MarkerGlyph } from './MarkerGlyph'
+import { cornerFromPosition, cornersConsistent } from './cornerGeometry'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Button } from '../../components/ui/Button'
 import { pageToScanHomography, projectRect, type Homography } from '../../domain/homography'
@@ -10,29 +11,6 @@ import type { ProjectSettings } from '../../domain/settings'
 const CORNER_LABEL: Record<Corner, string> = { 0: '左上', 1: '右上', 2: '右下', 3: '左下' }
 const HIT_RADIUS = { mouse: 14, touch: 28 }
 const LOUPE = { size: 160, zoom: 4 }
-
-/** Which corner a click means, from where it lands on the scan. Click order then does not matter. */
-function cornerFromPosition(p: Point, width: number, height: number): Corner {
-  const left = p.x < width / 2
-  const top = p.y < height / 2
-  if (top) return left ? 0 : 1
-  return left ? 3 : 2
-}
-
-/** True when TL→TR→BR→BL goes clockwise around a convex shape, i.e. the four points are labelled consistently. */
-function cornersConsistent(c: Partial<Record<Corner, Point>>): boolean {
-  const pts = [c[0], c[1], c[2], c[3]]
-  if (pts.some((q) => q === undefined)) return true
-  const q = pts as Point[]
-  for (let i = 0; i < 4; i++) {
-    const a = q[i]
-    const b = q[(i + 1) % 4]
-    const d = q[(i + 2) % 4]
-    const cross = (b.x - a.x) * (d.y - b.y) - (b.y - a.y) * (d.x - b.x)
-    if (cross <= 0) return false
-  }
-  return true
-}
 
 /** Put the loupe beside the cursor, flipping to the other side near the edges, so it never sits on a marker. */
 function loupePosition(cursor: Point, scale: number, cssWidth: number, cssHeight: number): { left: number; top: number } {

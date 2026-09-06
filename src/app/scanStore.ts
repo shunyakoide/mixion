@@ -423,6 +423,6 @@ function statusUpdate(item: ScanItem): ScanItem {
   return { ...item, status: statusFor(item) }
 }
 
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   ;(window as unknown as { __scanStore?: typeof useScanStore }).__scanStore = useScanStore
 }

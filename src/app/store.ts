@@ -181,6 +181,6 @@ export function previewFrameNumbers(settings: ProjectSettings, page: number): nu
 }
 
 // Dev convenience: inspect and drive the store from the browser console.
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   ;(window as unknown as { __store?: typeof useAppStore }).__store = useAppStore
 }
