@@ -42,9 +42,10 @@ function usePageDrop(enabled: boolean, onFile: (f: File) => void) {
 }
 
 export function VideoDrop() {
-  const { file, info, probing, loadError, loadVideo, clearVideo } = useAppStore()
+  const { file, info, probing, loadError, loadVideo } = useAppStore()
   const inputRef = useRef<HTMLInputElement>(null)
-  const dragging = usePageDrop(file === null, loadVideo)
+  // Dropping a video anywhere on the page loads it, and replaces the current one if there is one.
+  const dragging = usePageDrop(true, loadVideo)
 
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
@@ -52,9 +53,36 @@ export function VideoDrop() {
     if (f) void loadVideo(f)
   }
 
+  const input = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="video/*,.mp4,.mov,.m4v,.webm"
+      className="hidden"
+      onChange={(e) => {
+        const f = e.target.files?.[0]
+        if (f) void loadVideo(f)
+        e.target.value = ''
+      }}
+    />
+  )
+
   if (file) {
+    const meta: string[] = info
+      ? [
+          `${info.width}×${info.height}`,
+          `${info.duration.toFixed(2)} 秒`,
+          ...(info.frameRate ? [`${Math.round(info.frameRate * 100) / 100} fps`] : []),
+          formatBytes(file.size),
+          info.hasAudio ? '音声あり' : '音声なし',
+        ]
+      : []
     return (
-      <div className="rounded-lg border border-rule bg-panel p-4">
+      <div
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={onDrop}
+        className={['rounded-lg border p-4 transition-colors', dragging ? 'border-accent bg-accent-soft' : 'border-rule bg-panel'].join(' ')}
+      >
         <div className="flex items-start gap-3">
           <Film size={20} className="mt-0.5 shrink-0 text-ink-3" />
           <div className="min-w-0 flex-1">
@@ -69,17 +97,24 @@ export function VideoDrop() {
               )}
               {loadError && <span className="text-danger">{loadError}</span>}
               {info && (
-                <>
-                  {info.width}×{info.height} · {info.duration.toFixed(2)} 秒
-                  {info.frameRate ? ` · ${Math.round(info.frameRate * 100) / 100} fps` : ''} · {formatBytes(file.size)} · {info.hasAudio ? '音声あり' : '音声なし'}
-                </>
+                <ul className="flex flex-wrap gap-x-2 gap-y-0.5">
+                  {meta.map((m, i) => (
+                    <li key={m} className="whitespace-nowrap">
+                      {i > 0 && <span className="mr-2 text-ink-3" aria-hidden>·</span>}
+                      {m}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
-          <button type="button" onClick={clearVideo} className="shrink-0 text-sm text-ink-2 underline-offset-2 hover:text-ink hover:underline">
-            別の動画にする
-          </button>
         </div>
+        <Button variant="secondary" className="mt-4 w-full" onClick={() => inputRef.current?.click()} disabled={probing}>
+          <Upload size={16} className="mr-2" />
+          {dragging ? 'ここに離すと差し替えます' : '別の動画を選ぶ'}
+        </Button>
+        <p className="mt-2 text-center text-xs text-ink-3">ページのどこにドロップしても差し替わります</p>
+        {input}
       </div>
     )
   }
@@ -99,17 +134,7 @@ export function VideoDrop() {
       <Button className="mt-6" onClick={() => inputRef.current?.click()}>
         ファイルを選ぶ
       </Button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="video/*,.mp4,.mov,.m4v,.webm"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          if (f) void loadVideo(f)
-          e.target.value = ''
-        }}
-      />
+      {input}
     </div>
   )
 }
