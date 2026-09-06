@@ -4,10 +4,11 @@ import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { pageToScanHomography, reprojectionError, type Homography } from '../domain/homography'
 import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
-import { readPageQr } from '../features/scan/qrPage'
+import { readPageQr, type QrReadResult } from '../features/scan/qrPage'
 import { detectMarkers } from '../features/scan/detectMarkers'
+import { orientationMismatch, quarterTurnsToUpright } from '../features/scan/orientation'
 import { warpCells } from '../features/scan/warpClient'
-import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rgbaToBlob } from '../lib/image'
+import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rgbaToBlob, rotateBitmap } from '../lib/image'
 import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
 import { frameTimestamp } from '../domain/frameMap'
 
@@ -37,6 +38,8 @@ export interface ScanItem {
   error: string | null
   /** RMS reprojection error of the last apply, in scan px (0 for 4 exact points). */
   fitError: number | null
+  /** Degrees the image was turned clockwise after import so the page reads upright. */
+  rotation: number
 }
 
 export type FrameSource = 'scan' | 'original' | 'hold' | 'blank'
@@ -82,6 +85,8 @@ interface ScanState {
   resetCorners: (id: string) => void
   /** Put every corner back where the detector found it. */
   restoreDetectedCorners: (id: string) => void
+  /** Turn the scan 90° clockwise and detect the markers again. For pages whose QR could not be read. */
+  rotateScan: (id: string) => Promise<void>
   setManualSettings: (settings: ProjectSettings) => void
   clearSettings: () => void
   /** Forget everything: scans, cut frames, settings, original video. */
@@ -103,6 +108,48 @@ function bbox(pts: Point[]): { x: number; y: number; w: number; h: number } {
 
 function cornersComplete(c: Partial<Record<Corner, Point>>): c is Record<Corner, Point> {
   return c[0] !== undefined && c[1] !== undefined && c[2] !== undefined && c[3] !== undefined
+}
+
+interface Prepared {
+  file: File
+  width: number
+  height: number
+  qr: QrReadResult
+  detected: { corners: Partial<Record<Corner, Point>>; missing: Corner[] } | null
+  rotation: number
+}
+
+/**
+ * Read the QR, turn the image upright when it was scanned sideways, and find the corner markers.
+ * `turns` forces a rotation (manual); otherwise it comes from the QR, or from the page shape when there is no QR.
+ */
+async function prepareScan(file: File, settings: ProjectSettings | null, turns?: number): Promise<Prepared> {
+  let bitmap = await loadBitmap(file)
+  let qr = readPageQr(bitmap)
+  let rotation = 0
+  let outFile = file
+  const layout = settings ? layoutFromSettings(settings) : qr.ok ? layoutFromSettings(settingsFromQr(qr.payload)) : null
+  const k = turns ?? (qr.ok ? quarterTurnsToUpright(qr.corners) : layout && orientationMismatch(bitmap, layout.pageSize) ? 1 : 0)
+  if (k % 4 !== 0) {
+    const rotated = await rotateBitmap(bitmap, k)
+    bitmap.close()
+    bitmap = await loadBitmap(rotated.blob)
+    outFile = new File([rotated.blob], file.name, { type: rotated.blob.type })
+    rotation = (((k % 4) + 4) % 4) * 90
+    if (qr.ok) qr = readPageQr(bitmap)
+  }
+  let detected: Prepared['detected'] = null
+  if (qr.ok) {
+    try {
+      const r = detectMarkers(bitmapToRgba(bitmap), layoutFromSettings(settings ?? settingsFromQr(qr.payload)), qr.corners)
+      detected = { corners: r.corners, missing: ([0, 1, 2, 3] as Corner[]).filter((c) => !r.found.includes(c)) }
+    } catch {
+      detected = null
+    }
+  }
+  const { width, height } = bitmap
+  bitmap.close()
+  return { file: outFile, width, height, qr, detected, rotation }
 }
 
 function statusFor(item: ScanItem): ScanStatus {
@@ -220,25 +267,14 @@ export const useScanStore = create<ScanState>((set, get) => ({
         status: 'reading',
         error: null,
         fitError: null,
+        rotation: 0,
       }
       set((s) => ({ scans: [...s.scans, item], selectedId: s.selectedId ?? id }))
       try {
-        const bitmap = await loadBitmap(file)
-        const { width, height } = bitmap
-        const qr = readPageQr(bitmap)
-        let detected: { corners: Partial<Record<Corner, Point>>; missing: Corner[] } | null = null
-        if (qr.ok) {
-          set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
-          const settingsNow = get().settings ?? settingsFromQr(qr.payload)
-          try {
-            const rgba = bitmapToRgba(bitmap)
-            const r = detectMarkers(rgba, layoutFromSettings(settingsNow), qr.corners)
-            detected = { corners: r.corners, missing: ([0, 1, 2, 3] as Corner[]).filter((c) => !r.found.includes(c)) }
-          } catch {
-            detected = null
-          }
-        }
-        bitmap.close()
+        set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
+        const { file: scanFile, width, height, qr, detected, rotation } = await prepareScan(file, get().settings)
+        const url = scanFile === file ? item.url : URL.createObjectURL(scanFile)
+        if (url !== item.url) URL.revokeObjectURL(item.url)
         set((s) => {
           let settings = s.settings
           let settingsSource = s.settingsSource
@@ -274,8 +310,11 @@ export const useScanStore = create<ScanState>((set, get) => ({
             x.id === id
               ? statusUpdate({
                   ...x,
+                  file: scanFile,
+                  url,
                   width,
                   height,
+                  rotation,
                   qr: qr.ok ? qr.payload : null,
                   qrRect: qr.ok ? bbox([qr.corners.topLeft, qr.corners.topRight, qr.corners.bottomRight, qr.corners.bottomLeft]) : null,
                   qrNote,
@@ -341,6 +380,42 @@ export const useScanStore = create<ScanState>((set, get) => ({
         return statusUpdate({ ...x, corners, cornerSource: 'auto', missingCorners: missing, status: x.status === 'applied' ? 'needs_corners' : x.status, error: null })
       }),
     })),
+
+  rotateScan: async (id) => {
+    const item = get().scans.find((x) => x.id === id)
+    if (!item || item.status === 'reading' || item.status === 'detecting' || item.status === 'applying') return
+    set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting', error: null } : x)) }))
+    try {
+      const { file, width, height, qr, detected } = await prepareScan(item.file, get().settings, 1)
+      const url = URL.createObjectURL(file)
+      URL.revokeObjectURL(item.url)
+      set((s) => ({
+        scans: s.scans.map((x) =>
+          x.id === id
+            ? statusUpdate({
+                ...x,
+                file,
+                url,
+                width,
+                height,
+                rotation: (x.rotation + 90) % 360,
+                qrRect: qr.ok ? bbox([qr.corners.topLeft, qr.corners.topRight, qr.corners.bottomRight, qr.corners.bottomLeft]) : null,
+                corners: detected?.corners ?? {},
+                cornerSource: detected ? 'auto' : null,
+                missingCorners: detected?.missing ?? [],
+                detectedCorners: detected?.corners ?? {},
+                status: 'needs_corners',
+                fitError: null,
+              })
+            : x,
+        ),
+      }))
+      const after = get().scans.find((x) => x.id === id)
+      if (after && after.status === 'ready') await get().applyScan(id)
+    } catch (e) {
+      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)) }))
+    }
+  },
 
   setManualSettings: (settings) => set({ settings, settingsSource: 'manual' }),
 

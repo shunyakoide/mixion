@@ -39,8 +39,9 @@ export async function renderPageToBlob(
   const pxPerMm = dpi / 25.4
   const pageW = layout.pageSize.w
   const pageH = layout.pageSize.h
-  const width = Math.round((pageW + 2 * pad) * pxPerMm)
-  const height = Math.round((pageH + 2 * pad) * pxPerMm)
+  // The canvas holds the rotated page's bounding box, so a 90° turn gives a portrait image like a real flatbed would.
+  const width = Math.round((Math.abs(pageW * Math.cos(rot)) + Math.abs(pageH * Math.sin(rot)) + 2 * pad) * pxPerMm)
+  const height = Math.round((Math.abs(pageW * Math.sin(rot)) + Math.abs(pageH * Math.cos(rot)) + 2 * pad) * pxPerMm)
   const cx = width / 2
   const cy = height / 2
 

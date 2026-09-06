@@ -98,11 +98,11 @@ export const en = {
   },
   scan: {
     emptyTitle: 'Import your drawn pages',
-    loadedIntro: 'Frames are cut out automatically from the QR and the four corner markers. Click only the corners that were not found.',
+    loadedIntro: 'Frames are cut out automatically from the QR and the four corner markers. Sideways scans are turned upright. Click only the corners that were not found.',
     emptyIntro: 'Add the scanned images (JPEG / PNG), one file per page. The QR code and the four corner markers are read automatically and the frames are cut out. You only need to click corners on pages where the QR or a marker is covered.',
     dropToImport: 'Drop to import',
     dropScans: 'Drop scanned images here',
-    multipleFiles: 'You can add several files at once. The order comes from the QR codes.',
+    multipleFiles: 'You can add several files at once. The order and the orientation come from the QR codes.',
     howSteps: [
       ['Import', 'Add the image of every page'],
       ['Automatic cut', 'The QR and corner markers are read and the frames go back in order'],
@@ -147,6 +147,8 @@ export const en = {
     corners: { 0: 'top left', 1: 'top right', 2: 'bottom right', 3: 'bottom left' } as Record<0 | 1 | 2 | 3, string>,
     page: 'Page',
     orderSource: 'Import order (check)',
+    rotate: 'Rotate 90°',
+    rotated: (deg: number) => `Turned ${deg}°`,
     inconsistent: 'The corners do not match up. Drag each point to the right marker, or redo the corners.',
     cut: 'Cut.',
     fourSet: 'All 4 points set.',

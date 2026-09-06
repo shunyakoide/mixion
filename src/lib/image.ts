@@ -38,3 +38,18 @@ export function isImageFile(file: File): boolean {
 export function compareNames(a: string, b: string): number {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
 }
+
+/** Rotate a bitmap by `quarterTurns` × 90° clockwise into a JPEG blob. */
+export async function rotateBitmap(bitmap: ImageBitmap, quarterTurns: number, quality = 0.95): Promise<{ blob: Blob; width: number; height: number }> {
+  const k = ((quarterTurns % 4) + 4) % 4
+  const swap = k % 2 === 1
+  const width = swap ? bitmap.height : bitmap.width
+  const height = swap ? bitmap.width : bitmap.height
+  const canvas = new OffscreenCanvas(width, height)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas context unavailable')
+  ctx.translate(width / 2, height / 2)
+  ctx.rotate((k * Math.PI) / 2)
+  ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2)
+  return { blob: await canvas.convertToBlob({ type: 'image/jpeg', quality }), width, height }
+}
