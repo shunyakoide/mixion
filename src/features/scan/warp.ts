@@ -81,3 +81,30 @@ export function warpCell(src: RgbaImage, h: Homography, job: WarpJob): RgbaImage
   }
   return { width: outWidth, height: outHeight, data: out }
 }
+
+/** Axis-aligned window of `src` that covers `cropRect` under `h`, padded by `pad` px and clamped to the image. */
+export function sourceWindow(src: { width: number; height: number }, h: Homography, cropRect: Rect, pad = 2): Rect {
+  const corners = [
+    { x: cropRect.x, y: cropRect.y },
+    { x: cropRect.x + cropRect.w, y: cropRect.y },
+    { x: cropRect.x + cropRect.w, y: cropRect.y + cropRect.h },
+    { x: cropRect.x, y: cropRect.y + cropRect.h },
+  ].map((p) => applyHomography(h, p))
+  const x0 = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x)) - pad))
+  const y0 = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y)) - pad))
+  const x1 = Math.min(src.width, Math.ceil(Math.max(...corners.map((p) => p.x)) + pad))
+  const y1 = Math.min(src.height, Math.ceil(Math.max(...corners.map((p) => p.y)) + pad))
+  return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) }
+}
+
+/** Copy a window out of an image. */
+export function cropRgba(src: RgbaImage, r: Rect): RgbaImage {
+  const data = new Uint8ClampedArray(r.w * r.h * 4)
+  for (let y = 0; y < r.h; y++) data.set(src.data.subarray(((r.y + y) * src.width + r.x) * 4, ((r.y + y) * src.width + r.x + r.w) * 4), y * r.w * 4)
+  return { width: r.w, height: r.h, data }
+}
+
+/** The same mapping expressed in a coordinate system whose origin sits at (dx, dy) of the old one. */
+export function translateHomography(h: Homography, dx: number, dy: number): Homography {
+  return [h[0] - dx * h[6], h[1] - dx * h[7], h[2] - dx * h[8], h[3] - dy * h[6], h[4] - dy * h[7], h[5] - dy * h[8], h[6], h[7], h[8]]
+}

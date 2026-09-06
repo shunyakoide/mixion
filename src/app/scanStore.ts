@@ -4,13 +4,14 @@ import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { pageToScanHomography, reprojectionError, type Homography } from '../domain/homography'
 import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
-import { readPageQr, type QrReadResult } from '../features/scan/qrPage'
-import { detectMarkers, detectMarkersBlind } from '../features/scan/detectMarkers'
+import { QR_QUICK_WIDTHS, QR_THOROUGH_WIDTHS, readPageQr, type QrReadResult } from '../features/scan/qrPage'
+import { detectMarkers, detectMarkersBlind, type BlindDetectResult } from '../features/scan/detectMarkers'
 import { orientationMismatch, quarterTurnsToUpright, rotateQrCorners } from '../features/scan/orientation'
-import { warpCells } from '../features/scan/warpClient'
-import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rgbaToBlob, rotateBitmap } from '../lib/image'
+import { warmUpWarpPool, warpCells } from '../features/scan/warpClient'
+import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rotateBitmap } from '../lib/image'
 import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
 import { frameTimestamp } from '../domain/frameMap'
+import { stopwatch } from '../lib/timing'
 
 export type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
 
@@ -137,10 +138,30 @@ export function firstUnusedPage(scans: Pick<ScanItem, 'id' | 'page'>[], excludeI
  * Read the QR, turn the image upright when it was scanned sideways, and find the corner markers.
  * `forceTurns` applies a manual rotation instead of the automatic one. Without a readable QR the
  * markers themselves say which way the page is turned and which page it is.
+ *
+ * The QR is read on a downscaled copy first; the slow full-resolution pass only runs when nothing
+ * else can tell us about the page (no settings yet, or no marker decoded either). `quickQr` hands
+ * over a downscaled read that was already made while looking for the project settings.
  */
-async function prepareScan(file: File, settings: ProjectSettings | null, options: { forceTurns?: number; autoRotate: boolean }): Promise<Prepared> {
+async function prepareScan(file: File, settings: ProjectSettings | null, options: { forceTurns?: number; autoRotate: boolean; quickQr?: QrReadResult }): Promise<Prepared> {
+  const lap = stopwatch(`prepare ${file.name}`)
   let bitmap = await loadBitmap(file)
-  let qr = readPageQr(bitmap)
+  lap('decode')
+  let qr: QrReadResult = options.quickQr ?? readPageQr(bitmap, QR_QUICK_WIDTHS)
+  lap(options.quickQr ? 'qr cached' : 'qr quick')
+  let thorough = false
+  const readThorough = (current: QrReadResult): QrReadResult => {
+    if (current.ok || thorough) return current
+    thorough = true
+    const r = readPageQr(bitmap, QR_THOROUGH_WIDTHS, current.tried)
+    lap('qr thorough')
+    return r
+  }
+  const layoutFor = () => (settings ? layoutFromSettings(settings) : qr.ok ? layoutFromSettings(settingsFromQr(qr.payload)) : null)
+  // Without settings the QR is the only way to learn the layout, so it is worth the slow pass.
+  if (!layoutFor()) qr = readThorough(qr)
+  const layout = layoutFor()
+
   let rotation = 0
   let outFile = file
   const turn = async (k: number) => {
@@ -152,26 +173,39 @@ async function prepareScan(file: File, settings: ProjectSettings | null, options
     bitmap = await loadBitmap(rotated.blob)
     outFile = new File([rotated.blob], file.name, { type: rotated.blob.type })
     rotation = (rotation + kk * 90) % 360
+    lap(`turn ${kk}`)
     // Carry the QR over by geometry: a second jsQR pass on the re-encoded image can fail and would lose a good read.
     if (qr.ok) qr = { ...qr, corners: rotateQrCorners(qr.corners, kk, size) }
   }
-  const layout = settings ? layoutFromSettings(settings) : qr.ok ? layoutFromSettings(settingsFromQr(qr.payload)) : null
+  const autoTurns = options.forceTurns === undefined && options.autoRotate
   if (options.forceTurns !== undefined) await turn(options.forceTurns)
-  else if (options.autoRotate && qr.ok) await turn(quarterTurnsToUpright(qr.corners))
-  else if (options.autoRotate && layout && orientationMismatch(bitmap, layout.pageSize)) await turn(1)
+  else if (autoTurns && qr.ok) await turn(quarterTurnsToUpright(qr.corners))
+  else if (autoTurns && layout && orientationMismatch(bitmap, layout.pageSize)) await turn(1)
 
   let detected: Prepared['detected'] = null
   let markerPage: number | null = null
   if (layout) {
     try {
+      let blind: BlindDetectResult | null = null
+      if (!qr.ok) {
+        blind = detectMarkersBlind(bitmapToRgba(bitmap), layout)
+        lap('blind')
+        if (blind.decoded === 0) {
+          // Neither the quick QR pass nor the markers read anything: last resort, the full-resolution QR.
+          qr = readThorough(qr)
+          if (qr.ok && autoTurns) await turn(quarterTurnsToUpright(qr.corners))
+        }
+      }
       if (qr.ok) {
         const r = detectMarkers(bitmapToRgba(bitmap), layout, qr.corners)
+        lap('detect')
         detected = { corners: r.corners, missing: ALL_CORNERS.filter((c) => !r.found.includes(c)) }
-      } else {
-        let r = detectMarkersBlind(bitmapToRgba(bitmap), layout)
+      } else if (blind) {
+        let r = blind
         if (r.turns !== 0 && options.forceTurns === undefined) {
           await turn(r.turns)
           r = detectMarkersBlind(bitmapToRgba(bitmap), layout)
+          lap('blind again')
         }
         markerPage = r.page
         if (r.found.length > 0) detected = { corners: r.corners, missing: ALL_CORNERS.filter((c) => !r.found.includes(c)) }
@@ -279,33 +313,54 @@ export const useScanStore = create<ScanState>((set, get) => ({
       return
     }
     set({ importing: true, importError: null })
-    for (const file of images) {
-      const id = `scan-${nextId++}`
-      const item: ScanItem = {
-        id,
-        file,
-        name: file.name,
-        url: URL.createObjectURL(file),
-        width: 0,
-        height: 0,
-        qr: null,
-        qrRect: null,
-        qrNote: null,
-        page: null,
-        pageSource: null,
-        corners: {},
-        cornerSource: null,
-        missingCorners: [],
-        detectedCorners: {},
-        status: 'reading',
-        error: null,
-        fitError: null,
-        rotation: 0,
+    warmUpWarpPool()
+    const items = images.map((file): ScanItem => ({
+      id: `scan-${nextId++}`,
+      file,
+      name: file.name,
+      url: URL.createObjectURL(file),
+      width: 0,
+      height: 0,
+      qr: null,
+      qrRect: null,
+      qrNote: null,
+      page: null,
+      pageSource: null,
+      corners: {},
+      cornerSource: null,
+      missingCorners: [],
+      detectedCorners: {},
+      status: 'reading',
+      error: null,
+      fitError: null,
+      rotation: 0,
+    }))
+    set((s) => ({ scans: [...s.scans, ...items], selectedId: s.selectedId ?? items[0].id }))
+    // Find the project settings before analysing anything, so pages ahead of the first readable QR get a layout too.
+    const quickQr = new Map<File, QrReadResult>()
+    if (!get().settings) {
+      const lap = stopwatch('settings pass')
+      for (const file of images) {
+        try {
+          const bitmap = await loadBitmap(file)
+          const qr = readPageQr(bitmap, QR_QUICK_WIDTHS)
+          bitmap.close()
+          lap(file.name)
+          quickQr.set(file, qr)
+          if (qr.ok) {
+            set({ settings: settingsFromQr(qr.payload), settingsSource: 'qr' })
+            break
+          }
+        } catch {
+          // The page itself reports the problem when it is analysed below.
+        }
       }
-      set((s) => ({ scans: [...s.scans, item], selectedId: s.selectedId ?? id }))
+    }
+    for (const item of items) {
+      const { id, file } = item
       try {
         set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
-        const { file: scanFile, width, height, qr, detected, markerPage, rotation } = await prepareScan(file, get().settings, { autoRotate: true })
+        const { file: scanFile, width, height, qr, detected, markerPage, rotation } = await prepareScan(file, get().settings, { autoRotate: true, quickQr: quickQr.get(file) })
         const url = scanFile === file ? item.url : URL.createObjectURL(scanFile)
         if (url !== item.url) URL.revokeObjectURL(item.url)
         set((s) => {
@@ -478,15 +533,17 @@ export const useScanStore = create<ScanState>((set, get) => ({
     )
     set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'applying', error: null } : x)) }))
     try {
+      const lap = stopwatch(`apply ${item.name}`)
       const bitmap = await loadBitmap(item.file)
       const rgba = bitmapToRgba(bitmap)
       bitmap.close()
+      lap('decode')
       const frames = framesOnPage(page, framesPerPage(settings.grid), settings.frameCount)
       const outWidth = settings.dims.width - (settings.dims.width % 2)
       const outHeight = settings.dims.height - (settings.dims.height % 2)
       const jobs = frames.map((_, i) => ({ cropRect: layout.cells[i].cropRect, outWidth, outHeight }))
-      const results = await warpCells(rgba, h, jobs)
-      const blobs = await Promise.all(results.map((r) => rgbaToBlob(r)))
+      const blobs = await warpCells(rgba, h, jobs)
+      lap(`warp ${jobs.length}`)
       set((s) => {
         const outputFrames = new Map(s.outputFrames)
         // Drop frames previously produced by this scan (page may have changed).

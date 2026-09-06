@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { solveHomography, type Homography } from '../src/domain/homography'
-import { warpCell, type RgbaImage } from '../src/features/scan/warp'
+import { cropRgba, sourceWindow, translateHomography, warpCell, type RgbaImage } from '../src/features/scan/warp'
 
 /** Horizontal gradient in R, vertical in G, constant B. */
 function gradientImage(w: number, h: number): RgbaImage {
@@ -63,5 +63,32 @@ describe('warpCell', () => {
     const identity: Homography = [1, 0, 0, 0, 1, 0, 0, 0, 1]
     const out = warpCell(src, identity, { cropRect: { x: 100, y: 100, w: 10, h: 10 }, outWidth: 10, outHeight: 10 })
     expect(px(out, 5, 5)).toEqual([255, 255, 255, 255])
+  })
+})
+
+describe('per-cell source windows', () => {
+  const src = gradientImage(120, 80)
+  // Page mm → scan px: scale 2, shift (10, 6).
+  const h: Homography = [2, 0, 10, 0, 2, 6, 0, 0, 1]
+  const cropRect = { x: 5, y: 4, w: 20, h: 10 }
+
+  it('covers the crop rectangle with padding and clamps to the image', () => {
+    expect(sourceWindow(src, h, cropRect)).toEqual({ x: 18, y: 12, w: 44, h: 24 })
+    expect(sourceWindow(src, h, { x: -20, y: -20, w: 200, h: 200 })).toEqual({ x: 0, y: 0, w: 120, h: 80 })
+  })
+
+  it('warps the same pixels from the window as from the whole image', () => {
+    const job = { cropRect, outWidth: 40, outHeight: 20 }
+    const full = warpCell(src, h, job)
+    const win = sourceWindow(src, h, cropRect)
+    const part = warpCell(cropRgba(src, win), translateHomography(h, win.x, win.y), job)
+    expect(part.width).toBe(full.width)
+    expect(Array.from(part.data)).toEqual(Array.from(full.data))
+  })
+
+  it('cropRgba copies the window pixel for pixel', () => {
+    const part = cropRgba(src, { x: 10, y: 5, w: 3, h: 2 })
+    expect(part.width).toBe(3)
+    expect(px(part, 2, 1)).toEqual(px(src, 12, 6))
   })
 })

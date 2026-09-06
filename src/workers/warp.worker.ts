@@ -4,19 +4,26 @@ import { warpCell, type RgbaImage, type WarpJob } from '../features/scan/warp'
 
 export interface WarpRequest {
   id: number
+  /** Just the part of the scan the cell needs; `homography` already maps into its coordinates. */
   image: RgbaImage
   homography: Homography
-  jobs: WarpJob[]
+  job: WarpJob
+  quality: number
 }
 
-export interface WarpResponse {
-  id: number
-  results: RgbaImage[]
-}
+export type WarpResponse = { id: number; blob: Blob } | { id: number; error: string }
 
-self.onmessage = (e: MessageEvent<WarpRequest>) => {
-  const { id, image, homography, jobs } = e.data
-  const results = jobs.map((job) => warpCell(image, homography, job))
-  const transfer = results.map((r) => r.data.buffer)
-  ;(self as unknown as Worker).postMessage({ id, results } satisfies WarpResponse, transfer)
+self.onmessage = async (e: MessageEvent<WarpRequest>) => {
+  const { id, image, homography, job, quality } = e.data
+  try {
+    const out = warpCell(image, homography, job)
+    const canvas = new OffscreenCanvas(out.width, out.height)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('canvas context unavailable')
+    ctx.putImageData(new ImageData(out.data, out.width, out.height), 0, 0)
+    const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality })
+    ;(self as unknown as Worker).postMessage({ id, blob } satisfies WarpResponse)
+  } catch (err) {
+    ;(self as unknown as Worker).postMessage({ id, error: err instanceof Error ? err.message : String(err) } satisfies WarpResponse)
+  }
 }
