@@ -5,6 +5,8 @@ Mixed Media Animation のための小さなウェブアプリ。
 
 **Print → Draw → Scan → Animate**
 
+公開版: https://shunyakoide.github.io/mixion/
+
 画面は Print / Scan / Animate の 3 ステップ。Draw は紙の上の工程なので、注意書きを PDF 保存後と Scan の最初に表示する。
 
 - サーバー・データベース・アカウントなし。すべてブラウザ内で処理する
@@ -14,7 +16,7 @@ Mixed Media Animation のための小さなウェブアプリ。
 
 ## 使い方
 
-1. **Print**: 動画をドロップ → fps とページあたりのフレーム数を選ぶ → Create Print PDF
+1. **Print**: 動画をドロップ → fps とページあたりのフレーム数を選ぶ → Create Print PDF。縦動画は紙が縦向きになり、コマ数の選択肢も縦向きに合わせて変わる（2×2 / 3×2 / 4×2）
 2. **Draw（紙の上で）**: A4 に印刷して描く。四隅のマーカーと QR は塗らない。ページは切らない
 3. **Scan**: 300dpi でページごとにスキャン → Import Scans。QR から設定とページ番号を読み、四隅のマーカーを自動検出して切り出す。縦横どちらの向きで読み取ってもよい（向きは QR、QR が読めなければマーカーの解読結果から起こす。ページ番号もマーカーから分かる）。見つからない隅だけ手でクリックする。「自動検出をやり直す」と「90° 回転」のボタンもある
 4. **Animate**: 必要なら元動画をドロップ（音声と未スキャン分の補完） → Export MP4 / GIF
@@ -42,7 +44,7 @@ npm run dev
 
 ## 公開（GitHub Pages）
 
-`.github/workflows/deploy.yml` が `BASE_PATH=/mixion/` でビルドし、GitHub Pages に配置します。リポジトリが private の間は Pages を使えないため、いまは Actions タブから手動実行（workflow_dispatch）のみです。public にしたら Settings → Pages で Source を「GitHub Actions」にし、ワークフローの `push: branches: [main]` トリガーを戻します。手元で同じビルドを確かめるには次のとおりです。
+`.github/workflows/deploy.yml` が `main` への push ごとに `BASE_PATH=/mixion/` でビルドし、GitHub Pages に配置します（Settings → Pages の Source を「GitHub Actions」にしておく）。手元で同じビルドを確かめるには次のとおりです。
 
 ```bash
 BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
@@ -92,3 +94,7 @@ src/
   components/  Button / Chip / アイコン
   i18n/        en（基準）と ja の辞書、言語切り替え
 ```
+
+## ライセンス
+
+[MIT](LICENSE)

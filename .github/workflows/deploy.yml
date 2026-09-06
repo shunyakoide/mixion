@@ -1,9 +1,9 @@
 name: Deploy to GitHub Pages
 
-# Pages is not available on a private repository under the free plan.
-# Once the repository is public and Settings → Pages → Source is "GitHub Actions",
-# add a `push: { branches: [main] }` trigger so every push deploys.
+# Deploys on every push to main once Settings → Pages → Source is "GitHub Actions".
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { t } from '../i18n'
 import { frameTimestamp, framesOnPage, framesPerPage } from '../domain/frameMap'
-import { GRID_PRESETS, type GridPreset, type Layout } from '../domain/layout'
+import { GRID_PRESETS, coerceGridPreset, type GridPreset, type Layout } from '../domain/layout'
 import { createProjectSettings, generateProjectId, isValidFps, layoutFromSettings, type ProjectSettings } from '../domain/settings'
 import { buildPrintPdf } from '../features/print/buildPdf'
 import { saveBlob } from '../lib/files'
@@ -56,12 +56,13 @@ export interface AppState extends PrintSlice, Actions {
 /** Settings derived from the current print inputs, or null until a video is loaded. */
 export function deriveSettings(s: Pick<AppState, 'info' | 'fps' | 'gridKey' | 'projectId'>): ProjectSettings | null {
   if (!s.info || !isValidFps(s.fps)) return null
+  const dims = { width: s.info.width, height: s.info.height }
   try {
     return createProjectSettings({
       projectId: s.projectId,
       fps: s.fps,
-      grid: GRID_PRESETS[s.gridKey],
-      dims: { width: s.info.width, height: s.info.height },
+      grid: GRID_PRESETS[coerceGridPreset(s.gridKey, dims)],
+      dims,
       duration: s.info.duration,
     })
   } catch {
@@ -102,7 +103,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ probing: false, loadError: t().app.cannotDecode(info.videoCodec ?? null) })
         return
       }
-      set({ info, probing: false, extractor: new FrameExtractor(file) })
+      set({ info, gridKey: coerceGridPreset(get().gridKey, info), probing: false, extractor: new FrameExtractor(file) })
     } catch (e) {
       if (get().file !== file) return
       set({ probing: false, loadError: e instanceof Error ? e.message : String(e) })

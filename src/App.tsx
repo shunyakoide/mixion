@@ -9,6 +9,7 @@ import { useT } from './i18n'
 import { AnimateStep } from './features/animate/AnimateStep'
 import { PrintStep } from './features/print/PrintStep'
 import { ScanStep } from './features/scan/ScanStep'
+import { Logo } from './components/ui/Logo'
 
 // Dev-only: the static import would pull the spike page and its fixture video into the production bundle.
 const VideoSpike = import.meta.env.DEV ? lazy(() => import('./features/spike/VideoSpike').then((m) => ({ default: m.VideoSpike }))) : null
@@ -23,7 +24,10 @@ export default function App() {
     <div className="min-h-screen bg-paper text-ink">
       <header className="sticky top-0 z-10 border-b border-rule bg-white/92 backdrop-blur-[12px]">
         <div className="mx-auto flex h-15 max-w-[1280px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
-          <span className="shrink-0 text-xl font-bold tracking-[-0.04em]">Mixion</span>
+          <span className="flex shrink-0 items-center gap-2 text-xl font-bold tracking-[-0.04em]">
+            <Logo size={22} />
+            Mixion
+          </span>
           <Steps />
           <div className="flex shrink-0 items-center gap-2">
             {sample && (

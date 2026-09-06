@@ -126,11 +126,33 @@ export const PAPER_SIZES: Record<Paper, Size> = {
 
 export const GRID_PRESETS = {
   '2x2': { cols: 2, rows: 2 },
+  '3x2': { cols: 3, rows: 2 },
   '3x3': { cols: 3, rows: 3 },
+  '4x2': { cols: 4, rows: 2 },
   '4x3': { cols: 4, rows: 3 },
 } as const satisfies Record<string, Grid>
 
 export type GridPreset = keyof typeof GRID_PRESETS
+
+/**
+ * Presets offered for a source. A vertical video gets fewer rows so its tall
+ * cells stay large: on portrait paper 3x3, 4x3 and 2x3 all collapse to the
+ * same 40x71 mm cell, while 3x2 and 4x2 give 59x105 and 43x76 mm.
+ */
+export function gridPresetsFor(dims: Dims): GridPreset[] {
+  return dims.height > dims.width ? ['2x2', '3x2', '4x2'] : ['2x2', '3x3', '4x3']
+}
+
+/**
+ * The offered preset with the same column count, so a choice made for one
+ * orientation carries over when a video of the other orientation is loaded.
+ */
+export function coerceGridPreset(key: GridPreset, dims: Dims): GridPreset {
+  const offered = gridPresetsFor(dims)
+  if (offered.includes(key)) return key
+  const cols = GRID_PRESETS[key].cols
+  return offered.find((k) => GRID_PRESETS[k].cols === cols) ?? offered[offered.length - 1]
+}
 
 export function formatGrid(grid: Grid): string {
   return `${grid.cols}x${grid.rows}`

@@ -4,9 +4,11 @@ import {
   GRID_PRESETS,
   LAYOUT_CONSTANTS as C,
   chooseOrientation,
+  coerceGridPreset,
   computeLayout,
   fitRect,
   formatGrid,
+  gridPresetsFor,
   mmToPt,
   mmToPx,
   parseGrid,
@@ -133,6 +135,30 @@ describe('computeLayout: A4 landscape, 2x2, 16:9', () => {
 
   it('is deterministic', () => {
     expect(computeLayout({ grid: GRID_PRESETS['2x2'], dims: HD })).toEqual(layout)
+  })
+})
+
+describe('gridPresetsFor / coerceGridPreset', () => {
+  it('offers wide grids for landscape and square video', () => {
+    expect(gridPresetsFor(HD)).toEqual(['2x2', '3x3', '4x3'])
+    expect(gridPresetsFor(SQUARE)).toEqual(['2x2', '3x3', '4x3'])
+  })
+  it('offers fewer rows for vertical video, and those cells really are larger', () => {
+    expect(gridPresetsFor(VERTICAL)).toEqual(['2x2', '3x2', '4x2'])
+    const cell = (key: keyof typeof GRID_PRESETS) => computeLayout({ grid: GRID_PRESETS[key], dims: VERTICAL }).cells[0].imageRect
+    expect(cell('3x2').w).toBeGreaterThan(cell('3x3').w)
+    expect(cell('4x2').w).toBeGreaterThan(cell('4x3').w)
+  })
+  it('keeps an offered preset as is', () => {
+    expect(coerceGridPreset('4x3', HD)).toBe('4x3')
+    expect(coerceGridPreset('3x2', VERTICAL)).toBe('3x2')
+  })
+  it('swaps to the same column count when the orientation changes', () => {
+    expect(coerceGridPreset('4x3', VERTICAL)).toBe('4x2')
+    expect(coerceGridPreset('3x3', VERTICAL)).toBe('3x2')
+    expect(coerceGridPreset('2x2', VERTICAL)).toBe('2x2')
+    expect(coerceGridPreset('4x2', HD)).toBe('4x3')
+    expect(coerceGridPreset('3x2', HD)).toBe('3x3')
   })
 })
 
