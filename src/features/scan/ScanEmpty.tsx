@@ -1,5 +1,7 @@
 import { useRef, useState, type DragEvent } from 'react'
+import { runScanWithoutPaper, useDemoStore } from '../../app/demo'
 import { useScanStore } from '../../app/scanStore'
+import { useAppStore } from '../../app/store'
 import { Button } from '../../components/ui/Button'
 import { Scan, Spinner } from '../../components/ui/icons'
 import { DRAW_NOTES } from '../print/drawNotes'
@@ -8,6 +10,8 @@ import { SettingsBar } from './SettingsBar'
 /** First screen of Scan: one big drop target and the three things that happen next. */
 export function ScanEmpty() {
   const { importScans, importing, importError } = useScanStore()
+  const hasVideo = useAppStore((s) => s.info !== null)
+  const demo = useDemoStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
@@ -56,6 +60,25 @@ export function ScanEmpty() {
           </li>
         ))}
       </ol>
+
+      {hasVideo && (
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rule bg-panel p-4">
+          <div>
+            <div className="font-medium">印刷した紙がなくても試せます</div>
+            <div className="mt-0.5 text-sm text-ink-2">Print で作ったページをそのまま画像にして取り込みます。</div>
+          </div>
+          <Button variant="secondary" onClick={() => void runScanWithoutPaper()} disabled={demo.running || importing}>
+            {demo.running ? (
+              <>
+                <Spinner className="mr-2" /> {demo.label}
+              </>
+            ) : (
+              '印刷せずに取り込む'
+            )}
+          </Button>
+          {demo.error && <p className="w-full text-sm text-danger">{demo.error}</p>}
+        </div>
+      )}
 
       <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <button type="button" className="text-ink-2 underline underline-offset-2 hover:text-ink" onClick={() => setShowNotes((v) => !v)}>

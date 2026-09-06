@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { loadSampleVideo, runDemo, useDemoStore } from '../../app/demo'
 import { deriveSettings, useAppStore } from '../../app/store'
 import { Button } from '../../components/ui/Button'
 import { ArrowRight, Check, Spinner } from '../../components/ui/icons'
@@ -8,17 +9,15 @@ import { SettingsPanel } from './SettingsPanel'
 import { VideoDrop } from './VideoDrop'
 
 export function PrintStep() {
-  const { info, fps, gridKey, projectId, status, progress, pdfError, lastSaved, createPdf, setStep, loadVideo, file } = useAppStore()
+  const { info, fps, gridKey, projectId, status, progress, pdfError, lastSaved, createPdf, setStep, file } = useAppStore()
+  const demo = useDemoStore()
   const settings = deriveSettings({ info, fps, gridKey, projectId })
   const busy = status === 'extracting' || status === 'building' || status === 'saving'
 
-  // Dev convenience: ?sample loads the bundled fixture.
+  // ?sample opens the app with the sample clip already loaded.
   useEffect(() => {
-    if (!import.meta.env.DEV || file || !new URLSearchParams(location.search).has('sample')) return
-    const url = new URL('../../../fixtures/sample-5s.mp4', import.meta.url).href
-    void fetch(url)
-      .then((r) => r.blob())
-      .then((b) => loadVideo(new File([b], 'sample-5s.mp4', { type: 'video/mp4' })))
+    if (file || !new URLSearchParams(location.search).has('sample')) return
+    void loadSampleVideo().catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -31,6 +30,24 @@ export function PrintStep() {
         </p>
         <div className="mt-8">
           <VideoDrop />
+        </div>
+        <div className="mt-8 rounded-lg border border-rule bg-panel p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="font-medium">動画がなくても試せます</div>
+              <div className="mt-0.5 text-sm text-ink-2">5 秒のサンプル動画を読み込み、印刷ページをそのままスキャンとして取り込んで、アニメーションまで進みます。</div>
+            </div>
+            <Button variant="secondary" onClick={() => void runDemo()} disabled={demo.running}>
+              {demo.running ? (
+                <>
+                  <Spinner className="mr-2" /> {demo.label}
+                </>
+              ) : (
+                'サンプルで試す'
+              )}
+            </Button>
+          </div>
+          {demo.error && <p className="mt-2 text-sm text-danger">{demo.error}</p>}
         </div>
       </div>
     )

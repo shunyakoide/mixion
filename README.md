@@ -36,9 +36,16 @@ npm run dev
 | `npm run lint` | oxlint |
 | `npx tsx scripts/dummy-pdf.ts` | プレースホルダ画像の印刷用 PDF を `out/` に出す（印刷・スキャンの実機テスト用） |
 
+## サンプルで試す
+
+動画・プリンタ・スキャナがなくても一通り動かせます。
+
+- 最初の画面の「サンプルで試す」: 同梱の 5 秒のサンプル動画（`public/sample.mp4`、跳ねる玉）を読み込み、印刷ページを画像にしてそのままスキャンとして取り込み、Animate まで進みます
+- Scan の「印刷せずに取り込む」: 動画を読み込んだ後、紙に出さずに Print で作ったページを取り込みます
+- `?sample` を付けて開くと、サンプル動画を読み込んだ状態で始まります
+
 ## 開発用フック（`npm run dev` のみ）
 
-- `http://localhost:5173/?sample` — `fixtures/sample-5s.mp4` を自動で読み込む
 - `http://localhost:5173/?spike=video` — WebCodecs の動作確認ページ
 - ブラウザコンソールの `window.__dev` — `simulateScan(page, {dpi, rotateDeg})` で印刷ページを疑似スキャン画像にする、`imageDiff`、`encodeMp4`、`encodeGif`、各ストア
 

@@ -459,8 +459,12 @@ Milestone: `M1 Print` / `M2 Scan` / `M3 Animate` / `M4 E2E`。Size: S(半日) / 
 - 絵の具で紙が波打った場合の位置ズレ（v0.2 以降の課題として記録）
 
 ### 既知の小さな課題
-- 本番ビルドに `fixtures/sample-5s.mp4` と `?spike=video` のページが含まれる（開発用フックが `new URL(..., import.meta.url)` を使っているため）。配布前に外す
+- 本番ビルドに `?spike=video` のページと `fixtures/sample-5s.mp4` が含まれる（spike の `new URL(..., import.meta.url)` のため）。配布前に外す。デモ用の `public/sample.mp4` は意図して同梱
 - Safari / Firefox は未確認
+
+### サンプルで試す（2026-09-06 追加）
+- `src/app/demo.ts`: `public/sample.mp4`（ffmpeg の geq で作った 1280×720・5 秒の跳ねる玉、AAC の小さなビープ入り）を読み込み、`renderPageToBlob` で印刷ページを 150 dpi・微小回転つきの画像にして `importScans` に通す。本物のスキャン経路（QR → マーカー検出 → ワープ）をそのまま使うので、デモがそのままパイプラインの動作確認になる
+- 入口は Print の空状態（動画なしで Animate まで）と Scan の空状態（動画はあるが紙がない）
 
 ### v0.2（2026-09-05 追加）: 四隅マーカーの自動検出
 - 方式: jsQR が返す QR の四隅座標から、スキャンの px/mm と回転を求め（相似変換）、レイアウト上のマーカー位置を予測。予測点の周辺だけを Otsu で二値化し、連結成分からマーカーサイズの黒い正方形を選んで外接矩形の中心を取る。ArUco の ID 復号は使っていない（QR がある限り不要）
