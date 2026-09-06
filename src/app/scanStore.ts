@@ -30,6 +30,8 @@ export interface ScanItem {
   cornerSource: 'auto' | 'manual' | null
   /** Markers the detector could not find (shown so the user knows what to click). */
   missingCorners: Corner[]
+  /** Corners as the detector found them, so a dragged point can be put back. */
+  detectedCorners: Partial<Record<Corner, Point>>
   status: ScanStatus
   error: string | null
   /** RMS reprojection error of the last apply, in scan px (0 for 4 exact points). */
@@ -77,6 +79,8 @@ interface ScanState {
   setPage: (id: string, page: number | null) => void
   setCorner: (id: string, corner: Corner, point: Point) => void
   resetCorners: (id: string) => void
+  /** Put every corner back where the detector found it. */
+  restoreDetectedCorners: (id: string) => void
   setManualSettings: (settings: ProjectSettings) => void
   clearSettings: () => void
   /** Forget everything: scans, cut frames, settings, original video. */
@@ -211,6 +215,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
         corners: {},
         cornerSource: null,
         missingCorners: [],
+        detectedCorners: {},
         status: 'reading',
         error: null,
         fitError: null,
@@ -278,6 +283,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
                   corners,
                   cornerSource: detected ? 'auto' : null,
                   missingCorners: detected?.missing ?? [],
+                  detectedCorners: detected?.corners ?? {},
                   status: 'needs_corners',
                 })
               : x,
@@ -323,6 +329,16 @@ export const useScanStore = create<ScanState>((set, get) => ({
   resetCorners: (id) =>
     set((s) => ({
       scans: s.scans.map((x) => (x.id === id ? statusUpdate({ ...x, corners: {}, cornerSource: null, missingCorners: [], status: 'needs_corners', error: null, fitError: null }) : x)),
+    })),
+
+  restoreDetectedCorners: (id) =>
+    set((s) => ({
+      scans: s.scans.map((x) => {
+        if (x.id !== id) return x
+        const corners = { ...x.detectedCorners }
+        const missing = ([0, 1, 2, 3] as Corner[]).filter((c) => corners[c] === undefined)
+        return statusUpdate({ ...x, corners, cornerSource: 'auto', missingCorners: missing, status: x.status === 'applied' ? 'needs_corners' : x.status, error: null })
+      }),
     })),
 
   setManualSettings: (settings) => set({ settings, settingsSource: 'manual' }),

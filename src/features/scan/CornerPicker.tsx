@@ -57,7 +57,7 @@ interface Props {
  * loupe and a live overlay of where the frames will be cut.
  */
 export function CornerPicker({ scan, settings, layout }: Props) {
-  const { setCorner, resetCorners, setPage, applyScan } = useScanStore()
+  const { setCorner, resetCorners, restoreDetectedCorners, setPage, applyScan } = useScanStore()
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const loupeRef = useRef<HTMLCanvasElement>(null)
@@ -67,6 +67,9 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   const [cssWidth, setCssWidth] = useState(600)
   const [cursor, setCursor] = useState<Point | null>(null)
   const [qrHint, setQrHint] = useState(false)
+  /** Positions before each drag, newest last. Cleared when the scan changes (component is keyed by scan id). */
+  const [undo, setUndo] = useState<{ corner: Corner; point: Point }[]>([])
+  const [grabbing, setGrabbing] = useState(false)
   const dragging = useRef<Corner | null>(null)
 
   // Load the scan image.
@@ -214,7 +217,10 @@ export function CornerPicker({ scan, settings, layout }: Props) {
     const p = toScan(e)
     const hit = hitCorner(p)
     if (hit !== null) {
+      const from = scan.corners[hit]
+      if (from) setUndo((u) => [...u.slice(-19), { corner: hit, point: from }])
       dragging.current = hit
+      setGrabbing(true)
       return
     }
     if (nextCorner !== null) {
@@ -238,7 +244,20 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   }
   const onMouseUp = () => {
     dragging.current = null
+    setGrabbing(false)
   }
+  const undoLast = () => {
+    const last = undo[undo.length - 1]
+    if (!last) return
+    setCorner(scan.id, last.corner, last.point)
+    setUndo((u) => u.slice(0, -1))
+  }
+  const hovering = cursor !== null && !grabbing && hitCorner(cursor) !== null
+  const detectedDiffers = CORNERS.some((c) => {
+    const a = scan.corners[c]
+    const d = scan.detectedCorners[c]
+    return (a === undefined) !== (d === undefined) || (a && d && (a.x !== d.x || a.y !== d.y))
+  })
 
   const busy = scan.status === 'applying'
   const canApply = (complete && homography !== null && scan.page !== null && !busy) && consistent
@@ -279,8 +298,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
             <span className="min-w-0 flex-1">
               {scan.status === 'applied' ? '切り出しました。' : '4 点そろいました。'}
-              緑の枠が、コマとして切り出す範囲です。絵とぴったり重なっていれば{scan.status === 'applied' ? 'このままで OK です' : '「Apply」を押してください'}。
-              ずれていたら、隅の赤い点をドラッグして ■ の中心に合わせ{scan.status === 'applied' ? '、「もう一度切り出す」' : 'てください'}
+              緑の枠がコマの範囲です。ずれていたら隅の点を ■ の中心へドラッグして{scan.status === 'applied' ? '「もう一度切り出す」' : ' Apply'}
             </span>
           </>
         ) : (
@@ -306,7 +324,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={() => { onMouseUp(); setCursor(null) }}
-          className="w-full cursor-crosshair rounded border border-rule bg-rule/40"
+          className={['w-full rounded border border-rule bg-rule/40', grabbing ? 'cursor-grabbing' : hovering ? 'cursor-grab' : 'cursor-crosshair'].join(' ')}
           style={{ height: cssHeight }}
         />
         <canvas ref={loupeRef} className="pointer-events-none absolute rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size, ...(cursor ? loupePosition(cursor, scale, cssWidth, cssHeight) : {}) }} hidden={cursor === null} />
@@ -317,7 +335,15 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         <Button id="apply-scan" onClick={() => void applyScan(scan.id)} disabled={!canApply}>
           {busy ? '切り出し中…' : scan.status === 'applied' ? 'もう一度切り出す' : 'Apply: このページを切り出す'}
         </Button>
-        <Button variant="ghost" onClick={() => resetCorners(scan.id)} disabled={busy || Object.keys(scan.corners).length === 0}>
+        <Button variant="ghost" onClick={undoLast} disabled={busy || undo.length === 0} title="直前のドラッグを取り消す">
+          元に戻す
+        </Button>
+        {Object.keys(scan.detectedCorners).length > 0 && (
+          <Button variant="ghost" onClick={() => { restoreDetectedCorners(scan.id); setUndo([]) }} disabled={busy || !detectedDiffers}>
+            自動検出の位置に戻す
+          </Button>
+        )}
+        <Button variant="ghost" onClick={() => { resetCorners(scan.id); setUndo([]) }} disabled={busy || Object.keys(scan.corners).length === 0}>
           四隅をやり直す
         </Button>
         {scan.status === 'applied' && <span className="text-sm text-ok">切り出し済み</span>}
