@@ -78,7 +78,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   probing: false,
   loadError: null,
   fps: 8,
-  gridKey: '2x2',
+  gridKey: '4x3',
   projectId: generateProjectId(),
   frames: new Map(),
   status: 'idle',

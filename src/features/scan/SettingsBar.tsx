@@ -31,7 +31,7 @@ export function SettingsBar() {
 
 function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: ProjectSettings | null; onSubmit: (s: ProjectSettings) => void; onCancel?: () => void; onClear?: () => void }) {
   const [fps, setFps] = useState(String(initial?.fps ?? 8))
-  const [gridKey, setGridKey] = useState<string>(initial ? `${initial.grid.cols}x${initial.grid.rows}` : '2x2')
+  const [gridKey, setGridKey] = useState<string>(initial ? `${initial.grid.cols}x${initial.grid.rows}` : '4x3')
   const [frames, setFrames] = useState(String(initial?.frameCount ?? 40))
   const [w, setW] = useState(String(initial?.dims.width ?? 1920))
   const [h, setH] = useState(String(initial?.dims.height ?? 1080))
