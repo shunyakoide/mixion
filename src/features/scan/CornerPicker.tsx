@@ -268,6 +268,33 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         {scan.qrNote && <span className="text-xs text-warn">{scan.qrNote}</span>}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 rounded-md bg-ink px-3 py-2 text-sm text-white" aria-live="polite">
+        {complete && !consistent ? (
+          <>
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-semibold">!</span>
+            四隅の対応が合っていません。点を正しい ■ までドラッグするか、「四隅をやり直す」
+          </>
+        ) : complete ? (
+          <>
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
+            {scan.cornerSource === 'auto' ? '四隅を自動で検出しました。緑の枠がずれていれば点をドラッグ' : '4 点そろいました。ずれていれば点をドラッグして、Apply'}
+          </>
+        ) : (
+          <>
+            <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', qrHint ? 'bg-danger' : scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{qrHint ? '!' : 4 - remaining.length}</span>
+            {qrHint ? 'それは QR コードです。' : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
+            紙の隅にあるこのマークの中心をクリック:
+            {remaining.map((c) => (
+              <span key={c} className="flex items-center gap-1">
+                <MarkerGlyph page={scan.page} corner={c} className="rounded-sm" />
+                <strong className="font-semibold">{CORNER_LABEL[c]}</strong>
+              </span>
+            ))}
+            <span className="text-white/60">{4 - remaining.length} / 4</span>
+          </>
+        )}
+      </div>
+
       <div ref={wrapRef} className="relative">
         <canvas
           ref={canvasRef}
@@ -279,32 +306,6 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           style={{ height: cssHeight }}
         />
         <canvas ref={loupeRef} className="pointer-events-none absolute rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size, ...(cursor ? loupePosition(cursor, scale, cssWidth, cssHeight) : {}) }} hidden={cursor === null} />
-        <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-2 rounded-md bg-ink/85 px-3 py-1.5 text-sm text-white shadow" aria-live="polite">
-          {complete && !consistent ? (
-            <>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-semibold">!</span>
-              四隅の対応が合っていません。点を正しい ■ までドラッグするか、「四隅をやり直す」
-            </>
-          ) : complete ? (
-            <>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
-              {scan.cornerSource === 'auto' ? '四隅を自動で検出しました。緑の枠がずれていれば点をドラッグ' : '4 点そろいました。ずれていれば点をドラッグして、Apply'}
-            </>
-          ) : (
-            <>
-              <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', qrHint ? 'bg-danger' : scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{qrHint ? '!' : 4 - remaining.length}</span>
-              {qrHint ? 'それは QR コードです。' : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
-              紙の隅にあるこのマークの中心をクリック:
-              {remaining.map((c) => (
-                <span key={c} className="flex items-center gap-1">
-                  <MarkerGlyph page={scan.page} corner={c} className="rounded-sm" />
-                  <strong className="font-semibold">{CORNER_LABEL[c]}</strong>
-                </span>
-              ))}
-              <span className="text-white/60">{4 - remaining.length} / 4</span>
-            </>
-          )}
-        </div>
         {!loaded && <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-3">読み込み中…</div>}
       </div>
 
