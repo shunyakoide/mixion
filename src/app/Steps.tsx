@@ -3,36 +3,36 @@ import { useAppStore } from './store'
 import { useStepProgress } from './useStepProgress'
 import { useT } from '../i18n'
 
+/** Header stepper: a numbered badge per step, the current one underlined across the header's full height. */
 export function Steps() {
   const setStep = useAppStore((s) => s.setStep)
   const { steps, current } = useStepProgress()
   const t = useT()
   return (
-    <ol className="flex min-w-0 items-stretch gap-1 overflow-x-auto" aria-label={t.header.steps}>
+    <ol className="mx-auto flex h-15 min-w-0 items-stretch gap-1 overflow-x-auto" aria-label={t.header.steps}>
       {steps.map((s) => {
         const active = s.id === current
         return (
-          <li key={s.id} className="flex items-center">
+          <li key={s.id} className="flex items-stretch">
             <button
               type="button"
               onClick={() => setStep(s.id)}
               aria-current={active ? 'step' : undefined}
               className={[
-                'flex min-h-11 items-center gap-2 rounded-md px-2 text-sm transition-colors sm:min-h-9 sm:px-3',
-                active ? 'bg-ink text-white' : 'text-ink-2 hover:bg-rule/60',
+                'flex items-center gap-2.5 whitespace-nowrap px-2.5 text-[15px] transition-colors sm:px-3.5',
+                active ? 'font-semibold text-ink shadow-[inset_0_-2px_0_#0e0e0e]' : 'font-medium text-ink-3 hover:text-ink',
               ].join(' ')}
             >
               <span
                 className={[
-                  'flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold',
-                  s.done ? 'bg-ok text-white' : active ? 'bg-panel text-ink' : 'border border-rule-2 text-ink-3',
+                  'flex h-[22px] w-[22px] items-center justify-center rounded-full font-mono text-[11px] font-semibold',
+                  s.done || active ? 'bg-ink text-white' : 'border border-[#d9d9d5] text-ink-3',
                 ].join(' ')}
               >
-                {s.done ? <Check size={12} strokeWidth={3} /> : s.index + 1}
+                {s.done ? <Check size={12} strokeWidth={3} /> : String(s.index + 1).padStart(2, '0')}
               </span>
-              <span className={[active ? 'font-medium' : 'hidden sm:inline'].join(' ')}>{s.label}</span>
+              <span className={active ? '' : 'hidden sm:inline'}>{s.label}</span>
             </button>
-            {s.index < steps.length - 1 && <span className="mx-0.5 h-px w-2 bg-rule-2 sm:mx-1 sm:w-5" aria-hidden />}
           </li>
         )
       })}

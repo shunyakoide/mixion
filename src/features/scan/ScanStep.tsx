@@ -21,30 +21,38 @@ export function ScanStep() {
   if (scans.length === 0 && !settings) return <ScanEmpty />
 
   return (
-    <div className="space-y-4">
-      <SettingsBar />
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[32px] font-semibold leading-9 tracking-[-0.03em]">{t.scan.emptyTitle}</h1>
+          <p className="mt-2.5 max-w-[52ch] text-pretty text-sm leading-[22px] text-ink-2">{t.scan.loadedIntro}</p>
+        </div>
+        <SettingsBar />
+      </div>
       {allDone && settings && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-ok/30 bg-ok-soft px-4 py-3 text-sm" aria-live="polite">
-          <Check className="text-ok" />
+        <div className="flex flex-wrap items-center gap-3 rounded-full bg-surface py-2 pl-5 pr-2 text-sm" aria-live="polite">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+            <Check size={12} strokeWidth={3} />
+          </span>
           <span className="font-medium">{t.scan.allDone(settings.frameCount)}</span>
-          <Button className="ml-auto h-9" onClick={() => setStep('animate')}>
-            {t.scan.goAnimate} <ArrowRight className="ml-1" />
+          <Button className="ml-auto" onClick={() => setStep('animate')}>
+            {t.scan.goAnimate} <ArrowRight size={16} />
           </Button>
         </div>
       )}
-      <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)_220px]">
+      <div className="grid items-start gap-7 lg:grid-cols-[240px_minmax(0,1fr)_200px]">
         <ScanList />
         <div className="min-w-0">
           {selected && settings && layout ? (
             selected.status === 'reading' || selected.status === 'detecting' ? (
-              <p className="text-sm text-ink-2">{selected.status === 'detecting' ? t.scan.detectingMarkers : t.common.loading}</p>
+              <div className="flex aspect-[297/210] items-center justify-center rounded-2xl bg-surface text-sm text-ink-2">
+                {selected.status === 'detecting' ? t.scan.detectingMarkers : t.common.loading}
+              </div>
             ) : (
               <CornerPicker key={selected.id} scan={selected} settings={settings} layout={layout} />
             )
           ) : (
-            <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-rule-2 text-sm text-ink-3">
-              {t.scan.selectPage}
-            </div>
+            <div className="flex h-64 items-center justify-center rounded-2xl bg-surface text-sm text-ink-3">{t.scan.selectPage}</div>
           )}
         </div>
         <div>{settings && <ScanProgress settings={settings} />}</div>

@@ -11,36 +11,26 @@ export function PagePreview() {
   const { info, fps, gridKey, projectId } = useAppStore()
   const settings = deriveSettings({ info, fps, gridKey, projectId })
   const layout = deriveLayout(settings)
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(320)
-
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => setWidth(Math.max(200, Math.floor(entries[0].contentRect.width))))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
   const t = useT()
+
   if (!settings || !layout) {
     return (
-      <div ref={wrapRef} className="flex aspect-[297/210] items-center justify-center rounded-lg border border-dashed border-rule-2 text-sm text-ink-3">
+      <div className="flex aspect-[297/210] items-center justify-center rounded-3xl bg-surface text-sm text-ink-3">
         {t.print.preview}
       </div>
     )
   }
 
   return (
-    <div ref={wrapRef} className="space-y-3">
-      <div className="flex items-baseline justify-between text-sm">
-        <span className="font-medium">{t.print.preview}</span>
-        <span className="tabular-nums text-ink-2">{t.print.pages(settings.pageCount)}</span>
+    <div className="rounded-3xl bg-surface p-4 sm:p-6">
+      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-[13px] font-semibold tracking-[0.02em]">{t.print.preview}</span>
+        <span className="font-mono text-xs text-ink-2">{t.print.previewMeta(settings.pageCount, layout.orientation === 'landscape', settings.fps, gridKey.replace('x', '×'))}</span>
       </div>
-      <ol className="space-y-6">
+      <ol className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(320px,100%),1fr))]">
         {Array.from({ length: settings.pageCount }, (_, i) => (
-          <li key={`${settings.projectId}-${settings.fps}-${gridKey}-${i + 1}`}>
-            <PageCard settings={settings} layout={layout} page={i + 1} width={width} />
+          <li key={`${settings.projectId}-${settings.fps}-${gridKey}-${i + 1}`} className="flex min-w-0 flex-col gap-2.5">
+            <PageCard settings={settings} layout={layout} page={i + 1} />
           </li>
         ))}
       </ol>
@@ -48,15 +38,26 @@ export function PagePreview() {
   )
 }
 
-function PageCard({ settings, layout, page, width }: { settings: ProjectSettings; layout: Layout; page: number; width: number }) {
+function PageCard({ settings, layout, page }: { settings: ProjectSettings; layout: Layout; page: number }) {
   const frames = useAppStore((s) => s.frames)
   const ensureFrames = useAppStore((s) => s.ensureFrames)
   const t = useT()
+  const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [width, setWidth] = useState(320)
   const [visible, setVisible] = useState(false)
   const pageFrames = previewFrameNumbers(settings, page)
   const missing = pageFrames.some((f) => !frames.has(f))
   const height = (layout.pageSize.h / layout.pageSize.w) * width
+
+  // Each card follows its own grid cell, so the columns can reflow with the window.
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => setWidth(Math.max(200, Math.floor(entries[0].contentRect.width))))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // Only pages near the viewport decode frames and paint.
   useEffect(() => {
@@ -125,24 +126,24 @@ function PageCard({ settings, layout, page, width }: { settings: ProjectSettings
   }, [visible, frames, width, height])
 
   return (
-    <div className="relative">
-      <div className="mb-1.5 flex items-baseline justify-between text-xs text-ink-2">
-        <span className="tabular-nums">
-          {t.print.pageOf(page, settings.pageCount)}
-        </span>
-        <span className="tabular-nums">
+    <>
+      <div ref={wrapRef} className="relative">
+        <canvas ref={canvasRef} className="block max-w-full rounded-md bg-white shadow-page" style={{ width, height }} />
+        {visible && missing && (
+          <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center" aria-live="polite">
+            <span className="flex items-center gap-2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
+              {t.print.loadingFrames}
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-between font-mono text-xs text-ink-2">
+        <span className="whitespace-nowrap">{t.print.pageLabel(page)}</span>
+        <span className="whitespace-nowrap">
           #{String(pageFrames[0]).padStart(2, '0')} – #{String(pageFrames[pageFrames.length - 1]).padStart(2, '0')}
         </span>
       </div>
-      <canvas ref={canvasRef} className="block max-w-full rounded border border-rule bg-white shadow-sm" style={{ width, height }} />
-      {visible && missing && (
-        <div className="absolute inset-x-0 top-9 flex justify-center" aria-live="polite">
-          <span className="flex items-center gap-2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
-            {t.print.loadingFrames}
-          </span>
-        </div>
-      )}
-    </div>
+    </>
   )
 }

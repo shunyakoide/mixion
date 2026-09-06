@@ -24,29 +24,27 @@ export function PrintStep() {
 
   if (!file) {
     return (
-      <div className="mx-auto max-w-2xl pt-10">
-        <h1 className="text-2xl font-semibold tracking-tight">{t.print.title}</h1>
-        <p className="mt-2 max-w-prose text-ink-2">
-          {t.print.intro}
-        </p>
+      <div className="mx-auto max-w-2xl pt-4 sm:pt-8">
+        <h1 className="text-[32px] font-semibold leading-9 tracking-[-0.03em]">{t.print.title}</h1>
+        <p className="mt-3 max-w-[60ch] text-sm leading-[22px] text-ink-2">{t.print.intro}</p>
         <div className="mt-8">
           <VideoDrop />
         </div>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col rounded-lg border border-rule bg-panel p-4">
-            <div className="font-medium">{t.print.haveDrawnTitle}</div>
-            <div className="mt-0.5 flex-1 text-sm text-ink-2">{t.print.haveDrawnBody}</div>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col rounded-[20px] bg-surface p-5">
+            <div className="text-[15px] font-semibold">{t.print.haveDrawnTitle}</div>
+            <div className="mt-1 flex-1 text-sm leading-[22px] text-ink-2">{t.print.haveDrawnBody}</div>
             <Button variant="secondary" className="mt-4 self-start" onClick={() => setStep('scan')}>
-              <Scan size={16} className="mr-2" /> {t.print.importScans}
+              <Scan size={16} /> {t.print.importScans}
             </Button>
           </div>
-          <div className="flex flex-col rounded-lg border border-rule bg-panel p-4">
-            <div className="font-medium">{t.print.tryTitle}</div>
-            <div className="mt-0.5 flex-1 text-sm text-ink-2">{t.print.tryBody}</div>
+          <div className="flex flex-col rounded-[20px] bg-surface p-5">
+            <div className="text-[15px] font-semibold">{t.print.tryTitle}</div>
+            <div className="mt-1 flex-1 text-sm leading-[22px] text-ink-2">{t.print.tryBody}</div>
             <Button variant="secondary" className="mt-4 self-start" onClick={() => void runDemo()} disabled={demo.running}>
               {demo.running ? (
                 <>
-                  <Spinner className="mr-2" /> {demo.label}
+                  <Spinner /> {demo.label}
                 </>
               ) : (
                 t.print.trySample
@@ -60,46 +58,56 @@ export function PrintStep() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[340px_minmax(0,1fr)] xl:gap-12">
-      <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+    <div className="grid items-start gap-8 lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-10">
+      <div className="flex flex-col gap-8 lg:sticky lg:top-[84px] lg:gap-9">
+        <div>
+          <h1 className="text-[32px] font-semibold leading-9 tracking-[-0.03em]">{t.print.loadedTitle}</h1>
+          <p className="mt-2.5 text-sm leading-[22px] text-ink-2">{t.print.loadedIntro}</p>
+        </div>
         <VideoDrop />
         <SettingsPanel />
-        <div className="space-y-3">
-          <Button id="create-pdf" onClick={() => void createPdf()} disabled={!settings || busy} className="w-full">
+        <div className="flex flex-col gap-2.5">
+          <Button id="create-pdf" size="lg" onClick={() => void createPdf()} disabled={!settings || busy} className="w-full">
             {busy ? (
               <>
-                <Spinner className="mr-2" /> {progress?.label ?? t.print.saving}
+                <Spinner /> {progress?.label ?? t.print.saving}
               </>
-            ) : status === 'done' ? (
-              t.print.savePdfAgain
             ) : (
-              t.print.savePdf
+              <>
+                {status === 'done' ? t.print.savePdfAgain : t.print.savePdf}
+                <ArrowRight size={16} />
+              </>
             )}
           </Button>
-          {busy && progress && (
-            <div className="h-1.5 w-full overflow-hidden rounded bg-rule" role="progressbar" aria-valuenow={progress.done} aria-valuemax={progress.total}>
-              <div className="h-full bg-accent transition-[width]" style={{ width: `${(100 * progress.done) / Math.max(1, progress.total)}%` }} />
+          {busy && progress ? (
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-rule-3" role="progressbar" aria-valuenow={progress.done} aria-valuemax={progress.total}>
+              <div className="h-full rounded-full bg-ink transition-[width]" style={{ width: `${(100 * progress.done) / Math.max(1, progress.total)}%` }} />
             </div>
+          ) : (
+            <p className="text-center text-xs leading-[18px] text-ink-3">{t.print.afterSave}</p>
           )}
           {pdfError && <p className="text-sm text-danger">{pdfError}</p>}
         </div>
 
         {status === 'done' && lastSaved && (
-          <div className="rounded-lg border border-ok/30 bg-ok-soft p-4" aria-live="polite">
-            <div className="flex items-center gap-2 font-medium text-ok">
-              <Check /> {t.print.saved(lastSaved)}
+          <div className="rounded-[20px] bg-surface p-5" aria-live="polite">
+            <div className="flex items-center gap-2 font-semibold">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+                <Check size={12} strokeWidth={3} />
+              </span>
+              <span className="truncate">{t.print.saved(lastSaved)}</span>
             </div>
-            <div className="mt-3 text-sm font-medium">{t.print.whenDrawing}</div>
-            <ul className="mt-2 space-y-1.5 text-sm text-ink-2">
+            <div className="mt-4 text-[13px] font-semibold tracking-[0.02em]">{t.print.whenDrawing}</div>
+            <ul className="mt-2 space-y-1.5 text-sm leading-[22px] text-ink-2">
               {t.print.drawNotes.map((note) => (
                 <li key={note} className="flex gap-2">
-                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
+                  <span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
                   <span>{note}</span>
                 </li>
               ))}
             </ul>
-            <Button className="mt-4" onClick={() => setStep('scan')}>
-              {t.print.goScan} <ArrowRight className="ml-1" />
+            <Button className="mt-5 w-full" onClick={() => setStep('scan')}>
+              {t.print.goScan} <ArrowRight size={16} />
             </Button>
           </div>
         )}

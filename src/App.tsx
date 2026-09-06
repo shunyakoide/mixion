@@ -21,25 +21,27 @@ export default function App() {
   const spike = import.meta.env.DEV && new URLSearchParams(location.search).get('spike')
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="sticky top-0 z-10 border-b border-rule bg-panel/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-3 py-2 sm:gap-8 sm:px-6 sm:py-3">
-          <span className="shrink-0 text-base font-semibold tracking-tight sm:text-lg">Mixion</span>
+      <header className="sticky top-0 z-10 border-b border-rule bg-white/92 backdrop-blur-[12px]">
+        <div className="mx-auto flex h-15 max-w-[1280px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
+          <span className="shrink-0 text-xl font-bold tracking-[-0.04em]">Mixion</span>
           <Steps />
-          <div className="ml-auto flex shrink-0 items-center gap-2 text-sm sm:gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             {sample && (
-              <>
-                <span className="hidden text-ink-2 md:inline">{t.header.sampleMode}</span>
-                <button type="button" onClick={leaveSample} className="min-h-11 whitespace-nowrap rounded-md border border-rule-2 px-3 text-ink hover:border-ink-3 sm:min-h-9">
-                  <span className="sm:hidden">{t.header.backToStartShort}</span>
-                  <span className="hidden sm:inline">{t.header.backToStart}</span>
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={leaveSample}
+                className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border border-rule-2 bg-white px-3.5 text-[13px] text-ink transition-colors hover:border-ink-3"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-ink" aria-hidden />
+                <span className="sm:hidden">{t.header.samplePillShort}</span>
+                <span className="hidden sm:inline">{t.header.samplePill}</span>
+              </button>
             )}
             <LanguageToggle />
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[1600px] px-4 pb-32 pt-5 sm:px-6 sm:pt-8">
+      <main className="mx-auto max-w-[1280px] px-4 pb-[140px] pt-7 sm:px-6 sm:pt-9">
         {spike === 'video' && VideoSpike ? (
           <Suspense fallback={null}>
             <VideoSpike />

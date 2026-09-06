@@ -1,16 +1,16 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
-import { Button } from '../../components/ui/Button'
+import { Upload, X } from '../../components/ui/icons'
 import { useT } from '../../i18n'
 
-const STATUS_CLASS: Record<ScanItem['status'], string> = {
-  reading: 'text-ink-3',
-  detecting: 'text-ink-3',
-  needs_corners: 'text-warn',
-  ready: 'text-accent',
-  applying: 'text-accent',
-  applied: 'text-ok',
-  error: 'text-danger',
+const DOT: Record<ScanItem['status'], string> = {
+  reading: 'bg-ink-3',
+  detecting: 'bg-ink-3',
+  needs_corners: 'bg-warn',
+  ready: 'bg-ink',
+  applying: 'bg-ink',
+  applied: 'bg-ok',
+  error: 'bg-danger',
 }
 
 export function ScanList() {
@@ -28,9 +28,19 @@ export function ScanList() {
 
   return (
     <div className="flex h-full flex-col gap-3" onDragOver={(e) => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)} onDrop={onDrop}>
-      <Button id="import-scans" onClick={() => inputRef.current?.click()} disabled={importing} className="w-full">
-        {importing ? t.scan.importing : t.scan.importButton}
-      </Button>
+      <button
+        type="button"
+        id="import-scans"
+        onClick={() => inputRef.current?.click()}
+        disabled={importing}
+        className={[
+          'flex h-11 items-center justify-center gap-2 rounded-full border border-dashed bg-white text-sm font-medium transition-colors disabled:opacity-35',
+          over ? 'border-ink' : 'border-[#c9c9c5] hover:border-ink-3',
+        ].join(' ')}
+      >
+        <Upload size={16} />
+        {importing ? t.scan.importing : t.scan.addScans}
+      </button>
       <input
         ref={inputRef}
         type="file"
@@ -44,31 +54,35 @@ export function ScanList() {
         }}
       />
       {importError && <p className="text-sm text-danger">{importError}</p>}
-      <ul className={['min-h-40 flex-1 space-y-1 overflow-auto rounded-lg border p-1', over ? 'border-ink bg-rule/40' : 'border-rule bg-panel'].join(' ')}>
+      <ul className={['flex min-h-40 flex-1 flex-col gap-1 overflow-auto rounded-2xl transition-shadow', over ? 'shadow-[inset_0_0_0_2px_#0e0e0e]' : ''].join(' ')}>
         {scans.length === 0 && <li className="p-3 text-sm text-ink-3">{t.scan.dropScans}</li>}
         {scans.map((s) => {
+          const active = s.id === selectedId
           return (
-            <li key={s.id}>
+            <li key={s.id} className="relative">
               <button
                 type="button"
                 onClick={() => select(s.id)}
-                className={['flex w-full items-center gap-2 rounded px-2 py-2.5 text-left text-sm sm:py-1.5', s.id === selectedId ? 'bg-ink text-white' : 'hover:bg-rule/40'].join(' ')}
+                aria-current={active ? 'true' : undefined}
+                className={['flex w-full items-center gap-3 rounded-xl py-2.5 pl-3 pr-9 text-left text-sm transition-colors', active ? 'bg-ink text-white' : 'hover:bg-surface'].join(' ')}
               >
-                <span className="w-7 shrink-0 tabular-nums opacity-70">{s.page !== null ? `P${s.page}` : '—'}</span>
-                <span className="min-w-0 flex-1 truncate" title={s.name}>
-                  {s.name}
+                <img src={s.url} alt="" className="h-[26px] w-9 shrink-0 rounded bg-rule-3 object-cover" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium" title={s.name}>
+                    {s.page !== null ? `P${s.page} · ` : ''}
+                    {s.name}
+                  </span>
+                  <span className="block text-xs leading-4 opacity-70">{t.scan.status[s.status]}</span>
                 </span>
-                <span className={[s.id === selectedId ? 'text-white/80' : STATUS_CLASS[s.status], 'shrink-0 text-xs'].join(' ')}>{t.scan.status[s.status]}</span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label={t.scan.remove}
-                  onClick={(e) => { e.stopPropagation(); removeScan(s.id) }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); removeScan(s.id) } }}
-                  className="-my-2 shrink-0 px-3 py-2 opacity-50 hover:opacity-100 sm:-my-1 sm:px-1 sm:py-1"
-                >
-                  ×
-                </span>
+                <span className={['h-2 w-2 shrink-0 rounded-full', active ? 'bg-white' : DOT[s.status]].join(' ')} aria-hidden />
+              </button>
+              <button
+                type="button"
+                aria-label={t.scan.remove}
+                onClick={() => removeScan(s.id)}
+                className={['absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full opacity-50 transition-opacity hover:opacity-100', active ? 'text-white' : 'text-ink'].join(' ')}
+              >
+                <X size={14} />
               </button>
             </li>
           )
@@ -81,7 +95,7 @@ export function ScanList() {
             if (window.confirm(t.scan.confirmRestart)) clearScans()
           }}
           disabled={importing}
-          className="self-start py-2 text-sm text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-40"
+          className="self-start py-2 text-[13px] text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-35"
         >
           {t.scan.restart}
         </button>

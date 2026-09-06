@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { useScanStore } from '../../app/scanStore'
+import { Film, Spinner, X } from '../../components/ui/icons'
 import { firstFileFromDrop, isVideoFile } from '../../lib/files'
 import { useT } from '../../i18n'
 
@@ -18,33 +19,38 @@ export function OriginalDrop() {
     if (f) void loadOriginal(f)
   }
 
-  if (original) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg border border-rule bg-panel px-3 py-2 text-sm">
-        <span className="text-ink-2">{t.animate.original}</span>
-        <span className="truncate font-medium" title={original.file.name}>
-          {original.file.name}
-        </span>
-        <span className="text-ink-2">{original.info.hasAudio ? t.common.withAudio : t.common.noAudio}</span>
-        <button type="button" onClick={clearOriginal} className="ml-auto text-ink-2 hover:text-ink">
-          ×
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div
-      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setOver(true) }}
-      onDragLeave={() => setOver(false)}
-      onDrop={onDrop}
-      onClick={() => inputRef.current?.click()}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
-      className={['cursor-pointer rounded-lg border border-dashed px-3 py-2 text-sm', over ? 'border-ink bg-rule/40' : 'border-rule-2 bg-panel text-ink-2 hover:border-ink-3'].join(' ')}
-    >
-      {originalLoading ? t.common.loading : originalError ? <span className="text-danger">{originalError}</span> : t.animate.originalDrop}
+    <div className="flex flex-col gap-2">
+      <span className="text-[13px] font-semibold tracking-[0.02em]">{t.animate.originalOptional}</span>
+      {original ? (
+        <div className="flex h-14 items-center gap-3 rounded-[14px] border border-rule-2 bg-white pl-3.5 pr-1.5">
+          <Film size={18} className="shrink-0 text-ink-3" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium" title={original.file.name}>
+              {original.file.name}
+            </span>
+            <span className="block font-mono text-xs leading-4 text-ink-2">{original.info.hasAudio ? t.common.withAudio : t.common.noAudio}</span>
+          </span>
+          <button type="button" onClick={clearOriginal} aria-label={t.common.clear} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface hover:text-ink">
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setOver(true) }}
+          onDragLeave={() => setOver(false)}
+          onDrop={onDrop}
+          onClick={() => inputRef.current?.click()}
+          className={[
+            'flex min-h-14 w-full items-center gap-3 rounded-[14px] border border-dashed bg-white px-3.5 py-2 text-left text-[13px] leading-[18px] text-ink-2 transition-colors',
+            over ? 'border-ink' : 'border-[#c9c9c5] hover:border-ink-3',
+          ].join(' ')}
+        >
+          {originalLoading ? <Spinner size={18} className="shrink-0 text-ink-3" /> : <Film size={18} className="shrink-0 text-ink-3" />}
+          <span>{originalLoading ? t.common.loading : originalError ? <span className="text-danger">{originalError}</span> : t.animate.originalDrop}</span>
+        </button>
+      )}
       <input ref={inputRef} type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadOriginal(f); e.target.value = '' }} />
     </div>
   )

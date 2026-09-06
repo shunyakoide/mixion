@@ -122,7 +122,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         }
       })
       ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(59,130,246,0.9)'
+      ctx.strokeStyle = 'rgba(14,14,14,0.8)'
       for (const m of layout.markers) {
         const poly = projectRect(homography, m.rect).map(toCss)
         ctx.beginPath()
@@ -137,14 +137,14 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       if (!p) continue
       const q = toCss(p)
       ctx.beginPath()
-      ctx.arc(q.x, q.y, 7, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(239,68,68,0.9)'
+      ctx.arc(q.x, q.y, 8, 0, Math.PI * 2)
+      ctx.fillStyle = '#0e0e0e'
       ctx.fill()
-      ctx.strokeStyle = 'white'
+      ctx.strokeStyle = '#fff'
       ctx.lineWidth = 2
       ctx.stroke()
-      ctx.fillStyle = 'white'
-      ctx.font = 'bold 10px sans-serif'
+      ctx.fillStyle = '#fff'
+      ctx.font = "bold 10px 'JetBrains Mono', monospace"
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(String(c + 1), q.x, q.y)
@@ -169,7 +169,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
     const src = size / zoom
     ctx.imageSmoothingEnabled = false
     ctx.drawImage(img, cursor.x - src / 2, cursor.y - src / 2, src, src, 0, 0, size, size)
-    ctx.strokeStyle = 'rgba(239,68,68,0.9)'
+    ctx.strokeStyle = 'rgba(14,14,14,0.9)'
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(size / 2, 0)
@@ -251,15 +251,15 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   const canApply = (complete && homography !== null && scan.page !== null && !busy) && consistent
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="font-medium">{scan.name}</span>
-        <label className="flex items-center gap-2">
+    <div className="flex flex-col gap-3.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <span className="min-w-0 truncate font-mono text-[13px]" title={scan.name}>{scan.name}</span>
+        <label className="flex items-center gap-2 text-[13px] text-ink-2">
           {t.scan.page}
           <select
             value={scan.page ?? ''}
             onChange={(e) => setPage(scan.id, e.target.value === '' ? null : Number(e.target.value))}
-            className="rounded border border-rule-2 px-2 py-1"
+            className="h-8 rounded-full bg-surface px-3 font-mono text-xs text-ink"
             disabled={busy}
           >
             <option value="">—</option>
@@ -269,42 +269,47 @@ export function CornerPicker({ scan, settings, layout }: Props) {
               </option>
             ))}
           </select>
-          {scan.pageSource === 'qr' && <span className="text-xs text-ok">QR</span>}
+          {scan.pageSource === 'qr' && <span className="font-mono text-xs text-ink-3">QR</span>}
           {scan.pageSource === 'order' && <span className="text-xs text-warn">{t.scan.orderSource}</span>}
         </label>
         {scan.qrNote && <span className="text-xs text-warn">{scan.qrNote}</span>}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-md bg-ink px-3 py-2 text-sm text-white" aria-live="polite">
+      <div className="flex flex-wrap items-center gap-3 rounded-[14px] bg-ink px-3.5 py-3 text-sm text-white" aria-live="polite">
         {complete && !consistent ? (
           <>
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-semibold">!</span>
-            {t.scan.inconsistent}
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-danger font-mono text-xs font-semibold">!</span>
+            <span className="min-w-0 flex-1">{t.scan.inconsistent}</span>
           </>
         ) : complete ? (
           <>
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white font-mono text-xs font-semibold text-ink">4</span>
             <span className="min-w-0 flex-1">
               {scan.status === 'applied' ? t.scan.cut : t.scan.fourSet} {t.scan.adjust(scan.status === 'applied')}
             </span>
           </>
         ) : (
           <>
-            <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', qrHint ? 'bg-danger' : scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{qrHint ? '!' : 4 - remaining.length}</span>
-            {qrHint ? t.scan.qrHint : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? t.scan.autoFound(4 - scan.missingCorners.length) : ''}
-            {t.scan.clickMarker}
-            {remaining.map((c) => (
-              <span key={c} className="flex items-center gap-1">
-                <MarkerGlyph page={scan.page} corner={c} className="rounded-sm" />
-                <strong className="font-semibold">{t.scan.corners[c]}</strong>
-              </span>
-            ))}
-            <span className="text-white/60">{4 - remaining.length} / 4</span>
+            <span className={['flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-xs font-semibold', qrHint ? 'bg-danger text-white' : 'bg-white text-ink'].join(' ')}>{qrHint ? '!' : 4 - remaining.length}</span>
+            <span className="min-w-40 flex-1">
+              {qrHint ? t.scan.qrHint : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${t.scan.autoFound(4 - scan.missingCorners.length)} ` : ''}
+              {t.scan.clickMarker}{' '}
+              {remaining.map((c, i) => (
+                <span key={c}>
+                  {i > 0 && ' / '}
+                  <strong className="font-semibold">{t.scan.corners[c]}</strong>
+                </span>
+              ))}
+            </span>
+            <span className="flex items-center gap-2">
+              <MarkerGlyph page={scan.page} corner={remaining[0]} className="rounded-[3px] outline outline-1 outline-white" />
+              <span className="font-mono text-xs text-white/60">{4 - remaining.length}/4</span>
+            </span>
           </>
         )}
       </div>
 
-      <div ref={wrapRef} className="relative">
+      <div ref={wrapRef} className="relative overflow-hidden rounded-2xl">
         <canvas
           ref={canvasRef}
           onPointerDown={onPointerDown}
@@ -312,14 +317,14 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           onPointerLeave={(e) => { if (e.pointerType === 'mouse' && dragging.current === null) setCursor(null) }}
-          className={['w-full max-w-full touch-none rounded border border-rule bg-rule/40', grabbing ? 'cursor-grabbing' : hovering ? 'cursor-grab' : 'cursor-crosshair'].join(' ')}
+          className={['block w-full max-w-full touch-none bg-surface', grabbing ? 'cursor-grabbing' : hovering ? 'cursor-grab' : 'cursor-crosshair'].join(' ')}
           style={{ height: cssHeight }}
         />
-        <canvas ref={loupeRef} className="pointer-events-none absolute rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size, ...(cursor ? loupePosition(cursor, scale, cssWidth, cssHeight) : {}) }} hidden={cursor === null} />
+        <canvas ref={loupeRef} className="pointer-events-none absolute rounded-xl bg-white shadow-page ring-1 ring-white" style={{ width: LOUPE.size, height: LOUPE.size, ...(cursor ? loupePosition(cursor, scale, cssWidth, cssHeight) : {}) }} hidden={cursor === null} />
         {!loaded && <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-3">{t.common.loading}</div>}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
         <Button id="apply-scan" onClick={() => void applyScan(scan.id)} disabled={!canApply}>
           {busy ? t.scan.cutting : scan.status === 'applied' ? t.scan.cutAgain : t.scan.apply}
         </Button>
@@ -333,11 +338,11 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             {t.scan.restoreDetected}
           </Button>
         )}
-        <Button variant="ghost" onClick={() => { resetCorners(scan.id); setUndo([]) }} disabled={busy || Object.keys(scan.corners).length === 0}>
+        <Button variant="secondary" onClick={() => { resetCorners(scan.id); setUndo([]) }} disabled={busy || Object.keys(scan.corners).length === 0}>
           {t.scan.resetCorners}
         </Button>
-        {scan.status === 'applied' && <span className="text-sm text-ok">{t.scan.cutDone}</span>}
-        {scan.error && <span className="text-sm text-danger">{scan.error}</span>}
+        {scan.status === 'applied' && <span className="text-[13px] text-ink-2">{t.scan.cutDone}</span>}
+        {scan.error && <span className="text-[13px] text-danger">{scan.error}</span>}
       </div>
     </div>
   )

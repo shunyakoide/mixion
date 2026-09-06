@@ -1,23 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "IBM Plex Sans", "IBM Plex Sans JP", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
-  --color-paper: #fbfbf9;
-  --color-panel: #ffffff;
-  --color-ink: #161616;
-  --color-ink-2: #5c5c58;
-  --color-ink-3: #8a8a85;
-  --color-rule: #e4e4df;
-  --color-rule-2: #cfcfc8;
-  --color-accent: #2457e6;
-  --color-accent-2: #1a43b8;
-  --color-accent-soft: #e9efff;
-  --color-ok: #1b8a5a;
-  --color-ok-soft: #e6f4ec;
-  --color-warn: #b7791f;
-  --color-warn-soft: #fbf1dc;
+  --font-sans: "Instrument Sans", "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Noto Sans JP", monospace;
+  --color-paper: #ffffff;
+  --color-surface: #f5f5f3;
+  --color-ink: #0e0e0e;
+  --color-ink-2: #6b6b68;
+  --color-ink-3: #8b8b88;
+  --color-rule: #ececea;
+  --color-rule-2: #e2e2df;
+  --color-rule-3: #dcdcd8;
+  --color-ok: #1f9d63;
+  --color-warn: #c98a2b;
   --color-danger: #c8362b;
-  --color-danger-soft: #fbe7e4;
+  --shadow-page: 0 1px 2px rgba(0, 0, 0, 0.05), 0 12px 32px -12px rgba(0, 0, 0, 0.18);
+  --shadow-dock: 0 12px 40px -8px rgba(0, 0, 0, 0.35);
+  --shadow-small: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 :root {
@@ -33,11 +32,13 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
   -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
 

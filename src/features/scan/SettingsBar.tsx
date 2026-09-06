@@ -6,7 +6,7 @@ import { FPS_MAX, FPS_MIN, isValidFps, type ProjectSettings } from '../../domain
 import { framesPerPage, pageCount } from '../../domain/frameMap'
 import { useT } from '../../i18n'
 
-/** Shows the settings restored from the QR, or a small form to enter them by hand. */
+/** Shows the settings restored from the QR as one pill, or a small form to enter them by hand. */
 export function SettingsBar() {
   const { settings, settingsSource, setManualSettings, clearSettings, scans } = useScanStore()
   const [open, setOpen] = useState(false)
@@ -14,14 +14,14 @@ export function SettingsBar() {
 
   if (settings && !open) {
     return (
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-rule/40 px-4 py-2 text-sm">
-        <span className="font-medium">Project {settings.projectId}</span>
-        <span>{settings.fps} fps</span>
+      <div className="flex h-10 max-w-full items-center gap-3.5 overflow-x-auto whitespace-nowrap rounded-full bg-surface pl-4 pr-2 font-mono text-xs text-[#3c3c3a]">
+        <span className="font-medium text-ink">{settings.projectId}</span>
+        <span>{settings.fps}fps</span>
         <span>{settings.grid.cols}×{settings.grid.rows}</span>
-        <span>{settings.frameCount} frames / {settings.pageCount} pages</span>
+        <span>{settings.frameCount} / {settings.pageCount}p</span>
         <span>{settings.dims.width}×{settings.dims.height}</span>
-        <span className="text-ink-2">{settingsSource === 'qr' ? t.scan.fromQr : t.scan.enteredByHand}</span>
-        <button type="button" className="ml-auto text-ink-2 underline" onClick={() => setOpen(true)}>
+        <span className="text-ink-3">{settingsSource === 'qr' ? t.scan.fromQr : t.scan.enteredByHand}</span>
+        <button type="button" className="h-7 rounded-full bg-white px-2.5 font-sans text-xs text-ink transition-colors hover:bg-rule" onClick={() => setOpen(true)}>
           {t.scan.change}
         </button>
       </div>
@@ -55,17 +55,18 @@ function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: Project
       pageCount: pageCount(frameCount, framesPerPage(grid)),
     })
   }
-  const field = 'w-24 rounded border border-rule-2 px-2 py-1 text-sm'
+  const field = 'h-10 w-24 rounded-full bg-white px-4 font-mono text-sm text-ink'
+  const label = 'flex flex-col gap-1.5 text-[13px] font-semibold tracking-[0.02em]'
 
   return (
-    <div className="rounded-lg border border-rule bg-panel p-4 text-sm">
-      <div className="mb-3 text-ink-2">{t.scan.manualIntro}</div>
+    <div className="w-full basis-full rounded-[20px] bg-surface p-5 text-sm">
+      <div className="mb-4 text-sm leading-[22px] text-ink-2">{t.scan.manualIntro}</div>
       <div className="flex flex-wrap items-end gap-4">
-        <label className="flex flex-col gap-1">
+        <label className={label}>
           fps
           <input className={field} type="number" min={FPS_MIN} max={FPS_MAX} value={fps} onChange={(e) => setFps(e.target.value)} />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className={label}>
           {t.scan.grid}
           <select className={field} value={gridKey} onChange={(e) => setGridKey(e.target.value)}>
             {(Object.keys(GRID_PRESETS) as GridPreset[]).map((k) => (
@@ -75,19 +76,19 @@ function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: Project
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1">
+        <label className={label}>
           {t.scan.totalFrames}
           <input className={field} type="number" min={1} value={frames} onChange={(e) => setFrames(e.target.value)} />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className={label}>
           {t.scan.widthPx}
           <input className={field} type="number" min={2} value={w} onChange={(e) => setW(e.target.value)} />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className={label}>
           {t.scan.heightPx}
           <input className={field} type="number" min={2} value={h} onChange={(e) => setH(e.target.value)} />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className={label}>
           {t.scan.projectId}
           <input className={field} value={projectId} onChange={(e) => setProjectId(e.target.value)} />
         </label>
@@ -100,7 +101,7 @@ function ManualForm({ initial, onSubmit, onCancel, onClear }: { initial: Project
           </Button>
         )}
         {onClear && (
-          <Button variant="secondary" onClick={onClear}>
+          <Button variant="ghost" onClick={onClear}>
             {t.common.clear}
           </Button>
         )}
