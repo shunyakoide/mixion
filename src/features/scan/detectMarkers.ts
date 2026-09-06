@@ -7,7 +7,8 @@
  * prediction, and look for a dark square of the right size. No ArUco decoding
  * is needed while the QR is readable.
  */
-import { LAYOUT_CONSTANTS, type Corner, type Layout, type Point, type Rect } from '../../domain/layout'
+import { CORNERS, LAYOUT_CONSTANTS, type Corner, type Layout, type Point, type Rect } from '../../domain/layout'
+import { MARKER_COUNT, MARKER_MODULES, decodeMarkerId, markerModules } from '../../domain/markers'
 import type { RgbaImage } from './warp'
 
 export interface QrCornersPx {
@@ -122,6 +123,8 @@ export interface MarkerHit {
   size: number
   /** 0..1, higher is a better match to the expected size/shape. */
   score: number
+  /** Bounding box of the dark blob in image px (inclusive). */
+  box: { x0: number; y0: number; x1: number; y1: number }
 }
 
 /**
@@ -169,9 +172,177 @@ export function findMarkerNear(image: RgbaImage, predicted: Point, markerPx: num
     const cy = y0 + (b.minY + b.maxY) / 2
     const dist = Math.hypot(cx - predicted.x, cy - predicted.y) / searchPx
     const score = (1 - Math.min(1, Math.abs(1 - sizeRatio))) * 0.5 + aspect * 0.25 + (1 - dist) * 0.25
-    if (!best || score > best.score) best = { center: { x: cx, y: cy }, size, score }
+    if (!best || score > best.score) best = { center: { x: cx, y: cy }, size, score, box: { x0: x0 + b.minX, y0: y0 + b.minY, x1: x0 + b.maxX, y1: y0 + b.maxY } }
   }
   return best
+}
+
+export interface DecodedMarker {
+  id: number
+  page: number
+  corner: Corner
+  /** Quarter turns clockwise the printed marker appears turned in the image. */
+  turns: 0 | 1 | 2 | 3
+  hamming: number
+}
+
+/** Rotate a square boolean grid clockwise by one quarter turn. */
+function rotateGrid(g: boolean[][]): boolean[][] {
+  const n = g.length
+  return g.map((_, r) => g.map((__, c) => g[n - 1 - c][r]))
+}
+
+let dictionary: { id: number; turns: 0 | 1 | 2 | 3; bits: boolean[] }[] | null = null
+/** Every marker in every orientation, as flat inner-module bit lists, built once. */
+function markerDictionary() {
+  if (dictionary) return dictionary
+  dictionary = []
+  for (let id = 0; id < MARKER_COUNT; id++) {
+    let g = markerModules(id)
+    for (let k = 0; k < 4; k++) {
+      dictionary.push({ id, turns: k as 0 | 1 | 2 | 3, bits: g.slice(1, -1).flatMap((row) => row.slice(1, -1)) })
+      g = rotateGrid(g)
+    }
+  }
+  return dictionary
+}
+
+/**
+ * Read the marker inside a found square: sample the 8×8 module grid and match
+ * it against the dictionary in all four orientations. Null when it is not a
+ * clean marker (painted over, wrong blob).
+ */
+export function decodeMarker(image: RgbaImage, hit: MarkerHit, maxHamming = 4): DecodedMarker | null {
+  const { x0, y0, x1, y1 } = hit.box
+  const cw = (x1 - x0 + 1) / MARKER_MODULES
+  const ch = (y1 - y0 + 1) / MARKER_MODULES
+  if (cw < 2 || ch < 2) return null
+  const rad = Math.max(0, Math.floor(Math.min(cw, ch) / 4))
+  const d = image.data
+  const sample = (px: number, py: number) => {
+    let sum = 0
+    let n = 0
+    for (let y = Math.round(py) - rad; y <= Math.round(py) + rad; y++) {
+      if (y < 0 || y >= image.height) continue
+      for (let x = Math.round(px) - rad; x <= Math.round(px) + rad; x++) {
+        if (x < 0 || x >= image.width) continue
+        const i = (y * image.width + x) * 4
+        sum += (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000
+        n++
+      }
+    }
+    return n ? sum / n : 255
+  }
+  const values: number[][] = []
+  let lo = 255
+  let hi = 0
+  for (let r = 0; r < MARKER_MODULES; r++) {
+    const row: number[] = []
+    for (let c = 0; c < MARKER_MODULES; c++) {
+      const v = sample(x0 + (c + 0.5) * cw, y0 + (r + 0.5) * ch)
+      row.push(v)
+      if (v < lo) lo = v
+      if (v > hi) hi = v
+    }
+    values.push(row)
+  }
+  if (hi - lo < 40) return null
+  const t = (lo + hi) / 2
+  const dark = values.map((row) => row.map((v) => v <= t))
+  // The border must be black; tolerate a couple of modules for dust and skew.
+  let borderMisses = 0
+  for (let i = 0; i < MARKER_MODULES; i++) {
+    if (!dark[0][i]) borderMisses++
+    if (!dark[MARKER_MODULES - 1][i]) borderMisses++
+    if (i > 0 && i < MARKER_MODULES - 1) {
+      if (!dark[i][0]) borderMisses++
+      if (!dark[i][MARKER_MODULES - 1]) borderMisses++
+    }
+  }
+  if (borderMisses > 2) return null
+  const bits = dark.slice(1, -1).flatMap((row) => row.slice(1, -1))
+  let best: DecodedMarker | null = null
+  for (const entry of markerDictionary()) {
+    let h = 0
+    for (let i = 0; i < bits.length && h <= maxHamming; i++) if (bits[i] !== entry.bits[i]) h++
+    if (h <= maxHamming && (!best || h < best.hamming)) {
+      const { page, corner } = decodeMarkerId(entry.id)
+      best = { id: entry.id, page, corner, turns: entry.turns, hamming: h }
+    }
+  }
+  return best
+}
+
+export interface BlindDetectResult {
+  /** Marker centres keyed by the page corner they decode as (or sit at, when undecodable). */
+  corners: Partial<Record<Corner, Point>>
+  found: Corner[]
+  /** Quarter turns clockwise the image needs to read upright, from the decoded markers; 0 when none decoded. */
+  turns: 0 | 1 | 2 | 3
+  /** Page number read from the markers, when any decoded. */
+  page: number | null
+  /** How many markers decoded cleanly. */
+  decoded: number
+  pxPerMm: number
+}
+
+/**
+ * Detection without a readable QR: assume the page fills the scan, look for a
+ * marker-sized square near each image corner, and read the markers to learn
+ * the page number and which way the page is turned. Callers that get
+ * `turns !== 0` rotate the image and run this again.
+ */
+export function detectMarkersBlind(image: RgbaImage, layout: Layout): BlindDetectResult {
+  const { pageSize } = layout
+  const landscapeImage = image.width >= image.height
+  const pw = landscapeImage === pageSize.w >= pageSize.h ? pageSize.w : pageSize.h
+  const ph = landscapeImage === pageSize.w >= pageSize.h ? pageSize.h : pageSize.w
+  const scale = Math.min(image.width / pw, image.height / ph)
+  const markerPx = LAYOUT_CONSTANTS.markerSize * scale
+  const inset = (LAYOUT_CONSTANTS.outerMargin + LAYOUT_CONSTANTS.markerSize / 2) * scale
+  // Anchor each search to its own image corner so scanner padding on any side does not matter.
+  const predicted: Record<Corner, Point> = {
+    0: { x: inset, y: inset },
+    1: { x: image.width - inset, y: inset },
+    2: { x: image.width - inset, y: image.height - inset },
+    3: { x: inset, y: image.height - inset },
+  }
+  const searchPx = 18 * scale
+  const votesTurns = [0, 0, 0, 0]
+  const votesPage = new Map<number, number>()
+  const hits: { at: Corner; hit: MarkerHit; decoded: DecodedMarker | null }[] = []
+  for (const at of CORNERS) {
+    const hit = findMarkerNear(image, predicted[at], markerPx, searchPx)
+    if (!hit) continue
+    const decoded = decodeMarker(image, hit)
+    if (decoded) {
+      // A page turned k quarter turns clockwise shows its corner c at image corner (c + k) % 4; the bits agree.
+      const byPosition = (at - decoded.corner + 4) % 4
+      if (byPosition !== decoded.turns) continue
+      votesTurns[decoded.turns]++
+      votesPage.set(decoded.page, (votesPage.get(decoded.page) ?? 0) + 1)
+    }
+    hits.push({ at, hit, decoded })
+  }
+  const decodedCount = votesTurns.reduce((a, b) => a + b, 0)
+  const pageTurns = decodedCount ? (votesTurns.indexOf(Math.max(...votesTurns)) as 0 | 1 | 2 | 3) : 0
+  let page: number | null = null
+  for (const [p, n] of votesPage) if (page === null || n > (votesPage.get(page) ?? 0)) page = p
+  const corners: Partial<Record<Corner, Point>> = {}
+  for (const { at, hit, decoded } of hits) {
+    if (decoded && decoded.turns !== pageTurns) continue
+    // Undecodable squares count only once the orientation is settled (or nothing decoded at all).
+    const corner = decoded ? decoded.corner : (((at - pageTurns + 4) % 4) as Corner)
+    if (corners[corner] === undefined) corners[corner] = hit.center
+  }
+  return {
+    corners,
+    found: CORNERS.filter((c) => corners[c] !== undefined),
+    turns: ((4 - pageTurns) % 4) as 0 | 1 | 2 | 3,
+    page,
+    decoded: decodedCount,
+    pxPerMm: scale,
+  }
 }
 
 export interface DetectResult {
@@ -195,6 +366,9 @@ export function detectMarkers(image: RgbaImage, layout: Layout, qr: QrCornersPx)
     predicted[m.corner] = p
     const hit = findMarkerNear(image, p, markerPx, searchPx)
     if (hit) {
+      const decoded = decodeMarker(image, hit)
+      // A clean read of some other corner's marker means this square is not ours.
+      if (decoded && decoded.corner !== m.corner) continue
       corners[m.corner] = hit.center
       found.push(m.corner)
     }

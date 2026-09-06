@@ -16,7 +16,7 @@ Mixed Media Animation のための小さなウェブアプリ。
 
 1. **Print**: 動画をドロップ → fps とページあたりのフレーム数を選ぶ → Create Print PDF
 2. **Draw（紙の上で）**: A4 に印刷して描く。四隅のマーカーと QR は塗らない。ページは切らない
-3. **Scan**: 300dpi でページごとにスキャン → Import Scans。QR から設定とページ番号を読み、四隅のマーカーを自動検出して切り出す。縦横どちらの向きで読み取っても QR から起こす。見つからない隅だけ手でクリックする（QR が読めないページは「90° 回転」ボタンで向きを合わせる）
+3. **Scan**: 300dpi でページごとにスキャン → Import Scans。QR から設定とページ番号を読み、四隅のマーカーを自動検出して切り出す。縦横どちらの向きで読み取ってもよい（向きは QR、QR が読めなければマーカーの解読結果から起こす。ページ番号もマーカーから分かる）。見つからない隅だけ手でクリックする。「自動検出をやり直す」と「90° 回転」のボタンもある
 4. **Animate**: 必要なら元動画をドロップ（音声と未スキャン分の補完） → Export MP4 / GIF
 
 ## 言語
@@ -72,7 +72,7 @@ BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
 | 動画 | WebCodecs（mediabunny 経由） | ブラウザ内でのデコード（フレーム抽出）と MP4（H.264 + 元音声）のエンコード |
 | GIF | gifenc | GIF 書き出し |
 | PDF | pdf-lib | 印刷用 A4 PDF の生成。プレビューの canvas と同じ描画ロジックを共有 |
-| マーカー・QR | 自前の ArUco 風マーカー検出（`src/domain/markers.ts`, `src/features/scan/detectMarkers.ts`）, jsqr, qrcode | 四隅の自動検出、ページ設定の QR 埋め込みと読み取り |
+| マーカー・QR | 自前の ArUco（MIP_36h12）マーカー検出・解読（`src/domain/markers.ts`, `src/features/scan/detectMarkers.ts`）, jsqr, qrcode | 四隅の自動検出、向きとページ番号の復元、ページ設定の QR 埋め込みと読み取り |
 | 幾何 | 自前のホモグラフィ（`src/domain/homography.ts`） | スキャン画像の歪み補正とコマの切り出し。重い処理は Web Worker |
 | 検証 | zod | QR に入れた設定の検証 |
 | テスト・品質 | vitest, oxlint, GitHub Actions（lint → test → build） | ドメイン層（レイアウト・マーカー・ホモグラフィ・i18n の対訳整合）の単体テスト |

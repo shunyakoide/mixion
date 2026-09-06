@@ -36,7 +36,7 @@ interface Props {
  * loupe and a live overlay of where the frames will be cut.
  */
 export function CornerPicker({ scan, settings, layout }: Props) {
-  const { setCorner, resetCorners, restoreDetectedCorners, setPage, applyScan, rotateScan } = useScanStore()
+  const { setCorner, resetCorners, restoreDetectedCorners, setPage, applyScan, rotateScan, redetectScan } = useScanStore()
   const t = useT()
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -271,9 +271,10 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             ))}
           </select>
           {scan.pageSource === 'qr' && <span className="font-mono text-xs text-ink-3">QR</span>}
+          {scan.pageSource === 'marker' && <span className="font-mono text-xs text-ink-3">{t.scan.markerSource}</span>}
           {scan.pageSource === 'order' && <span className="text-xs text-warn">{t.scan.orderSource}</span>}
         </label>
-        {scan.qrNote && <span className="text-xs text-warn">{scan.qrNote}</span>}
+        {scan.qrNote && <span className={['text-xs', scan.pageSource === 'marker' ? 'text-ink-3' : 'text-warn'].join(' ')}>{scan.qrNote}</span>}
         <span className="ml-auto flex items-center gap-2">
           {scan.rotation !== 0 && <span className="font-mono text-xs text-ink-3">{t.scan.rotated(scan.rotation)}</span>}
           <button
@@ -352,7 +353,10 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             {t.scan.restoreDetected}
           </Button>
         )}
-        <Button variant="secondary" onClick={() => { resetCorners(scan.id); setUndo([]) }} disabled={busy || Object.keys(scan.corners).length === 0}>
+        <Button variant="secondary" onClick={() => { void redetectScan(scan.id); setUndo([]) }} disabled={busy}>
+          {t.scan.redetect}
+        </Button>
+        <Button variant="ghost" onClick={() => { resetCorners(scan.id); setUndo([]) }} disabled={busy || Object.keys(scan.corners).length === 0}>
           {t.scan.resetCorners}
         </Button>
         {scan.status === 'applied' && <span className="text-[13px] text-ink-2">{t.scan.cutDone}</span>}

@@ -149,6 +149,8 @@ export const ja: Dict = {
     page: 'Page',
     orderSource: '取り込み順（要確認）',
     rotate: '90° 回転',
+    redetect: '自動検出をやり直す',
+    markerSource: 'マーカーから',
     rotated: (deg) => `${deg}° 回転済み`,
     inconsistent: '四隅の対応が合っていません。点を正しいマーカーまでドラッグするか、「四隅をやり直す」',
     cut: '切り出しました。',

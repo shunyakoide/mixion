@@ -148,6 +148,8 @@ export const en = {
     page: 'Page',
     orderSource: 'Import order (check)',
     rotate: 'Rotate 90°',
+    redetect: 'Detect again',
+    markerSource: 'From markers',
     rotated: (deg: number) => `Turned ${deg}°`,
     inconsistent: 'The corners do not match up. Drag each point to the right marker, or redo the corners.',
     cut: 'Cut.',
