@@ -8,6 +8,7 @@ import {
   computeLayout,
   fitRect,
   formatGrid,
+  gridPresetsAround,
   gridPresetsFor,
   mmToPt,
   mmToPx,
@@ -148,6 +149,11 @@ describe('gridPresetsFor / coerceGridPreset', () => {
     const cell = (key: keyof typeof GRID_PRESETS) => computeLayout({ grid: GRID_PRESETS[key], dims: VERTICAL }).cells[0].imageRect
     expect(cell('3x2').w).toBeGreaterThan(cell('3x3').w)
     expect(cell('4x2').w).toBeGreaterThan(cell('4x3').w)
+  })
+  it('finds the set a preset belongs to, so the row stays stable before the source is known', () => {
+    expect(gridPresetsAround('4x2')).toEqual(['2x2', '3x2', '4x2'])
+    expect(gridPresetsAround('3x3')).toEqual(['2x2', '3x3', '4x3'])
+    expect(gridPresetsAround('2x2')).toEqual(['2x2', '3x3', '4x3'])
   })
   it('keeps an offered preset as is', () => {
     expect(coerceGridPreset('4x3', HD)).toBe('4x3')

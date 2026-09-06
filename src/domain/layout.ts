@@ -140,7 +140,17 @@ export type GridPreset = keyof typeof GRID_PRESETS
  * same 40x71 mm cell, while 3x2 and 4x2 give 59x105 and 43x76 mm.
  */
 export function gridPresetsFor(dims: Dims): GridPreset[] {
-  return dims.height > dims.width ? ['2x2', '3x2', '4x2'] : ['2x2', '3x3', '4x3']
+  return dims.height > dims.width ? GRID_PRESET_SETS.portrait : GRID_PRESET_SETS.landscape
+}
+
+const GRID_PRESET_SETS: Record<Orientation, GridPreset[]> = {
+  landscape: ['2x2', '3x3', '4x3'],
+  portrait: ['2x2', '3x2', '4x2'],
+}
+
+/** The preset set that contains `key`, for showing a consistent row of choices before the source size is known. */
+export function gridPresetsAround(key: GridPreset): GridPreset[] {
+  return GRID_PRESET_SETS.portrait.includes(key) && !GRID_PRESET_SETS.landscape.includes(key) ? GRID_PRESET_SETS.portrait : GRID_PRESET_SETS.landscape
 }
 
 /**

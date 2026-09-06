@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { deriveLayout, deriveSettings, useAppStore } from '../../app/store'
-import { gridPresetsFor } from '../../domain/layout'
+import { gridPresetsAround, gridPresetsFor } from '../../domain/layout'
 import { FPS_MAX, FPS_MIN, FPS_PRESETS, isValidFps } from '../../domain/settings'
 import { Chip } from '../../components/ui/Chip'
 import { ArrowRight } from '../../components/ui/icons'
@@ -65,7 +65,7 @@ export function SettingsPanel() {
         <div>
           <LabelRow label={t.settings.framesPerPage} note={layout ? t.settings.cellMm(layout.cells[0].imageRect.w.toFixed(0), layout.cells[0].imageRect.h.toFixed(0)) : null} />
           <div className="flex flex-wrap gap-2">
-            {gridPresetsFor(info ?? { width: 16, height: 9 }).map((k) => (
+            {(info ? gridPresetsFor(info) : gridPresetsAround(gridKey)).map((k) => (
               <Chip key={k} selected={gridKey === k} onClick={() => setGrid(k)} disabled={busy}>
                 {k.replace('x', '×')}
               </Chip>

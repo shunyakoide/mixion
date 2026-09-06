@@ -13,7 +13,6 @@ Live: https://shunyakoide.github.io/mixion/
 - No server, no database, no account. Everything runs in your browser; files never leave it.
 - No saved state. Each printed page carries a QR code with the project settings (fps, grid, page number, frame count, source size), so the scan step restores them from the paper itself.
 - Browsers: Chrome and Edge (WebCodecs and the save dialog are required).
-- Design notes: [docs/PLAN.md](docs/PLAN.md) (Japanese).
 
 ## How it works
 
