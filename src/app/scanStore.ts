@@ -522,7 +522,7 @@ async function reanalyze(id: string, options: { forceTurns?: number; autoRotate:
           pageSource,
           corners: detected?.corners ?? {},
           cornerSource: detected ? 'auto' : null,
-          missingCorners: detected?.missing ?? ALL_CORNERS,
+          missingCorners: detected?.missing ?? [],
           detectedCorners: detected?.corners ?? {},
           status: 'needs_corners',
           fitError: null,
