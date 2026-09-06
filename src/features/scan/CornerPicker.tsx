@@ -335,11 +335,13 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         <Button id="apply-scan" onClick={() => void applyScan(scan.id)} disabled={!canApply}>
           {busy ? '切り出し中…' : scan.status === 'applied' ? 'もう一度切り出す' : 'Apply: このページを切り出す'}
         </Button>
-        <Button variant="ghost" onClick={undoLast} disabled={busy || undo.length === 0} title="直前のドラッグを取り消す">
-          元に戻す
-        </Button>
-        {Object.keys(scan.detectedCorners).length > 0 && (
-          <Button variant="ghost" onClick={() => { restoreDetectedCorners(scan.id); setUndo([]) }} disabled={busy || !detectedDiffers}>
+        {undo.length > 0 && (
+          <Button variant="ghost" onClick={undoLast} disabled={busy} title="直前のドラッグを取り消す">
+            元に戻す
+          </Button>
+        )}
+        {Object.keys(scan.detectedCorners).length > 0 && detectedDiffers && (
+          <Button variant="ghost" onClick={() => { restoreDetectedCorners(scan.id); setUndo([]) }} disabled={busy}>
             自動検出の位置に戻す
           </Button>
         )}
