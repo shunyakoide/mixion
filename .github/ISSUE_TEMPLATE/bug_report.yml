@@ -1,0 +1,28 @@
+name: Bug report
+description: Something did not work (a scan that did not import, a broken export, a UI problem)
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. English or Japanese.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 140 on macOS 15
+    validations:
+      required: true
+  - type: textarea
+    id: scan
+    attributes:
+      label: Scan details (if the problem is in Scan)
+      description: Scanner or phone, resolution, page orientation when scanned, which corners were not found. Attach the scanned image if you can share it.
+  - type: textarea
+    id: video
+    attributes:
+      label: Video details (if the problem is in Print or Animate)
+      description: Size, frame rate, codec, length. The sample clip is enough if it reproduces there.

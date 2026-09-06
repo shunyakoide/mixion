@@ -1,100 +1,100 @@
 # Mixion
 
-Mixed Media Animation のための小さなウェブアプリ。
-実写動画をフレームごとに紙に印刷し、手描き・コラージュで加工してスキャンし、動画に戻す制作フローの面倒な部分だけを自動化する。
+[![CI](https://github.com/shunyakoide/mixion/actions/workflows/ci.yml/badge.svg)](https://github.com/shunyakoide/mixion/actions/workflows/ci.yml)
+
+[日本語](README.ja.md)
+
+A small web app for mixed media animation: print the frames of a video on paper, draw or collage over them, scan the pages back, and turn them into a video again. Mixion automates the tedious parts of that loop and leaves the drawing to you.
 
 **Print → Draw → Scan → Animate**
 
-公開版: https://shunyakoide.github.io/mixion/
+Live: https://shunyakoide.github.io/mixion/
 
-画面は Print / Scan / Animate の 3 ステップ。Draw は紙の上の工程なので、注意書きを PDF 保存後と Scan の最初に表示する。
+- No server, no database, no account. Everything runs in your browser; files never leave it.
+- No saved state. Each printed page carries a QR code with the project settings (fps, grid, page number, frame count, source size), so the scan step restores them from the paper itself.
+- Browsers: Chrome and Edge (WebCodecs and the save dialog are required).
+- Design notes: [docs/PLAN.md](docs/PLAN.md) (Japanese).
 
-- サーバー・データベース・アカウントなし。すべてブラウザ内で処理する
-- 状態を保存しない。印刷ページの QR に設定（fps、グリッド、ページ番号、フレーム数、元動画サイズ）が入っているので、スキャン側はそれを読んで復元する
-- 対応ブラウザ: Chrome / Edge（WebCodecs と保存ダイアログを使用）
-- 設計書: [docs/PLAN.md](docs/PLAN.md)
+## How it works
 
-## 使い方
+1. **Print**: drop a video, pick the frame rate and the number of frames per page, save the print PDF. Vertical videos get portrait pages and their own grid options (2×2 / 3×2 / 4×2).
+2. **Draw** (on paper): print on A4 and draw. Keep the four corner markers and the QR code clean, and do not cut the pages.
+3. **Scan**: scan each page at 300 dpi and import the files. Mixion reads the settings and page number from the QR code, finds the four corner markers, straightens the page and cuts out every frame. Pages can be scanned in either orientation; if the QR is unreadable the markers alone recover the orientation and page number. Only corners that were not found need a click. There are also buttons to re-run detection and to rotate by 90°.
+4. **Animate**: optionally drop the original video (for the audio and for frames you did not scan), then export MP4 or GIF.
 
-1. **Print**: 動画をドロップ → fps とページあたりのフレーム数を選ぶ → Create Print PDF。縦動画は紙が縦向きになり、コマ数の選択肢も縦向きに合わせて変わる（2×2 / 3×2 / 4×2）
-2. **Draw（紙の上で）**: A4 に印刷して描く。四隅のマーカーと QR は塗らない。ページは切らない
-3. **Scan**: 300dpi でページごとにスキャン → Import Scans。QR から設定とページ番号を読み、四隅のマーカーを自動検出して切り出す。縦横どちらの向きで読み取ってもよい（向きは QR、QR が読めなければマーカーの解読結果から起こす。ページ番号もマーカーから分かる）。見つからない隅だけ手でクリックする。「自動検出をやり直す」と「90° 回転」のボタンもある
-4. **Animate**: 必要なら元動画をドロップ（音声と未スキャン分の補完） → Export MP4 / GIF
+## Try it without a printer
 
-## 言語
+- **Try the sample** on the first screen loads a bundled 5-second clip (colour bars with a frame counter), renders its print pages as images, imports them as if they were scans, and takes you to Animate.
+- **Preview the flow before printing** (small link on the Scan step): after loading your own video, import the pages made in Print without printing them, to settle on fps and grid first.
+- Open with `?sample` to start with the sample clip loaded.
 
-UI は英語がデフォルトで、ヘッダー右上のボタンで日本語に切り替えられます。選んだ言語はこのブラウザの `localStorage`（キー `mixion.locale`）に残ります。アプリがブラウザに保存するのはこれだけです。文言は `src/i18n/en.ts`（基準）と `src/i18n/ja.ts` にあり、テストで両者のキーが一致することを確認しています。
+## Language
 
-## セットアップ
+The UI defaults to English and can be switched to Japanese from the header. The choice is stored in `localStorage` under `mixion.locale`; that is the only thing the app stores. Strings live in `src/i18n/en.ts` (source of truth) and `src/i18n/ja.ts`, and a test checks that both have the same keys.
+
+## Development
+
+Requires Node 24 (see `.node-version`).
 
 ```bash
 npm install
 npm run dev
 ```
 
-## スクリプト
-
-| コマンド | 内容 |
+| Command | What it does |
 |---|---|
-| `npm run dev` | 開発サーバー |
-| `npm run build` | 型チェック + ビルド |
-| `npm test` | vitest（`tests/`） |
+| `npm run dev` | dev server |
+| `npm run build` | type check + production build |
+| `npm test` | vitest (`tests/`) |
 | `npm run lint` | oxlint |
-| `npx tsx scripts/dummy-pdf.ts` | プレースホルダ画像の印刷用 PDF を `out/` に出す（印刷・スキャンの実機テスト用） |
+| `npx tsx scripts/dummy-pdf.ts` | writes a print PDF with placeholder images to `out/`, for testing real printers and scanners |
 
-## 公開（GitHub Pages）
+Dev-only hooks (`npm run dev`):
 
-`.github/workflows/deploy.yml` が `main` への push ごとに `BASE_PATH=/mixion/` でビルドし、GitHub Pages に配置します（Settings → Pages の Source を「GitHub Actions」にしておく）。手元で同じビルドを確かめるには次のとおりです。
+- `http://localhost:5173/?spike=video`: a WebCodecs check page, excluded from production builds
+- `window.__dev` in the browser console: `simulateScan(page, {dpi, rotateDeg})` renders a print page as a fake scan; also `imageDiff`, `encodeMp4`, `encodeGif`, the stores and the marker/QR detectors
+- `window.__timings`: per-stage timings of the last scan import
+
+### Deployment
+
+`.github/workflows/deploy.yml` builds with `BASE_PATH=/mixion/` on every push to `main` and publishes to GitHub Pages (Settings → Pages → Source must be "GitHub Actions"). To reproduce that build locally:
 
 ```bash
 BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
 ```
 
-## サンプルで試す
+## Under the hood
 
-動画・プリンタ・スキャナがなくても一通り動かせます。
-
-- 最初の画面の「サンプルで試す」: 同梱の 5 秒のサンプル動画（`public/sample.mp4`、カラーバーとフレームカウンター。`fixtures/sample-5s.mp4` と同じもの）を読み込み、印刷ページを画像にしてそのままスキャンとして取り込み、Animate まで進みます
-- Scan の「印刷前に流れを確認する」（小さなリンク）: 動画を読み込んだ後、紙に出さずに Print で作ったページを取り込み、fps や配置を決めてから印刷できます
-- `?sample` を付けて開くと、サンプル動画を読み込んだ状態で始まります
-
-## 開発用フック（`npm run dev` のみ）
-
-- `http://localhost:5173/?spike=video` — WebCodecs の動作確認ページ（本番ビルドには含まれません）
-- ブラウザコンソールの `window.__dev` — `simulateScan(page, {dpi, rotateDeg})` で印刷ページを疑似スキャン画像にする、`imageDiff`、`encodeMp4`、`encodeGif`、各ストア
-
-## 技術構成
-
-| 領域 | 使っているもの | 用途 |
+| Area | Built with | Used for |
 |---|---|---|
-| ビルド | Vite 8, TypeScript 6, Node 24 | 開発サーバー・型チェック・本番ビルド。`BASE_PATH` で配置先のサブパスを切り替え |
-| UI | React 19, Tailwind CSS v4 | 画面。デザイントークン（色・書体・角丸・影）は `src/index.css` の `@theme` に集約 |
-| 書体 | Instrument Sans, Noto Sans JP, JetBrains Mono（Google Fonts） | 本文と見出し、日本語、数値・ID・ファイル名 |
-| 状態 | zustand | Print / Scan の 2 ストア。サーバーもストレージも持たない（言語設定の `localStorage` だけ例外） |
-| 動画 | WebCodecs（mediabunny 経由） | ブラウザ内でのデコード（フレーム抽出）と MP4（H.264 + 元音声）のエンコード |
-| GIF | gifenc | GIF 書き出し |
-| PDF | pdf-lib | 印刷用 A4 PDF の生成。プレビューの canvas と同じ描画ロジックを共有 |
-| マーカー・QR | 自前の ArUco（MIP_36h12）マーカー検出・解読（`src/domain/markers.ts`, `src/features/scan/detectMarkers.ts`）, jsqr, qrcode | 四隅の自動検出、向きとページ番号の復元、ページ設定の QR 埋め込みと読み取り |
-| 幾何 | 自前のホモグラフィ（`src/domain/homography.ts`） | スキャン画像の歪み補正とコマの切り出し。重い処理は Web Worker |
-| 検証 | zod | QR に入れた設定の検証 |
-| テスト・品質 | vitest, oxlint, GitHub Actions（lint → test → build） | ドメイン層（レイアウト・マーカー・ホモグラフィ・i18n の対訳整合）の単体テスト |
-| 保存 | File System Access API（`showSaveFilePicker`）、非対応時はダウンロード | PDF / MP4 / GIF の保存ダイアログ |
-
-対応ブラウザは Chrome / Edge です。WebCodecs と保存ダイアログの両方がそろうのが現状この 2 つのためです。
-
-## 構成
+| Build | Vite 8, TypeScript 6, Node 24 | dev server, type check, production build; `BASE_PATH` selects the deploy sub-path |
+| UI | React 19, Tailwind CSS v4 | the screens; design tokens (colour, type, radius, shadow) live in `@theme` in `src/index.css` |
+| Type | Instrument Sans, Noto Sans JP, JetBrains Mono, Space Grotesk (Google Fonts) | text, Japanese, numbers/IDs/file names, the wordmark |
+| State | zustand | two stores (Print, Scan); nothing persisted except the locale |
+| Video | WebCodecs via mediabunny | in-browser decoding (frame extraction) and MP4 encoding (H.264 + original audio) |
+| GIF | gifenc | GIF export |
+| PDF | pdf-lib | the A4 print PDF; shares its painting logic with the canvas preview |
+| Markers / QR | own ArUco (MIP_36h12) detector and decoder (`src/domain/markers.ts`, `src/features/scan/detectMarkers.ts`), jsqr, qrcode | finding the corners, recovering orientation and page number, embedding and reading the page settings |
+| Geometry | own homography (`src/domain/homography.ts`) | straightening scans and cutting out frames; heavy work runs in Web Workers |
+| Validation | zod | the settings embedded in the QR code |
+| Quality | vitest, oxlint, GitHub Actions (lint → test → build) | unit tests for the domain layer (layout, markers, homography, i18n parity) |
+| Saving | File System Access API (`showSaveFilePicker`), download fallback | save dialogs for PDF / MP4 / GIF |
 
 ```
 src/
-  domain/      レイアウト(mm)・フレーム対応・ホモグラフィ・マーカー・QR設定。純粋TS、vitest対象
-  features/    print / draw / scan / animate の画面とロジック
-  lib/video/   WebCodecs (mediabunny) によるデコード・MP4/GIF エンコード
-  workers/     ワープ処理の Web Worker
-  app/         zustand ストア、ヘッダーのステッパー、下部ドック、開発用ヘルパー
-  components/  Button / Chip / アイコン
-  i18n/        en（基準）と ja の辞書、言語切り替え
+  domain/      page layout (mm), frame mapping, homography, markers, QR settings. Pure TS, covered by vitest
+  features/    the print / draw / scan / animate screens and their logic
+  lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
+  workers/     the warp Web Worker
+  app/         zustand stores, header stepper, bottom dock, dev helpers
+  components/  Button / Chip / icons / logo
+  i18n/        en (source) and ja dictionaries, locale switch
 ```
 
-## ライセンス
+## Contributing
+
+Issues and pull requests are welcome, in English or Japanese. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
 
 [MIT](LICENSE)

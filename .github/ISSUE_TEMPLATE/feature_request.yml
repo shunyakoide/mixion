@@ -1,0 +1,11 @@
+name: Feature request
+description: Something Mixion should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like
+      description: The situation you are in and what would help. English or Japanese.
+    validations:
+      required: true

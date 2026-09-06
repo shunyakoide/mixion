@@ -2,6 +2,16 @@
   "name": "mixion",
   "private": true,
   "version": "0.0.0",
+  "description": "Mixed media animation in the browser: print video frames, draw on them, scan them back, animate.",
+  "license": "MIT",
+  "homepage": "https://shunyakoide.github.io/mixion/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shunyakoide/mixion.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
