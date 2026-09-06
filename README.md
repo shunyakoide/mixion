@@ -36,6 +36,14 @@ npm run dev
 | `npm run lint` | oxlint |
 | `npx tsx scripts/dummy-pdf.ts` | プレースホルダ画像の印刷用 PDF を `out/` に出す（印刷・スキャンの実機テスト用） |
 
+## 公開（GitHub Pages）
+
+`main` に push すると `.github/workflows/deploy.yml` が `BASE_PATH=/mixion/` でビルドし、GitHub Pages に配置します。リポジトリの Settings → Pages で Source を「GitHub Actions」にしておく必要があります。手元で同じビルドを確かめるには次のとおりです。
+
+```bash
+BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
+```
+
 ## サンプルで試す
 
 動画・プリンタ・スキャナがなくても一通り動かせます。
@@ -46,7 +54,7 @@ npm run dev
 
 ## 開発用フック（`npm run dev` のみ）
 
-- `http://localhost:5173/?spike=video` — WebCodecs の動作確認ページ
+- `http://localhost:5173/?spike=video` — WebCodecs の動作確認ページ（本番ビルドには含まれません）
 - ブラウザコンソールの `window.__dev` — `simulateScan(page, {dpi, rotateDeg})` で印刷ページを疑似スキャン画像にする、`imageDiff`、`encodeMp4`、`encodeGif`、各ストア
 
 ## 構成

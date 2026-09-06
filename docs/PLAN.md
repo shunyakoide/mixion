@@ -459,7 +459,7 @@ Milestone: `M1 Print` / `M2 Scan` / `M3 Animate` / `M4 E2E`。Size: S(半日) / 
 - 絵の具で紙が波打った場合の位置ズレ（v0.2 以降の課題として記録）
 
 ### 既知の小さな課題
-- 本番ビルドに `?spike=video` のページと `fixtures/sample-5s.mp4` が含まれる（spike の `new URL(..., import.meta.url)` のため）。配布前に外す。デモ用の `public/sample.mp4` は意図して同梱
+- ~~本番ビルドに `?spike=video` のページと `fixtures/sample-5s.mp4` が含まれる~~ → spike を `import.meta.env.DEV` 下の動的 import にして除外済み。デモ用の `public/sample.mp4` は意図して同梱
 - Safari / Firefox は未確認（レスポンシブは 320〜1100 px で確認済み。実機のタッチ操作は未確認）
 
 ### サンプルで試す（2026-09-06 追加）
