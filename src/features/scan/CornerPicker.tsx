@@ -291,21 +291,21 @@ export function CornerPicker({ scan, settings, layout }: Props) {
         {complete && !consistent ? (
           <>
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-semibold">!</span>
-            四隅の対応が合っていません。点を正しい ■ までドラッグするか、「四隅をやり直す」
+            四隅の対応が合っていません。点を正しいマーカーまでドラッグするか、「四隅をやり直す」
           </>
         ) : complete ? (
           <>
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-semibold">4</span>
             <span className="min-w-0 flex-1">
               {scan.status === 'applied' ? '切り出しました。' : '4 点そろいました。'}
-              緑の枠がコマの範囲です。ずれていたら隅の点を ■ の中心へドラッグして{scan.status === 'applied' ? '「もう一度切り出す」' : ' Apply'}
+              緑の枠がコマの範囲です。ずれていたら隅の点をマーカーの中心へドラッグして{scan.status === 'applied' ? '「もう一度切り出す」' : ' Apply'}
             </span>
           </>
         ) : (
           <>
             <span className={['flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold', qrHint ? 'bg-danger' : scan.missingCorners.length > 0 ? 'bg-warn' : 'bg-accent'].join(' ')}>{qrHint ? '!' : 4 - remaining.length}</span>
-            {qrHint ? 'それは QR コードです。' : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
-            紙の隅にあるこのマークの中心をクリック:
+            {qrHint ? 'それは QR コードです。マーカーは紙の四隅にあります。' : scan.missingCorners.length > 0 && scan.missingCorners.length < 4 ? `${4 - scan.missingCorners.length} 点は自動で見つかりました。` : ''}
+            紙の隅にある、このマーカーの中心をクリック:
             {remaining.map((c) => (
               <span key={c} className="flex items-center gap-1">
                 <MarkerGlyph page={scan.page} corner={c} className="rounded-sm" />

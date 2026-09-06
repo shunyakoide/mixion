@@ -48,7 +48,7 @@ export function ScanEmpty() {
       <ol className="mt-8 grid gap-4 sm:grid-cols-3">
         {[
           ['取り込む', 'ページごとの画像をまとめて入れる'],
-          ['自動で切り出し', 'QR と四隅の ■ を読み取って、コマを元の順番に並べる'],
+          ['自動で切り出し', 'QR と四隅のマーカーを読み取って、コマを元の順番に並べる'],
           ['確認', '緑の枠がずれていないか見て、Animate へ'],
         ].map(([t, d], i) => (
           <li key={t} className="rounded-lg border border-rule bg-panel p-4">
