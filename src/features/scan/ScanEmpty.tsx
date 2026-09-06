@@ -61,25 +61,6 @@ export function ScanEmpty() {
         ))}
       </ol>
 
-      {hasVideo && (
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rule bg-panel p-4">
-          <div>
-            <div className="font-medium">印刷した紙がなくても試せます</div>
-            <div className="mt-0.5 text-sm text-ink-2">Print で作ったページをそのまま画像にして取り込みます。</div>
-          </div>
-          <Button variant="secondary" onClick={() => void runScanWithoutPaper()} disabled={demo.running || importing}>
-            {demo.running ? (
-              <>
-                <Spinner className="mr-2" /> {demo.label}
-              </>
-            ) : (
-              '印刷せずに取り込む'
-            )}
-          </Button>
-          {demo.error && <p className="w-full text-sm text-danger">{demo.error}</p>}
-        </div>
-      )}
-
       <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <button type="button" className="text-ink-2 underline underline-offset-2 hover:text-ink" onClick={() => setShowNotes((v) => !v)}>
           {showNotes ? '描くときの注意を閉じる' : '描くときの注意を見る'}
@@ -87,7 +68,19 @@ export function ScanEmpty() {
         <button type="button" className="text-ink-2 underline underline-offset-2 hover:text-ink" onClick={() => setManual((v) => !v)}>
           {manual ? '閉じる' : 'QR が読めない場合: 設定を手で入力する'}
         </button>
+        {hasVideo && (
+          <button type="button" className="flex items-center gap-2 text-ink-2 underline underline-offset-2 hover:text-ink disabled:no-underline disabled:opacity-70" onClick={() => void runScanWithoutPaper()} disabled={demo.running || importing}>
+            {demo.running ? (
+              <>
+                <Spinner size={14} /> {demo.label}
+              </>
+            ) : (
+              '印刷前に流れを確認する: 印刷ページをそのまま取り込む'
+            )}
+          </button>
+        )}
       </div>
+      {demo.error && <p className="mt-2 text-sm text-danger">{demo.error}</p>}
       {showNotes && (
         <ul className="mt-3 space-y-1.5 text-sm text-ink-2">
           {DRAW_NOTES.map((t) => (

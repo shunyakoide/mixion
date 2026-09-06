@@ -79,6 +79,8 @@ interface ScanState {
   clearSettings: () => void
   /** Forget everything: scans, cut frames, settings, original video. */
   reset: () => void
+  /** Drop the imported pages and cut frames to start the import over. Manual settings survive; QR-restored ones come back with the next import. */
+  clearScans: () => void
   applyScan: (id: string) => Promise<void>
 }
 
@@ -314,6 +316,20 @@ export const useScanStore = create<ScanState>((set, get) => ({
   setManualSettings: (settings) => set({ settings, settingsSource: 'manual' }),
 
   clearSettings: () => set({ settings: null, settingsSource: null }),
+
+  clearScans: () => {
+    for (const item of get().scans) URL.revokeObjectURL(item.url)
+    set((s) => ({
+      scans: [],
+      selectedId: null,
+      outputFrames: new Map(),
+      importing: false,
+      importError: null,
+      exported: { mp4: null, gif: null },
+      settings: s.settingsSource === 'manual' ? s.settings : null,
+      settingsSource: s.settingsSource === 'manual' ? 'manual' : null,
+    }))
+  },
 
   reset: () => {
     for (const item of get().scans) URL.revokeObjectURL(item.url)

@@ -13,7 +13,7 @@ const STATUS_LABEL: Record<ScanItem['status'], { text: string; cls: string }> = 
 }
 
 export function ScanList() {
-  const { scans, selectedId, select, importScans, importing, importError, removeScan } = useScanStore()
+  const { scans, selectedId, select, importScans, importing, importError, removeScan, clearScans } = useScanStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
 
@@ -73,6 +73,18 @@ export function ScanList() {
           )
         })}
       </ul>
+      {scans.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm('取り込んだページと切り出したコマをすべて消して、やり直しますか？')) clearScans()
+          }}
+          disabled={importing}
+          className="self-start text-sm text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-40"
+        >
+          取り込みをやり直す
+        </button>
+      )}
     </div>
   )
 }
