@@ -13,6 +13,14 @@ const DOT: Record<ScanItem['status'], string> = {
   error: 'bg-danger',
 }
 
+/** Page order first (unknown pages last), import order within ties, so the list reads like the animation. */
+function sortByPage(scans: ScanItem[]): ScanItem[] {
+  return scans
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => (a.s.page ?? Infinity) - (b.s.page ?? Infinity) || a.i - b.i)
+    .map((x) => x.s)
+}
+
 export function ScanList() {
   const { scans, selectedId, select, importScans, importing, importError, removeScan, clearScans } = useScanStore()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -56,7 +64,7 @@ export function ScanList() {
       {importError && <p className="text-sm text-danger">{importError}</p>}
       <ul className={['flex min-h-40 flex-1 flex-col gap-1 overflow-auto rounded-2xl transition-shadow', over ? 'shadow-[inset_0_0_0_2px_#0e0e0e]' : ''].join(' ')}>
         {scans.length === 0 && <li className="p-3 text-sm text-ink-3">{t.scan.dropScans}</li>}
-        {scans.map((s) => {
+        {sortByPage(scans).map((s) => {
           const active = s.id === selectedId
           return (
             <li key={s.id} className="relative">

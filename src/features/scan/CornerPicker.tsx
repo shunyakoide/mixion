@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { MarkerGlyph } from './MarkerGlyph'
 import { cornerFromPosition, cornersConsistent } from './cornerGeometry'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
-import { RotateCw } from '../../components/ui/icons'
+import { Check, RotateCw } from '../../components/ui/icons'
 import { Button } from '../../components/ui/Button'
 import { pageToScanHomography, projectRect, type Homography } from '../../domain/homography'
 import { CORNERS, type Corner, type Layout, type Point } from '../../domain/layout'
@@ -296,11 +296,21 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-danger font-mono text-xs font-semibold">!</span>
             <span className="min-w-0 flex-1">{t.scan.inconsistent}</span>
           </>
+        ) : complete && scan.status === 'applied' ? (
+          <>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ok text-white">
+              <Check size={14} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">{t.scan.cutPage(scan.page, framesOnPage(scan.page ?? 1, framesPerPage(settings.grid), settings.frameCount).length)}</span>
+              <span className="block text-[13px] text-white/60">{t.scan.adjust(true)}</span>
+            </span>
+          </>
         ) : complete ? (
           <>
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white font-mono text-xs font-semibold text-ink">4</span>
             <span className="min-w-0 flex-1">
-              {scan.status === 'applied' ? t.scan.cut : t.scan.fourSet} {t.scan.adjust(scan.status === 'applied')}
+              {t.scan.fourSet} {t.scan.adjust(false)}
             </span>
           </>
         ) : (

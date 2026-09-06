@@ -153,7 +153,7 @@ export const ja: Dict = {
     markerSource: 'マーカーから',
     rotated: (deg) => `${deg}° 回転済み`,
     inconsistent: '四隅の対応が合っていません。点を正しいマーカーまでドラッグするか、「四隅をやり直す」',
-    cut: '切り出しました。',
+    cutPage: (page, frames) => `${page !== null ? `P${page} を` : ''}切り出しました（${frames} コマ）`,
     fourSet: '4 点そろいました。',
     adjust: (applied) => `緑の枠がコマの範囲です。ずれていたら隅の点をマーカーの中心へドラッグして${applied ? '「もう一度切り出す」' : '「このページを切り出す」'}`,
     qrHint: 'それは QR コードです。マーカーは紙の四隅にあります。',
