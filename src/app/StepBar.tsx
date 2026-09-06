@@ -14,7 +14,7 @@ export function StepBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-rule bg-panel/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
+      <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-6 py-3">
         <div className="min-w-0 flex-1 text-sm">
           <span className="font-medium">
             {currentIndex + 1} / {steps.length} {info.label}

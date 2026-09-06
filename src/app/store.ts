@@ -29,7 +29,6 @@ interface PrintSlice {
   projectId: string
   /** JPEG blobs by 1-based frame number. Cleared when the source or fps changes. */
   frames: Map<number, Blob>
-  previewPage: number
   status: PrintStatus
   progress: Progress | null
   pdfError: string | null
@@ -42,7 +41,6 @@ interface Actions {
   clearVideo: () => void
   setFps: (fps: number) => void
   setGrid: (key: GridPreset) => void
-  setPreviewPage: (page: number) => void
   /** Extract any of `frameNumbers` not yet cached. */
   ensureFrames: (frameNumbers: number[]) => Promise<void>
   createPdf: () => Promise<void>
@@ -83,7 +81,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   gridKey: '2x2',
   projectId: generateProjectId(),
   frames: new Map(),
-  previewPage: 1,
   status: 'idle',
   progress: null,
   pdfError: null,
@@ -93,7 +90,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadVideo: async (file) => {
     void get().extractor?.dispose()
-    set({ file, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), previewPage: 1, status: 'idle', pdfError: null, lastSaved: null, projectId: generateProjectId() })
+    set({ file, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), status: 'idle', pdfError: null, lastSaved: null, projectId: generateProjectId() })
     try {
       const info = await probeVideo(file)
       if (get().file !== file) return
@@ -110,17 +107,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   clearVideo: () => {
     void get().extractor?.dispose()
-    set({ file: null, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), previewPage: 1, status: 'idle', progress: null, pdfError: null, lastSaved: null })
+    set({ file: null, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), status: 'idle', progress: null, pdfError: null, lastSaved: null })
   },
 
   setFps: (fps) => {
     if (fps === get().fps) return
-    set({ fps, frames: new Map(), previewPage: 1, status: 'idle', pdfError: null, lastSaved: null })
+    set({ fps, frames: new Map(), status: 'idle', pdfError: null, lastSaved: null })
   },
 
-  setGrid: (gridKey) => set({ gridKey, previewPage: 1, status: 'idle', pdfError: null, lastSaved: null }),
+  setGrid: (gridKey) => set({ gridKey, status: 'idle', pdfError: null, lastSaved: null }),
 
-  setPreviewPage: (page) => set({ previewPage: page }),
 
   ensureFrames: async (frameNumbers) => {
     const { file, fps, frames, extractor } = get()

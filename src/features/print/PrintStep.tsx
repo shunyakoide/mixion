@@ -54,8 +54,8 @@ export function PrintStep() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[360px_1fr]">
-      <div className="space-y-6">
+    <div className="grid gap-8 lg:grid-cols-[340px_1fr] xl:gap-12">
+      <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
         <VideoDrop />
         <SettingsPanel />
         <div className="space-y-3">
