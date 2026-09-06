@@ -62,7 +62,7 @@ export function Player({ settings, resolved, seek, onFrame }: PlayerProps) {
     <div className="space-y-2">
       <img src={urls[index]} alt={`frame ${index + 1}`} className="aspect-video w-full rounded-lg bg-black object-contain" />
       <div className="flex items-center gap-2 text-xs text-ink-2">
-        <button type="button" onClick={() => setPlaying((p) => !p)} aria-label={playing ? '一時停止' : '再生'} className="flex h-8 w-8 items-center justify-center rounded border border-rule-2 hover:border-ink-3">
+        <button type="button" onClick={() => setPlaying((p) => !p)} aria-label={playing ? '一時停止' : '再生'} className="flex h-11 w-11 items-center justify-center rounded border border-rule-2 hover:border-ink-3 sm:h-8 sm:w-8">
           {playing ? <Pause size={14} /> : <Play size={14} />}
         </button>
         <span className="tabular-nums">

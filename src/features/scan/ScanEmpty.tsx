@@ -33,7 +33,7 @@ export function ScanEmpty() {
         onDragOver={(e) => { e.preventDefault(); setOver(true) }}
         onDragLeave={() => setOver(false)}
         onDrop={onDrop}
-        className={['mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-16 text-center transition-colors', over ? 'border-accent bg-accent-soft' : 'border-rule-2 bg-panel'].join(' ')}
+        className={['mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 text-center transition-colors sm:px-6 sm:py-16', over ? 'border-accent bg-accent-soft' : 'border-rule-2 bg-panel'].join(' ')}
       >
         {importing ? <Spinner size={28} className="text-accent" /> : <Scan size={28} className={over ? 'text-accent' : 'text-ink-3'} />}
         <div className="mt-4 text-lg font-medium">{over ? 'ここに離すと取り込みます' : 'スキャン画像をここにドロップ'}</div>

@@ -11,7 +11,7 @@ export function PagePreview() {
   const settings = deriveSettings({ info, fps, gridKey, projectId })
   const layout = deriveLayout(settings)
   const wrapRef = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(600)
+  const [width, setWidth] = useState(320)
 
   useEffect(() => {
     const el = wrapRef.current
@@ -131,7 +131,7 @@ function PageCard({ settings, layout, page, width }: { settings: ProjectSettings
           #{String(pageFrames[0]).padStart(2, '0')} – #{String(pageFrames[pageFrames.length - 1]).padStart(2, '0')}
         </span>
       </div>
-      <canvas ref={canvasRef} className="block rounded border border-rule bg-white shadow-sm" style={{ width, height }} />
+      <canvas ref={canvasRef} className="block max-w-full rounded border border-rule bg-white shadow-sm" style={{ width, height }} />
       {visible && missing && (
         <div className="absolute inset-x-0 top-9 flex justify-center" aria-live="polite">
           <span className="flex items-center gap-2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">

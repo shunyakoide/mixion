@@ -124,7 +124,7 @@ export function VideoDrop() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
       className={[
-        'flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-16 text-center transition-colors',
+        'flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 text-center transition-colors sm:px-6 sm:py-16',
         dragging ? 'border-accent bg-accent-soft' : 'border-rule-2 bg-panel',
       ].join(' ')}
     >

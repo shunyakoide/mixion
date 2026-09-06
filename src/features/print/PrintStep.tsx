@@ -59,7 +59,7 @@ export function PrintStep() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[340px_1fr] xl:gap-12">
+    <div className="grid gap-8 lg:grid-cols-[340px_minmax(0,1fr)] xl:gap-12">
       <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
         <VideoDrop />
         <SettingsPanel />
@@ -103,7 +103,9 @@ export function PrintStep() {
           </div>
         )}
       </div>
-      <PagePreview />
+      <div className="min-w-0">
+        <PagePreview />
+      </div>
     </div>
   )
 }

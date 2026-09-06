@@ -30,8 +30,8 @@ export function AnimateStep() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <div className="space-y-4">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0 space-y-4">
         <Player settings={settings} resolved={resolved} seek={seek} onFrame={onFrame} />
         <FrameStrip settings={settings} resolved={resolved} current={current} onSelect={(i) => setSeek({ index: i, nonce: Date.now() })} />
       </div>

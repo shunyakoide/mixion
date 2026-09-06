@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { MarkerGlyph } from './MarkerGlyph'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Button } from '../../components/ui/Button'
@@ -8,7 +8,7 @@ import { framesOnPage, framesPerPage } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
 
 const CORNER_LABEL: Record<Corner, string> = { 0: '左上', 1: '右上', 2: '右下', 3: '左下' }
-const HIT_RADIUS = 14
+const HIT_RADIUS = { mouse: 14, touch: 28 }
 const LOUPE = { size: 160, zoom: 4 }
 
 /** Which corner a click means, from where it lands on the scan. Click order then does not matter. */
@@ -64,7 +64,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null)
   const loaded = loadedUrl === scan.url
-  const [cssWidth, setCssWidth] = useState(600)
+  const [cssWidth, setCssWidth] = useState(320)
   const [cursor, setCursor] = useState<Point | null>(null)
   const [qrHint, setQrHint] = useState(false)
   /** Positions before each drag, newest last. Cleared when the scan changes (component is keyed by scan id). */
@@ -200,22 +200,29 @@ export function CornerPicker({ scan, settings, layout }: Props) {
     ctx.stroke()
   }, [cursor, loaded])
 
-  const toScan = (e: MouseEvent<HTMLCanvasElement>): Point => {
+  const toScan = (e: PointerEvent<HTMLCanvasElement>): Point => {
     const r = e.currentTarget.getBoundingClientRect()
     return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }
   }
 
-  const hitCorner = (p: Point): Corner | null => {
+  const hitCorner = (p: Point, radius = HIT_RADIUS.mouse): Corner | null => {
     for (const c of CORNERS) {
       const q = scan.corners[c]
-      if (q && Math.hypot((q.x - p.x) * scale, (q.y - p.y) * scale) <= HIT_RADIUS) return c
+      if (q && Math.hypot((q.x - p.x) * scale, (q.y - p.y) * scale) <= radius) return c
     }
     return null
   }
 
-  const onMouseDown = (e: MouseEvent<HTMLCanvasElement>) => {
+  const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
+    if (e.button !== 0) return
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // Some pointers cannot be captured; dragging still works while the pointer stays over the canvas.
+    }
     const p = toScan(e)
-    const hit = hitCorner(p)
+    setCursor(p)
+    const hit = hitCorner(p, e.pointerType === 'touch' ? HIT_RADIUS.touch : HIT_RADIUS.mouse)
     if (hit !== null) {
       const from = scan.corners[hit]
       if (from) setUndo((u) => [...u.slice(-19), { corner: hit, point: from }])
@@ -237,14 +244,16 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       dragging.current = corner
     }
   }
-  const onMouseMove = (e: MouseEvent<HTMLCanvasElement>) => {
+  const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
     const p = toScan(e)
     setCursor(p)
     if (dragging.current !== null && e.buttons === 1) setCorner(scan.id, dragging.current, p)
   }
-  const onMouseUp = () => {
+  const onPointerUp = (e: PointerEvent<HTMLCanvasElement>) => {
     dragging.current = null
     setGrabbing(false)
+    // A finger has no hover: hide the loupe once it lifts.
+    if (e.pointerType !== 'mouse') setCursor(null)
   }
   const undoLast = () => {
     const last = undo[undo.length - 1]
@@ -320,18 +329,19 @@ export function CornerPicker({ scan, settings, layout }: Props) {
       <div ref={wrapRef} className="relative">
         <canvas
           ref={canvasRef}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={() => { onMouseUp(); setCursor(null) }}
-          className={['w-full rounded border border-rule bg-rule/40', grabbing ? 'cursor-grabbing' : hovering ? 'cursor-grab' : 'cursor-crosshair'].join(' ')}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          onPointerLeave={(e) => { if (e.pointerType === 'mouse' && dragging.current === null) setCursor(null) }}
+          className={['w-full max-w-full touch-none rounded border border-rule bg-rule/40', grabbing ? 'cursor-grabbing' : hovering ? 'cursor-grab' : 'cursor-crosshair'].join(' ')}
           style={{ height: cssHeight }}
         />
         <canvas ref={loupeRef} className="pointer-events-none absolute rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size, ...(cursor ? loupePosition(cursor, scale, cssWidth, cssHeight) : {}) }} hidden={cursor === null} />
         {!loaded && <div className="absolute inset-0 flex items-center justify-center text-sm text-ink-3">読み込み中…</div>}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button id="apply-scan" onClick={() => void applyScan(scan.id)} disabled={!canApply}>
           {busy ? '切り出し中…' : scan.status === 'applied' ? 'もう一度切り出す' : 'Apply: このページを切り出す'}
         </Button>

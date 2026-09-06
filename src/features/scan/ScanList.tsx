@@ -51,7 +51,7 @@ export function ScanList() {
               <button
                 type="button"
                 onClick={() => select(s.id)}
-                className={['flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm', s.id === selectedId ? 'bg-ink text-white' : 'hover:bg-rule/40'].join(' ')}
+                className={['flex w-full items-center gap-2 rounded px-2 py-2.5 text-left text-sm sm:py-1.5', s.id === selectedId ? 'bg-ink text-white' : 'hover:bg-rule/40'].join(' ')}
               >
                 <span className="w-7 shrink-0 tabular-nums opacity-70">{s.page !== null ? `P${s.page}` : '—'}</span>
                 <span className="min-w-0 flex-1 truncate" title={s.name}>
@@ -64,7 +64,7 @@ export function ScanList() {
                   aria-label="remove"
                   onClick={(e) => { e.stopPropagation(); removeScan(s.id) }}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); removeScan(s.id) } }}
-                  className="shrink-0 px-1 opacity-50 hover:opacity-100"
+                  className="-my-2 shrink-0 px-3 py-2 opacity-50 hover:opacity-100 sm:-my-1 sm:px-1 sm:py-1"
                 >
                   ×
                 </span>
@@ -80,7 +80,7 @@ export function ScanList() {
             if (window.confirm('取り込んだページと切り出したコマをすべて消して、やり直しますか？')) clearScans()
           }}
           disabled={importing}
-          className="self-start text-sm text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-40"
+          className="self-start py-2 text-sm text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-40"
         >
           取り込みをやり直す
         </button>

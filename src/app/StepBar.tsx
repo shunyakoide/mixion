@@ -14,17 +14,17 @@ export function StepBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-rule bg-panel/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-6 py-3">
+      <div className="mx-auto flex max-w-[1600px] items-center gap-2 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:gap-4 sm:px-6 sm:py-3 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="min-w-0 flex-1 text-sm">
           <span className="font-medium">
             {currentIndex + 1} / {steps.length} {info.label}
           </span>
-          <span className="ml-3 text-ink-2">{info.hint}</span>
+          <span className="ml-3 hidden text-ink-2 md:inline">{info.hint}</span>
         </div>
         {prev && (
-          <Button variant="secondary" onClick={() => setStep(prev)}>
-            <ChevronLeft className="-ml-1 mr-1" />
-            {steps[currentIndex - 1].label}
+          <Button variant="secondary" onClick={() => setStep(prev)} aria-label={`前へ: ${steps[currentIndex - 1].label}`} className="px-3 sm:px-4">
+            <ChevronLeft className="sm:-ml-1 sm:mr-1" />
+            <span className="hidden sm:inline">{steps[currentIndex - 1].label}</span>
           </Button>
         )}
         {nextInfo && (

@@ -40,7 +40,7 @@ export function FrameStrip({ settings, resolved, current, onSelect }: Props) {
           </span>
         ) : null}
       </div>
-      <ol className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-10">
+      <ol className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
         {urls.map((u, i) => (
           <li key={i}>
             <button

@@ -30,9 +30,9 @@ export function ScanStep() {
           </Button>
         </div>
       )}
-      <div className="grid gap-6 lg:grid-cols-[240px_1fr_220px]">
+      <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)_220px]">
         <ScanList />
-        <div>
+        <div className="min-w-0">
           {selected && settings && layout ? (
             selected.status === 'reading' || selected.status === 'detecting' ? (
               <p className="text-sm text-ink-2">{selected.status === 'detecting' ? 'マーカーを検出中…' : '読み込み中…'}</p>

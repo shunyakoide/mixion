@@ -24,7 +24,12 @@
   color-scheme: light;
 }
 
+html {
+  overscroll-behavior-y: none;
+}
+
 body {
+  -webkit-tap-highlight-color: transparent;
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);

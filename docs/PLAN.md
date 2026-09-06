@@ -460,7 +460,7 @@ Milestone: `M1 Print` / `M2 Scan` / `M3 Animate` / `M4 E2E`。Size: S(半日) / 
 
 ### 既知の小さな課題
 - 本番ビルドに `?spike=video` のページと `fixtures/sample-5s.mp4` が含まれる（spike の `new URL(..., import.meta.url)` のため）。配布前に外す。デモ用の `public/sample.mp4` は意図して同梱
-- Safari / Firefox は未確認
+- Safari / Firefox は未確認（レスポンシブは 320〜1100 px で確認済み。実機のタッチ操作は未確認）
 
 ### サンプルで試す（2026-09-06 追加）
 - `src/app/demo.ts`: `public/sample.mp4`（`fixtures/sample-5s.mp4` と同じ testsrc のカラーバー。フレームカウンターが動くので fps の効き方が見える）を読み込み、`renderPageToBlob` で印刷ページを 150 dpi・微小回転つきの画像にして `importScans` に通す。本物のスキャン経路（QR → マーカー検出 → ワープ）をそのまま使うので、デモがそのままパイプラインの動作確認になる

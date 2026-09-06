@@ -6,7 +6,7 @@ export function Steps() {
   const setStep = useAppStore((s) => s.setStep)
   const { steps, current } = useStepProgress()
   return (
-    <ol className="flex items-stretch gap-1" aria-label="手順">
+    <ol className="flex min-w-0 items-stretch gap-1 overflow-x-auto" aria-label="手順">
       {steps.map((s) => {
         const active = s.id === current
         return (
@@ -16,7 +16,7 @@ export function Steps() {
               onClick={() => setStep(s.id)}
               aria-current={active ? 'step' : undefined}
               className={[
-                'flex h-9 items-center gap-2 rounded-md px-3 text-sm transition-colors',
+                'flex min-h-11 items-center gap-2 rounded-md px-2 text-sm transition-colors sm:min-h-9 sm:px-3',
                 active ? 'bg-ink text-white' : 'text-ink-2 hover:bg-rule/60',
               ].join(' ')}
             >
@@ -28,9 +28,9 @@ export function Steps() {
               >
                 {s.done ? <Check size={12} strokeWidth={3} /> : s.index + 1}
               </span>
-              <span className={active ? 'font-medium' : ''}>{s.label}</span>
+              <span className={[active ? 'font-medium' : 'hidden sm:inline'].join(' ')}>{s.label}</span>
             </button>
-            {s.index < steps.length - 1 && <span className="mx-1 h-px w-5 bg-rule-2" aria-hidden />}
+            {s.index < steps.length - 1 && <span className="mx-0.5 h-px w-2 bg-rule-2 sm:mx-1 sm:w-5" aria-hidden />}
           </li>
         )
       })}
