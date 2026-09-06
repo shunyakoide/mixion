@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { loadSampleVideo, runDemo, useDemoStore } from '../../app/demo'
 import { deriveSettings, useAppStore } from '../../app/store'
 import { Button } from '../../components/ui/Button'
-import { ArrowRight, Check, Spinner } from '../../components/ui/icons'
+import { ArrowRight, Check, Scan, Spinner } from '../../components/ui/icons'
 import { DRAW_NOTES } from './drawNotes'
 import { PagePreview } from './PagePreview'
 import { SettingsPanel } from './SettingsPanel'
@@ -31,13 +31,18 @@ export function PrintStep() {
         <div className="mt-8">
           <VideoDrop />
         </div>
-        <div className="mt-8 rounded-lg border border-rule bg-panel p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="font-medium">動画がなくても試せます</div>
-              <div className="mt-0.5 text-sm text-ink-2">5 秒のサンプル動画を読み込み、印刷ページをそのままスキャンとして取り込んで、アニメーションまで進みます。</div>
-            </div>
-            <Button variant="secondary" onClick={() => void runDemo()} disabled={demo.running}>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col rounded-lg border border-rule bg-panel p-4">
+            <div className="font-medium">描いたページがもうある</div>
+            <div className="mt-0.5 flex-1 text-sm text-ink-2">設定は各ページの QR に入っているので、動画を読み込まずにスキャンから始められます。</div>
+            <Button variant="secondary" className="mt-4 self-start" onClick={() => setStep('scan')}>
+              <Scan size={16} className="mr-2" /> スキャン画像を取り込む
+            </Button>
+          </div>
+          <div className="flex flex-col rounded-lg border border-rule bg-panel p-4">
+            <div className="font-medium">動画がなくても試せます</div>
+            <div className="mt-0.5 flex-1 text-sm text-ink-2">5 秒のサンプル動画を読み込み、印刷ページをそのままスキャンとして取り込んで、アニメーションまで進みます。</div>
+            <Button variant="secondary" className="mt-4 self-start" onClick={() => void runDemo()} disabled={demo.running}>
               {demo.running ? (
                 <>
                   <Spinner className="mr-2" /> {demo.label}
@@ -46,8 +51,8 @@ export function PrintStep() {
                 'サンプルで試す'
               )}
             </Button>
+            {demo.error && <p className="mt-2 text-sm text-danger">{demo.error}</p>}
           </div>
-          {demo.error && <p className="mt-2 text-sm text-danger">{demo.error}</p>}
         </div>
       </div>
     )
