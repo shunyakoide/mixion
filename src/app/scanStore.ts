@@ -6,7 +6,7 @@ import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
 import { readPageQr, type QrReadResult } from '../features/scan/qrPage'
 import { detectMarkers, detectMarkersBlind } from '../features/scan/detectMarkers'
-import { orientationMismatch, quarterTurnsToUpright } from '../features/scan/orientation'
+import { orientationMismatch, quarterTurnsToUpright, rotateQrCorners } from '../features/scan/orientation'
 import { warpCells } from '../features/scan/warpClient'
 import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rgbaToBlob, rotateBitmap } from '../lib/image'
 import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
@@ -126,6 +126,13 @@ interface Prepared {
 
 const ALL_CORNERS: Corner[] = [0, 1, 2, 3]
 
+/** Lowest page not yet claimed by another scan, for pages whose QR and markers could not be read. */
+export function firstUnusedPage(scans: Pick<ScanItem, 'id' | 'page'>[], excludeId: string, pageCount: number): number | null {
+  const used = new Set(scans.filter((x) => x.id !== excludeId && x.page !== null).map((x) => x.page))
+  for (let p = 1; p <= pageCount; p++) if (!used.has(p)) return p
+  return null
+}
+
 /**
  * Read the QR, turn the image upright when it was scanned sideways, and find the corner markers.
  * `forceTurns` applies a manual rotation instead of the automatic one. Without a readable QR the
@@ -137,13 +144,16 @@ async function prepareScan(file: File, settings: ProjectSettings | null, options
   let rotation = 0
   let outFile = file
   const turn = async (k: number) => {
-    if (k % 4 === 0) return
-    const rotated = await rotateBitmap(bitmap, k)
+    const kk = ((k % 4) + 4) % 4
+    if (kk === 0) return
+    const size = { width: bitmap.width, height: bitmap.height }
+    const rotated = await rotateBitmap(bitmap, kk)
     bitmap.close()
     bitmap = await loadBitmap(rotated.blob)
     outFile = new File([rotated.blob], file.name, { type: rotated.blob.type })
-    rotation = (rotation + (((k % 4) + 4) % 4) * 90) % 360
-    if (qr.ok) qr = readPageQr(bitmap)
+    rotation = (rotation + kk * 90) % 360
+    // Carry the QR over by geometry: a second jsQR pass on the re-encoded image can fail and would lose a good read.
+    if (qr.ok) qr = { ...qr, corners: rotateQrCorners(qr.corners, kk, size) }
   }
   const layout = settings ? layoutFromSettings(settings) : qr.ok ? layoutFromSettings(settingsFromQr(qr.payload)) : null
   if (options.forceTurns !== undefined) await turn(options.forceTurns)
@@ -323,14 +333,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
           }
           if (page === null && settings) {
             // Fall back to import order for pages without a readable QR.
-            const used = new Set(s.scans.filter((x) => x.id !== id && x.page !== null).map((x) => x.page))
-            for (let p = 1; p <= settings.pageCount; p++) {
-              if (!used.has(p)) {
-                page = p
-                pageSource = 'order'
-                break
-              }
-            }
+            page = firstUnusedPage(s.scans, id, settings.pageCount)
+            if (page !== null) pageSource = 'order'
           }
           const corners = detected?.corners ?? {}
           const scans = s.scans.map((x) =>
@@ -364,6 +368,12 @@ export const useScanStore = create<ScanState>((set, get) => ({
         set((s) => ({
           scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)),
         }))
+      }
+    }
+    // Pages read before any QR fixed the settings had no layout to work with; give them one now.
+    if (get().settings) {
+      for (const x of get().scans) {
+        if (x.page === null && x.status !== 'applied' && x.status !== 'applying' && x.status !== 'error') await reanalyze(x.id, { autoRotate: true })
       }
     }
     set({ importing: false })
@@ -508,8 +518,12 @@ async function reanalyze(id: string, options: { forceTurns?: number; autoRotate:
       scans: s.scans.map((x) => {
         if (x.id !== id) return x
         const fromQr = qr.ok && s.settings && qr.payload.p === s.settings.projectId ? qr.payload.pg : null
-        const page = fromQr ?? (x.pageSource === 'manual' ? x.page : (markerPage ?? x.page))
-        const pageSource: ScanItem['pageSource'] = fromQr !== null ? 'qr' : x.pageSource === 'manual' ? 'manual' : markerPage !== null ? 'marker' : x.pageSource
+        let page = fromQr ?? (x.pageSource === 'manual' ? x.page : (markerPage ?? x.page))
+        let pageSource: ScanItem['pageSource'] = fromQr !== null ? 'qr' : x.pageSource === 'manual' ? 'manual' : markerPage !== null ? 'marker' : x.pageSource
+        if (page === null && s.settings) {
+          page = firstUnusedPage(s.scans, id, s.settings.pageCount)
+          if (page !== null) pageSource = 'order'
+        }
         return statusUpdate({
           ...x,
           file,

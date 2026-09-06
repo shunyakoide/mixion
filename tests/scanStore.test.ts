@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useScanStore, type ScanItem } from '../src/app/scanStore'
+import { firstUnusedPage, useScanStore, type ScanItem } from '../src/app/scanStore'
 import { GRID_PRESETS } from '../src/domain/layout'
 import { createProjectSettings } from '../src/domain/settings'
 
@@ -144,5 +144,19 @@ describe('clearScans', () => {
     useScanStore.getState().clearScans()
     expect(useScanStore.getState().settings).toBeNull()
     expect(useScanStore.getState().settingsSource).toBeNull()
+  })
+})
+
+describe('firstUnusedPage', () => {
+  it('skips pages other scans already hold and ignores the scan itself', () => {
+    const scans = [
+      { id: 'a', page: 1 },
+      { id: 'b', page: 2 },
+      { id: 'c', page: 4 },
+      { id: 'me', page: null },
+    ]
+    expect(firstUnusedPage(scans, 'me', 4)).toBe(3)
+    expect(firstUnusedPage([...scans, { id: 'd', page: 3 }], 'me', 4)).toBe(null)
+    expect(firstUnusedPage([{ id: 'me', page: 2 }], 'me', 4)).toBe(1)
   })
 })

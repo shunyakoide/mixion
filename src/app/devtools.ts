@@ -8,6 +8,9 @@ import { encodeGif } from '../lib/video/gif'
 import { layoutFromSettings } from '../domain/settings'
 import { deriveSettings, useAppStore } from './store'
 import { useScanStore } from './scanStore'
+import { decodeMarker, detectMarkersBlind, findMarkerNear } from '../features/scan/detectMarkers'
+import { bitmapToRgba, loadBitmap } from '../lib/image'
+import { readPageQr } from '../features/scan/qrPage'
 
 /** Mean absolute RGB difference between two image blobs, resized to the first's size. */
 async function imageDiff(a: Blob, b: Blob, maxWidth = 480): Promise<{ meanAbs: number; width: number; height: number }> {
@@ -59,6 +62,6 @@ async function simulateScan(page: number, options: { dpi?: number; rotateDeg?: n
   return { file, markerCentersPx: rendered.markerCentersPx, width: rendered.width, height: rendered.height }
 }
 
-const dev = { renderPageToBlob, imageDiff, simulateScan, encodeMp4, encodeGif, appStore: useAppStore, scanStore: useScanStore }
+const dev = { renderPageToBlob, imageDiff, simulateScan, encodeMp4, encodeGif, appStore: useAppStore, scanStore: useScanStore, decodeMarker, detectMarkersBlind, findMarkerNear, bitmapToRgba, loadBitmap, readPageQr, layoutFromSettings }
 ;(window as unknown as { __dev?: typeof dev }).__dev = dev
 export type DevTools = typeof dev

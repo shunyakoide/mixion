@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkOrientation, orientationMismatch, quarterTurnsToUpright } from '../src/features/scan/orientation'
+import { checkOrientation, orientationMismatch, quarterTurnsToUpright, rotatePoint, rotateQrCorners } from '../src/features/scan/orientation'
 
 /** A 100 px QR whose page has been turned `deg` clockwise on the scan. */
 function qrTurned(deg: number) {
@@ -41,5 +41,24 @@ describe('checkOrientation', () => {
   it('falls back to the aspect ratio without a QR', () => {
     expect(checkOrientation({ width: 2480, height: 3508 }, null, layout)).toEqual({ kind: 'aspect_mismatch' })
     expect(checkOrientation(landscape, null, layout)).toEqual({ kind: 'ok' })
+  })
+})
+
+describe('rotatePoint', () => {
+  const size = { width: 100, height: 200 }
+  it('turns clockwise like rotateBitmap', () => {
+    expect(rotatePoint({ x: 0, y: 0 }, 1, size)).toEqual({ x: 200, y: 0 })
+    expect(rotatePoint({ x: 10, y: 20 }, 1, size)).toEqual({ x: 180, y: 10 })
+    expect(rotatePoint({ x: 10, y: 20 }, 2, size)).toEqual({ x: 90, y: 180 })
+    expect(rotatePoint({ x: 10, y: 20 }, 3, size)).toEqual({ x: 20, y: 90 })
+  })
+  it('is the identity after four turns and for negative turns modulo four', () => {
+    expect(rotatePoint({ x: 10, y: 20 }, 4, size)).toEqual({ x: 10, y: 20 })
+    expect(rotatePoint({ x: 10, y: 20 }, -1, size)).toEqual(rotatePoint({ x: 10, y: 20 }, 3, size))
+  })
+  it('keeps a QR upright once its scan is turned back', () => {
+    const turned = qrTurned(-90) // page turned counter-clockwise; needs one clockwise turn
+    const back = rotateQrCorners(turned, quarterTurnsToUpright(turned), { width: 1000, height: 1000 })
+    expect(quarterTurnsToUpright(back)).toBe(0)
   })
 })

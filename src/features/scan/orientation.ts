@@ -1,5 +1,5 @@
 import type { QrCornersPx } from './detectMarkers'
-import type { Corner, Rect, Size } from '../../domain/layout'
+import type { Corner, Point, Rect, Size } from '../../domain/layout'
 import { cornerFromPosition } from './cornerGeometry'
 
 /** Quarter turns, clockwise, 0..3. */
@@ -38,4 +38,26 @@ export function checkOrientation(image: { width: number; height: number }, qrRec
     return actual === expected ? { kind: 'ok' } : { kind: 'qr_misplaced', expected }
   }
   return orientationMismatch(image, layout.pageSize) ? { kind: 'aspect_mismatch' } : { kind: 'ok' }
+}
+
+/** Where a point lands after the image is turned `quarterTurns` × 90° clockwise, matching `rotateBitmap`. */
+export function rotatePoint(p: Point, quarterTurns: number, size: { width: number; height: number }): Point {
+  const k = ((quarterTurns % 4) + 4) % 4
+  let { x, y } = p
+  let { width, height } = size
+  for (let i = 0; i < k; i++) {
+    ;[x, y] = [height - y, x]
+    ;[width, height] = [height, width]
+  }
+  return { x, y }
+}
+
+/** QR corners after the image is turned, so a rotated scan needs no second QR read. */
+export function rotateQrCorners(qr: QrCornersPx, quarterTurns: number, size: { width: number; height: number }): QrCornersPx {
+  return {
+    topLeft: rotatePoint(qr.topLeft, quarterTurns, size),
+    topRight: rotatePoint(qr.topRight, quarterTurns, size),
+    bottomRight: rotatePoint(qr.bottomRight, quarterTurns, size),
+    bottomLeft: rotatePoint(qr.bottomLeft, quarterTurns, size),
+  }
 }

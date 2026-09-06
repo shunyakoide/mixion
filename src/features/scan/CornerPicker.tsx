@@ -318,6 +318,11 @@ export function CornerPicker({ scan, settings, layout }: Props) {
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-danger font-mono text-xs font-semibold">!</span>
             <span className="min-w-0 flex-1">{t.scan.inconsistent}</span>
           </>
+        ) : complete && scan.page === null ? (
+          <>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warn font-mono text-xs font-semibold">!</span>
+            <span className="min-w-0 flex-1">{t.scan.choosePage}</span>
+          </>
         ) : complete && scan.status === 'applied' ? (
           <>
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ok text-white">
