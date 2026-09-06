@@ -74,16 +74,21 @@ function PageCard({ settings, layout, page, width }: { settings: ProjectSettings
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, missing])
 
+  // Paint off-screen and blit in one step, and only when this page's own frames changed,
+  // so a page never shows blank between two paints.
+  const painted = useRef<{ blobs: (Blob | null)[]; width: number } | null>(null)
+  const seq = useRef(0)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !visible) return
-    let cancelled = false
+    const blobs = pageFrames.map((f) => frames.get(f) ?? null)
+    const prev = painted.current
+    if (prev && prev.width === width && prev.blobs.length === blobs.length && prev.blobs.every((b, i) => b === blobs[i])) return
+    const mine = ++seq.current
     const dpr = window.devicePixelRatio || 1
     const pxPerMm = width / layout.pageSize.w
-    canvas.width = Math.round(width * dpr)
-    canvas.height = Math.round(height * dpr)
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const w = Math.round(width * dpr)
+    const h = Math.round(height * dpr)
     ;(async () => {
       const bitmaps = new Map<number, ImageBitmap>()
       await Promise.all(
@@ -92,15 +97,27 @@ function PageCard({ settings, layout, page, width }: { settings: ProjectSettings
           if (blob) bitmaps.set(f, await createImageBitmap(blob))
         }),
       )
-      if (cancelled) return
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      if (mine !== seq.current) {
+        // A newer paint for this page was requested meanwhile; let it win.
+        for (const b of bitmaps.values()) b.close()
+        return
+      }
+      const off = new OffscreenCanvas(w, h)
+      const octx = off.getContext('2d')
+      const ctx = canvas.getContext('2d')
+      if (!octx || !ctx) return
+      octx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const spec = buildPageSpec<CanvasImageSource>(settings, layout, page, (f) => bitmaps.get(f) ?? null)
-      paintPage(new CanvasPainter(ctx, pxPerMm), spec)
+      paintPage(new CanvasPainter(octx, pxPerMm), spec)
       for (const b of bitmaps.values()) b.close()
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w
+        canvas.height = h
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.drawImage(off, 0, 0)
+      painted.current = { blobs, width }
     })()
-    return () => {
-      cancelled = true
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, frames, width, height])
 
