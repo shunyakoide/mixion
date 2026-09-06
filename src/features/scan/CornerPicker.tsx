@@ -10,6 +10,16 @@ const CORNER_LABEL: Record<Corner, string> = { 0: '左上', 1: '右上', 2: '右
 const HIT_RADIUS = 14
 const LOUPE = { size: 160, zoom: 4 }
 
+/** Keep the loupe in the quadrant opposite the cursor so it never covers the marker being clicked. */
+function loupePlacement(cursor: Point | null, width: number, height: number): string {
+  if (!cursor) return 'right-2 top-2'
+  const left = cursor.x < width / 2
+  const top = cursor.y < height / 2
+  if (top) return left ? 'right-2 bottom-2' : 'left-2 bottom-2'
+  // Bottom half: go up; the top-left holds the hint banner, so sit just below it.
+  return left ? 'right-2 top-2' : 'left-2 top-14'
+}
+
 interface Props {
   scan: ScanItem
   settings: ProjectSettings
@@ -230,7 +240,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           className="w-full cursor-crosshair rounded border border-rule bg-rule/40"
           style={{ height: cssHeight }}
         />
-        <canvas ref={loupeRef} className="pointer-events-none absolute right-2 top-2 rounded border border-rule-2 bg-panel shadow" style={{ width: LOUPE.size, height: LOUPE.size }} hidden={cursor === null} />
+        <canvas ref={loupeRef} className={['pointer-events-none absolute rounded border border-rule-2 bg-panel shadow', loupePlacement(cursor, scan.width, scan.height)].join(' ')} style={{ width: LOUPE.size, height: LOUPE.size }} hidden={cursor === null} />
         <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-2 rounded-md bg-ink/85 px-3 py-1.5 text-sm text-white shadow" aria-live="polite">
           {complete ? (
             <>
