@@ -1,75 +1,35 @@
-<p align="center">
-  <img src="public/favicon.svg" width="72" height="72" alt="">
-</p>
+# Mixion
 
-<h1 align="center">Mixion</h1>
+[![CI](https://github.com/shunyakoide/mixion/actions/workflows/ci.yml/badge.svg)](https://github.com/shunyakoide/mixion/actions/workflows/ci.yml)
 
-<p align="center">
-  Print the frames of a video on paper, draw on them, scan them back, and get an animation.
-</p>
+[日本語](README.ja.md)
 
-<p align="center">
-  <a href="https://shunyakoide.github.io/mixion/"><strong>Open the app</strong></a> ·
-  <a href="README.ja.md">日本語</a>
-</p>
+A small web app for mixed media animation: print the frames of a video on paper, draw or collage over them, scan the pages back, and turn them into a video again. Mixion automates the tedious parts of that loop and leaves the drawing to you.
 
-<p align="center">
-  <a href="https://github.com/shunyakoide/mixion/actions/workflows/ci.yml"><img src="https://github.com/shunyakoide/mixion/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-black" alt="MIT license"></a>
-</p>
+**Print → Draw → Scan → Animate**
 
-<table align="center">
-  <tr>
-    <td align="center"><img src="docs/images/drawn-page.jpg" width="440" alt="A printed A4 page with 12 video frames, each drawn over with a marker"></td>
-    <td align="center"><img src="docs/images/demo.gif" width="440" alt="The scanned pages played back as an animation"></td>
-  </tr>
-  <tr>
-    <td align="center">A printed page after drawing</td>
-    <td align="center">The animation made from the scans</td>
-  </tr>
-</table>
+Live: https://shunyakoide.github.io/mixion/
 
-## What is this?
-
-Mixed media animation is drawing or collaging over the frames of a real video, one by one, on paper. The drawing is the fun part. Splitting the video into frames, laying them out for printing, cutting the scans up again and putting them back in order is not.
-
-Mixion does the boring part. It runs entirely in your browser: there is no server, no account and nothing to install. Every printed page carries a QR code with the project settings, so the scan step reads everything it needs from the paper itself. Close the tab, come back next week with your scans, and carry on.
+- No server, no database, no account. Everything runs in your browser; files never leave it.
+- No saved state. Each printed page carries a QR code with the project settings (fps, grid, page number, frame count, source size), so the scan step restores them from the paper itself.
+- Browsers: Chrome and Edge (WebCodecs and the save dialog are required).
 
 ## How it works
 
-**1. Print.** Drop a video, choose the frame rate and how many frames go on each page, and save the PDF. Vertical videos get portrait pages.
-
-<img src="docs/images/print.png" alt="The Print step: a loaded video, frame rate and grid options, and a live preview of the pages" width="800">
-
-**2. Draw.** Print on A4 and draw, paint or paste on the frames. Keep the four corner markers and the QR code clean, and do not cut the pages apart.
-
-**3. Scan.** Scan each page (300 dpi is plenty) and import the files. Mixion reads the settings and page number from the QR code, finds the corner markers, straightens the page and cuts out every frame. Crooked or sideways scans are fine. If a corner was not found, click it.
-
-<img src="docs/images/scan.png" alt="The Scan step: two imported pages, all 16 frames cut, with the detected corners and frame boxes drawn over the scan" width="800">
-
-**4. Animate.** Play the result, optionally drop the original video to bring back its audio and fill in any frames you did not scan, then save as MP4 or GIF.
-
-<img src="docs/images/animate.png" alt="The Animate step: the player, the frame strip and the MP4 / GIF export buttons" width="800">
-
-## Highlights
-
-- **Nothing leaves the browser.** Video decoding, PDF generation, marker detection and MP4 encoding all happen locally.
-- **Nothing to save.** The settings live in the QR code on every page. You can start from the Scan step on a fresh machine.
-- **Scans just work.** Four ArUco markers and the QR code recover the page's position, rotation and number automatically. A phone photo works too: the perspective is corrected.
-- **Vertical video** is supported, with portrait pages and matching grid options.
-- **MP4 with the original audio**, or GIF.
-- **English and Japanese** interface.
+1. **Print**: drop a video, pick the frame rate and the number of frames per page, save the print PDF. Vertical videos get portrait pages and their own grid options (2×2 / 3×2 / 4×2).
+2. **Draw** (on paper): print on A4 and draw. Keep the four corner markers and the QR code clean, and do not cut the pages.
+3. **Scan**: scan each page at 300 dpi and import the files. Mixion reads the settings and page number from the QR code, finds the four corner markers, straightens the page and cuts out every frame. Pages can be scanned in either orientation; if the QR is unreadable the markers alone recover the orientation and page number. Only corners that were not found need a click. There are also buttons to re-run detection and to rotate by 90°.
+4. **Animate**: optionally drop the original video (for the audio and for frames you did not scan), then export MP4 or GIF.
 
 ## Try it without a printer
 
-- **Try the sample** on the first screen loads a bundled 5-second clip, renders its print pages as images, imports them as if they were scans, and takes you to Animate.
-- **Preview the flow before printing** (a small link on the Scan step): after loading your own video, import its pages without printing them, to settle on the frame rate and grid first.
-- Open the app with `?sample` to start with the sample clip loaded.
+- **Try the sample** on the first screen loads a bundled 5-second clip (colour bars with a frame counter), renders its print pages as images, imports them as if they were scans, and takes you to Animate.
+- **Preview the flow before printing** (small link on the Scan step): after loading your own video, import the pages made in Print without printing them, to settle on fps and grid first.
+- Open with `?sample` to start with the sample clip loaded.
 
-## Requirements
+## Language
 
-- Chrome or Edge. Mixion uses WebCodecs for video and the File System Access API for save dialogs; Safari and Firefox are not supported yet.
-- A printer for A4 paper and a scanner (or a phone camera).
+The UI defaults to English and can be switched to Japanese from the header. The choice is stored in `localStorage` under `mixion.locale`; that is the only thing the app stores. Strings live in `src/i18n/en.ts` (source of truth) and `src/i18n/ja.ts`, and a test checks that both have the same keys.
 
 ## Development
 
@@ -87,10 +47,10 @@ npm run dev
 | `npm test` | vitest (`tests/`) |
 | `npm run lint` | oxlint |
 
-Dev-only hooks, available with `npm run dev`:
+Dev-only hooks (`npm run dev`):
 
-- `window.__dev` in the browser console: `simulateScan(page, {dpi, rotateDeg})` renders a print page as a fake scan; also `imageDiff`, `encodeMp4`, `encodeGif`, the stores and the marker/QR detectors.
-- `window.__timings`: per-stage timings of the last scan import.
+- `window.__dev` in the browser console: `simulateScan(page, {dpi, rotateDeg})` renders a print page as a fake scan; also `imageDiff`, `encodeMp4`, `encodeGif`, the stores and the marker/QR detectors
+- `window.__timings`: per-stage timings of the last scan import
 
 ### Deployment
 
@@ -111,8 +71,8 @@ BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
 | Video | WebCodecs via mediabunny | in-browser decoding (frame extraction) and MP4 encoding (H.264 + original audio) |
 | GIF | gifenc | GIF export |
 | PDF | pdf-lib | the A4 print PDF; shares its painting logic with the canvas preview |
-| Markers / QR | own ArUco (MIP_36h12) detector and decoder, jsqr, qrcode | finding the corners, recovering orientation and page number, embedding and reading the page settings |
-| Geometry | own homography | straightening scans and cutting out frames; heavy work runs in Web Workers |
+| Markers / QR | own ArUco (MIP_36h12) detector and decoder (`src/domain/markers.ts`, `src/features/scan/detectMarkers.ts`), jsqr, qrcode | finding the corners, recovering orientation and page number, embedding and reading the page settings |
+| Geometry | own homography (`src/domain/homography.ts`) | straightening scans and cutting out frames; heavy work runs in Web Workers |
 | Validation | zod | the settings embedded in the QR code |
 | Quality | vitest, oxlint, GitHub Actions (lint → test → build) | unit tests for the domain layer (layout, markers, homography, i18n parity) |
 | Saving | File System Access API (`showSaveFilePicker`), download fallback | save dialogs for PDF / MP4 / GIF |
@@ -120,15 +80,13 @@ BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
 ```
 src/
   domain/      page layout (mm), frame mapping, homography, markers, QR settings. Pure TS, covered by vitest
-  features/    the print / scan / animate screens and their logic
+  features/    the print / draw / scan / animate screens and their logic
   lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
   workers/     the warp Web Worker
   app/         zustand stores, header stepper, bottom dock, dev helpers
   components/  Button / Chip / icons / logo
   i18n/        en (source) and ja dictionaries, locale switch
 ```
-
-The UI language defaults to English and can be switched to Japanese from the header. The choice is stored in `localStorage` under `mixion.locale`; that is the only thing the app stores.
 
 ## Contributing
 
