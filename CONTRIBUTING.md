@@ -38,6 +38,7 @@ A few conventions:
 src/
   domain/      page layout (mm), frame mapping, homography, markers, QR settings. Pure TS, covered by vitest
   features/    the print / scan / animate screens and their logic
+  lib/         file save helpers (File System Access API with download fallback), store-only zip writer, image utils
   lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
   workers/     the warp Web Worker
   app/         zustand stores, header stepper, dev helpers

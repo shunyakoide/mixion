@@ -9,7 +9,7 @@ import { SettingsPanel } from './SettingsPanel'
 import { VideoDrop } from './VideoDrop'
 
 export function PrintStep() {
-  const { info, fps, gridKey, projectId, status, progress, pdfError, lastSaved, createPdf, setStep, file } = useAppStore()
+  const { info, fps, gridKey, projectId, status, progress, pdfError, lastSaved, savedKind, createPdf, createPngPages, setStep, file } = useAppStore()
   const demo = useDemoStore()
   const t = useT()
   const settings = deriveSettings({ info, fps, gridKey, projectId })
@@ -74,7 +74,7 @@ export function PrintStep() {
               </>
             ) : (
               <>
-                {status === 'done' ? t.print.savePdfAgain : t.print.savePdf}
+                {status === 'done' && savedKind === 'pdf' ? t.print.savePdfAgain : t.print.savePdf}
                 <ArrowRight size={16} />
               </>
             )}
@@ -87,6 +87,14 @@ export function PrintStep() {
             <p className="text-center text-xs leading-[18px] text-ink-3">{t.print.afterSave}</p>
           )}
           {pdfError && <p className="text-sm text-danger">{pdfError}</p>}
+          <button
+            type="button"
+            className="mt-1 self-center py-1 text-center text-[13px] leading-[18px] text-ink-2 underline underline-offset-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={() => void createPngPages()}
+            disabled={!settings || busy}
+          >
+            {t.print.savePng}
+          </button>
         </div>
 
         {status === 'done' && lastSaved && (
@@ -97,9 +105,9 @@ export function PrintStep() {
               </span>
               <span className="truncate">{t.print.saved(lastSaved)}</span>
             </div>
-            <div className="mt-4 text-[13px] font-semibold tracking-[0.02em]">{t.print.whenDrawing}</div>
+            <div className="mt-4 text-[13px] font-semibold tracking-[0.02em]">{savedKind === 'png' ? t.print.whenDigital : t.print.whenDrawing}</div>
             <ul className="mt-2 space-y-1.5 text-sm leading-[22px] text-ink-2">
-              {t.print.drawNotes.map((note) => (
+              {(savedKind === 'png' ? t.print.digitalNotes : t.print.drawNotes).map((note) => (
                 <li key={note} className="flex gap-2">
                   <span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
                   <span>{note}</span>

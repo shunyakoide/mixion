@@ -37,8 +37,10 @@ export const en = {
     saving: 'Saving…',
     savePdfAgain: 'Save the PDF again',
     savePdf: 'Save the print PDF',
+    savePng: 'Drawing digitally? Save the pages as PNG instead',
     saved: (name: string) => `Saved: ${name}`,
     whenDrawing: 'When printing and drawing',
+    whenDigital: 'When drawing digitally',
     goScan: 'Scan the drawn pages',
     loadingFrames: 'Loading frames…',
     preview: 'Preview',
@@ -51,6 +53,12 @@ export const en = {
       'Do not cut the pages apart. Scan one page at a time.',
       'Use a flatbed scanner for thick collages. A phone photo also works: the perspective is corrected.',
       'Scan at 300 dpi, in colour, as JPEG or PNG, one file per page.',
+    ],
+    digitalNotes: [
+      'Unzip it and open each PNG in Procreate, Clip Studio, Photoshop or any app that can export an image. Draw on a layer above it.',
+      'Leave the four corner markers and the QR code visible. If they get covered, you can still set the corners by hand.',
+      'Export every page as a flattened PNG or JPEG at the same size, one file per page, and import those in Scan.',
+      'Paper and digital pages can be mixed, as long as each page is imported once.',
     ],
   },
   videoDrop: {
@@ -74,6 +82,7 @@ export const en = {
     cannotDecode: (codec: string | null) => `This browser cannot decode ${codec ?? 'this'} video`,
     extractingFrames: 'Extracting frames',
     buildingPdf: 'Building the PDF',
+    renderingPages: 'Rendering the pages',
   },
   demo: {
     sampleLoadFailed: (status: number) => `Could not load the sample video (${status})`,

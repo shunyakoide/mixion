@@ -17,6 +17,7 @@ It runs entirely in your browser. There is no server, no account and nothing to 
 
 ## Try it without a printer
 
+- **Draw digitally.** On the Print step, *Save the pages as PNG* downloads a zip with one 300 dpi image per page instead of the PDF. Open them in Procreate, Clip Studio or Photoshop, draw on a layer above, export each page as a flattened PNG or JPEG at the same size, and import those in Scan. The markers and the QR code are read from the image just as from a scan.
 - **Try the sample** on the first screen loads a bundled 5-second clip, renders its print pages, imports them as if they were scans, and takes you to Animate.
 - **Preview the flow before printing**, a small link on the Scan step, does the same with your own video. Use it to settle on the frame rate and grid before printing.
 - Open the app with `?sample` to start with the sample clip loaded.

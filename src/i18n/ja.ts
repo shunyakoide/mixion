@@ -38,8 +38,10 @@ export const ja: Dict = {
     saving: '保存中…',
     savePdfAgain: 'もう一度 PDF を保存する',
     savePdf: '印刷用 PDF を保存する',
+    savePng: 'iPad などで描くなら、ページを PNG で保存',
     saved: (name) => `保存しました: ${name}`,
     whenDrawing: '印刷して描くときに',
+    whenDigital: 'デジタルで描くときに',
     goScan: '描いたページをスキャンして取り込む',
     loadingFrames: 'フレームを読み込み中…',
     preview: 'プレビュー',
@@ -52,6 +54,12 @@ export const ja: Dict = {
       'ページは切り離さない。1 ページずつスキャンする',
       '厚みのあるコラージュはフラットベッドで。スマホ撮影でも位置は補正できる',
       'スキャンは 300dpi、カラー、JPEG か PNG、1 ページ 1 ファイル',
+    ],
+    digitalNotes: [
+      'ZIP を解凍し、各 PNG を Procreate、Clip Studio、Photoshop など画像を書き出せるアプリで開いて、上のレイヤーに描く',
+      '四隅のマーカーと QR は隠さない。隠れてしまっても四隅を手で指定すれば復元できる',
+      '各ページを同じサイズのまま PNG か JPEG に統合して書き出す（1 ページ 1 ファイル）。それを Scan で取り込む',
+      '紙とデジタルのページが混ざっていてもよい。各ページを 1 回ずつ取り込む',
     ],
   },
   videoDrop: {
@@ -75,6 +83,7 @@ export const ja: Dict = {
     cannotDecode: (codec) => `このブラウザでは ${codec ?? '不明な'} コーデックの動画をデコードできません`,
     extractingFrames: 'フレームを抽出中',
     buildingPdf: 'PDF を作成中',
+    renderingPages: 'ページを描画中',
   },
   demo: {
     sampleLoadFailed: (status) => `サンプル動画を読み込めませんでした (${status})`,

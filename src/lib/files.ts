@@ -1,4 +1,5 @@
 /** Saving files from the browser: File System Access API when available, download otherwise. */
+import { buildZip } from './zip'
 
 interface SaveFilePickerOptions {
   suggestedName?: string
@@ -51,6 +52,17 @@ export async function saveBlob(blob: Blob, filename: string, mime: string): Prom
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
   return 'downloaded'
+}
+
+export interface NamedBlob {
+  name: string
+  blob: Blob
+}
+
+/** Pack `files` into one uncompressed zip and save it as `zipName`. */
+export async function saveAsZip(files: NamedBlob[], zipName: string): Promise<SaveResult> {
+  const entries = await Promise.all(files.map(async (f) => ({ name: f.name, data: new Uint8Array(await f.blob.arrayBuffer()) })))
+  return saveBlob(new Blob([buildZip(entries)], { type: 'application/zip' }), zipName, 'application/zip')
 }
 
 export function isVideoFile(file: File): boolean {
