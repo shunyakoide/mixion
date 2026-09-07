@@ -62,6 +62,6 @@ async function simulateScan(page: number, options: { dpi?: number; rotateDeg?: n
   return { file, markerCentersPx: rendered.markerCentersPx, width: rendered.width, height: rendered.height }
 }
 
-const dev = { renderPageToBlob, imageDiff, simulateScan, encodeMp4, encodeGif, appStore: useAppStore, scanStore: useScanStore, decodeMarker, detectMarkersBlind, findMarkerNear, bitmapToRgba, loadBitmap, readPageQr, layoutFromSettings }
+const dev = { renderPageToBlob, imageDiff, simulateScan, deriveSettings, encodeMp4, encodeGif, appStore: useAppStore, scanStore: useScanStore, decodeMarker, detectMarkersBlind, findMarkerNear, bitmapToRgba, loadBitmap, readPageQr, layoutFromSettings }
 ;(window as unknown as { __dev?: typeof dev }).__dev = dev
 export type DevTools = typeof dev
