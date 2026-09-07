@@ -77,8 +77,10 @@ export async function runScanWithoutPaper(): Promise<void> {
   }
 }
 
-/** Back to the empty start page, dropping the sample and everything made from it. */
-export function leaveSample(): void {
+/** Back to the empty start page, dropping the video, the scans and everything made from them. */
+export function startOver(): void {
+  // Drop ?sample, otherwise the start page would load the sample clip again on mount.
+  if (location.search) history.replaceState(null, '', location.pathname + location.hash)
   useScanStore.getState().reset()
   useAppStore.getState().clearVideo()
   useAppStore.getState().setStep('print')

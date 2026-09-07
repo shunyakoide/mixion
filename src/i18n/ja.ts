@@ -14,6 +14,8 @@ export const ja: Dict = {
     steps: '手順',
     samplePill: 'サンプル中 · 最初に戻る',
     samplePillShort: '最初に戻る',
+    home: '最初の画面に戻る',
+    startOverConfirm: '最初の画面に戻りますか？ 読み込んだ動画と取り込んだスキャンは破棄されます。保存はされていません。',
     switchLanguage: '言語を切り替える',
   },
   steps: {
@@ -39,6 +41,7 @@ export const ja: Dict = {
     savePdfAgain: 'もう一度 PDF を保存する',
     savePdf: '印刷用 PDF を保存する',
     savePng: 'iPad などで描くなら、ページを PNG で保存',
+    goScanEarly: '印刷して描き終えたなら Scan へ',
     saved: (name) => `保存しました: ${name}`,
     whenDrawing: '印刷して描くときに',
     whenDigital: 'デジタルで描くときに',

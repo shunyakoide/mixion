@@ -95,6 +95,15 @@ export function PrintStep() {
           >
             {t.print.savePng}
           </button>
+          {!(status === 'done' && lastSaved) && (
+            <button
+              type="button"
+              className="self-center py-1 text-center text-[13px] leading-[18px] text-ink-2 underline underline-offset-2 hover:text-ink"
+              onClick={() => setStep('scan')}
+            >
+              {t.print.goScanEarly}
+            </button>
+          )}
         </div>
 
         {status === 'done' && lastSaved && (

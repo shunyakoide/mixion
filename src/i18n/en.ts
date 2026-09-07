@@ -13,6 +13,8 @@ export const en = {
     steps: 'Steps',
     samplePill: 'Sample · Start over',
     samplePillShort: 'Start over',
+    home: 'Back to the start',
+    startOverConfirm: 'Go back to the start? The loaded video and imported scans will be dropped. Nothing is saved.',
     switchLanguage: 'Switch language',
   },
   steps: {
@@ -38,6 +40,7 @@ export const en = {
     savePdfAgain: 'Save the PDF again',
     savePdf: 'Save the print PDF',
     savePng: 'Drawing digitally? Save the pages as PNG instead',
+    goScanEarly: 'Already printed and drawn? Go to Scan',
     saved: (name: string) => `Saved: ${name}`,
     whenDrawing: 'When printing and drawing',
     whenDigital: 'When drawing digitally',
