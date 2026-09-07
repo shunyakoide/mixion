@@ -9,7 +9,6 @@ export const ja: Dict = {
     close: '閉じる',
     withAudio: '音声あり',
     noAudio: '音声なし',
-    seconds: (s) => `${s} 秒`,
   },
   header: {
     steps: '手順',
@@ -67,7 +66,6 @@ export const ja: Dict = {
   },
   videoDrop: {
     dropToReplace: 'ここに離すと差し替えます',
-    chooseAnother: '別の動画を選ぶ',
     dropAnywhere: 'ページのどこにドロップしても差し替わります',
     dropToLoad: 'ここに離すと読み込みます',
     dropVideo: '動画をここにドロップ',
@@ -122,7 +120,6 @@ export const ja: Dict = {
       applied: '切り出し済み',
       error: 'エラー',
     },
-    importButton: 'スキャンを取り込む',
     addScans: 'スキャンを追加',
     importing: '読み込み中…',
     remove: '削除',

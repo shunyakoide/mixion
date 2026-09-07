@@ -86,7 +86,7 @@ export function composeHomography(outer: Homography, inner: Homography): Homogra
 }
 
 /** Marker centres in page mm, in corner order 0..3. */
-export function markerCentersMm(layout: Layout): Point[] {
+function markerCentersMm(layout: Layout): Point[] {
   return layout.markers.map((m) => m.center)
 }
 

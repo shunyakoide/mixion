@@ -9,7 +9,6 @@
 import { z } from 'zod'
 import { frameCount, frameRangeOnPage, framesPerPage, pageCount } from './frameMap'
 import {
-  LAYOUT_VERSION,
   computeLayout,
   formatGrid,
   parseGrid,
@@ -23,7 +22,7 @@ export const QR_VERSION = 1
 
 /** Unambiguous alphabet for project ids (no 0/O, 1/I/l). */
 const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-export const PROJECT_ID_LENGTH = 4
+const PROJECT_ID_LENGTH = 4
 
 export function generateProjectId(length = PROJECT_ID_LENGTH): string {
   const bytes = new Uint8Array(length)
@@ -82,7 +81,7 @@ export function layoutFromSettings(settings: ProjectSettings): Layout {
 }
 
 /** Compact JSON printed inside the QR code on each page. Keys are short on purpose. */
-export const qrPayloadSchema = z
+const qrPayloadSchema = z
   .object({
     /** layout/QR schema version */
     v: z.literal(QR_VERSION),
@@ -184,5 +183,3 @@ export function sameProject(a: QrPayload, b: QrPayload): boolean {
     a.d[1] === b.d[1]
   )
 }
-
-export { LAYOUT_VERSION }

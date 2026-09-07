@@ -22,13 +22,6 @@ export function bitmapToRgba(bitmap: ImageBitmap, maxWidth?: number): RgbaImage 
   return { width: w, height: h, data: img.data }
 }
 
-export async function rgbaToBlob(img: RgbaImage, type = 'image/jpeg', quality = 0.92): Promise<Blob> {
-  const canvas = new OffscreenCanvas(img.width, img.height)
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('canvas context unavailable')
-  ctx.putImageData(new ImageData(img.data, img.width, img.height), 0, 0)
-  return canvas.convertToBlob({ type, quality })
-}
 
 export function isImageFile(file: File): boolean {
   return file.type.startsWith('image/') || /\.(jpe?g|png|webp|tiff?|bmp)$/i.test(file.name)

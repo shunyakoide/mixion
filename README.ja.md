@@ -43,7 +43,6 @@ npm run dev
 | `npm run build` | 型チェック + ビルド |
 | `npm test` | vitest（`tests/`） |
 | `npm run lint` | oxlint |
-| `npx tsx scripts/dummy-pdf.ts` | プレースホルダ画像の印刷用 PDF を `out/` に出す（印刷・スキャンの実機テスト用） |
 
 ## 公開（GitHub Pages）
 
@@ -57,13 +56,12 @@ BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
 
 動画・プリンタ・スキャナがなくても一通り動かせます。
 
-- 最初の画面の「サンプルで試す」: 同梱の 5 秒のサンプル動画（`public/sample.mp4`、カラーバーとフレームカウンター。`fixtures/sample-5s.mp4` と同じもの）を読み込み、印刷ページを画像にしてそのままスキャンとして取り込み、Animate まで進みます
+- 最初の画面の「サンプルで試す」: 同梱の 5 秒のサンプル動画（`public/sample.mp4`、カラーバーとフレームカウンター）を読み込み、印刷ページを画像にしてそのままスキャンとして取り込み、Animate まで進みます
 - Scan の「印刷前に流れを確認する」（小さなリンク）: 動画を読み込んだ後、紙に出さずに Print で作ったページを取り込み、fps や配置を決めてから印刷できます
 - `?sample` を付けて開くと、サンプル動画を読み込んだ状態で始まります
 
 ## 開発用フック（`npm run dev` のみ）
 
-- `http://localhost:5173/?spike=video` — WebCodecs の動作確認ページ（本番ビルドには含まれません）
 - ブラウザコンソールの `window.__dev` — `simulateScan(page, {dpi, rotateDeg})` で印刷ページを疑似スキャン画像にする、`imageDiff`、`encodeMp4`、`encodeGif`、各ストア
 - `window.__timings` — 直前のスキャン取り込みの段階ごとの所要時間
 

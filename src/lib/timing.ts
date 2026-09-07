@@ -2,7 +2,7 @@
  * Dev-only stopwatch. Laps are collected on `window.__timings` so the import
  * pipeline can be profiled from the console; a no-op in production builds.
  */
-export type Lap = [label: string, ms: number]
+type Lap = [label: string, ms: number]
 
 const enabled = import.meta.env.DEV && typeof window !== 'undefined'
 

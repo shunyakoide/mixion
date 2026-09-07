@@ -46,11 +46,9 @@ npm run dev
 | `npm run build` | type check + production build |
 | `npm test` | vitest (`tests/`) |
 | `npm run lint` | oxlint |
-| `npx tsx scripts/dummy-pdf.ts` | writes a print PDF with placeholder images to `out/`, for testing real printers and scanners |
 
 Dev-only hooks (`npm run dev`):
 
-- `http://localhost:5173/?spike=video`: a WebCodecs check page, excluded from production builds
 - `window.__dev` in the browser console: `simulateScan(page, {dpi, rotateDeg})` renders a print page as a fake scan; also `imageDiff`, `encodeMp4`, `encodeGif`, the stores and the marker/QR detectors
 - `window.__timings`: per-stage timings of the last scan import
 

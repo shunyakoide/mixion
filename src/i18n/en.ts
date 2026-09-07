@@ -8,7 +8,6 @@ export const en = {
     close: 'Close',
     withAudio: 'with audio',
     noAudio: 'no audio',
-    seconds: (s: string) => `${s} s`,
   },
   header: {
     steps: 'Steps',
@@ -66,7 +65,6 @@ export const en = {
   },
   videoDrop: {
     dropToReplace: 'Drop to replace',
-    chooseAnother: 'Choose another video',
     dropAnywhere: 'Drop a video anywhere on the page to replace it',
     dropToLoad: 'Drop to load',
     dropVideo: 'Drop a video here',
@@ -121,7 +119,6 @@ export const en = {
       applied: 'Cut',
       error: 'Error',
     },
-    importButton: 'Import scans',
     addScans: 'Add scans',
     importing: 'Loading…',
     remove: 'Remove',

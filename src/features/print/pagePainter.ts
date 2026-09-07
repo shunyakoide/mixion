@@ -16,7 +16,7 @@ export interface Color {
   b: number
 }
 
-export const COLORS = {
+const COLORS = {
   black: { r: 0, g: 0, b: 0 },
   white: { r: 1, g: 1, b: 1 },
   ink: { r: 0.2, g: 0.2, b: 0.2 },
@@ -34,7 +34,7 @@ export interface Painter<TImage> {
   image(image: TImage, rect: Rect): void
 }
 
-export interface PageFrame<TImage> {
+interface PageFrame<TImage> {
   cell: CellLayout
   frame: number
   label: string
@@ -51,7 +51,7 @@ export interface PageSpec<TImage> {
   frames: PageFrame<TImage>[]
 }
 
-export const PAGE_STYLE = {
+const PAGE_STYLE = {
   headerTextSize: 4,
   labelTextSize: 3.5,
   tickLength: 2,

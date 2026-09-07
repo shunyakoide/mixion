@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react'
 import { leaveSample } from './app/demo'
 import { StepBar } from './app/StepBar'
 import { Steps } from './app/Steps'
@@ -11,15 +10,11 @@ import { PrintStep } from './features/print/PrintStep'
 import { ScanStep } from './features/scan/ScanStep'
 import { Logo } from './components/ui/Logo'
 
-// Dev-only: the static import would pull the spike page and its fixture video into the production bundle.
-const VideoSpike = import.meta.env.DEV ? lazy(() => import('./features/spike/VideoSpike').then((m) => ({ default: m.VideoSpike }))) : null
-
 export default function App() {
   const step = useAppStore((s) => s.step)
   const sample = useAppStore((s) => s.sample)
   const t = useT()
   useUnloadGuard()
-  const spike = import.meta.env.DEV && new URLSearchParams(location.search).get('spike')
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="sticky top-0 z-10 border-b border-rule bg-white/92 backdrop-blur-[12px]">
@@ -46,11 +41,7 @@ export default function App() {
         </div>
       </header>
       <main className="mx-auto max-w-[1280px] px-4 pb-[140px] pt-7 sm:px-6 sm:pt-9">
-        {spike === 'video' && VideoSpike ? (
-          <Suspense fallback={null}>
-            <VideoSpike />
-          </Suspense>
-        ) : step === 'print' ? <PrintStep /> : step === 'scan' ? <ScanStep /> : <AnimateStep />}
+        {step === 'print' ? <PrintStep /> : step === 'scan' ? <ScanStep /> : <AnimateStep />}
       </main>
       <StepBar />
     </div>

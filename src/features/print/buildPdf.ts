@@ -5,7 +5,7 @@ import { layoutFromSettings, type ProjectSettings } from '../../domain/settings'
 import { buildPageSpec, paintPage } from './pagePainter'
 import { PdfPainter } from './pdfPainter'
 
-export interface FrameImageBytes {
+interface FrameImageBytes {
   kind: 'jpeg' | 'png'
   bytes: Uint8Array
 }

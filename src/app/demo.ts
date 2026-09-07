@@ -31,7 +31,7 @@ export async function loadSampleVideo(): Promise<void> {
 }
 
 /** Render every printed page to an image and import them as scans. Needs a loaded video. */
-export async function importPrintedPages(onProgress?: (label: string) => void): Promise<void> {
+async function importPrintedPages(onProgress?: (label: string) => void): Promise<void> {
   const app = useAppStore.getState()
   const settings = deriveSettings(app)
   if (!settings) throw new Error(t().demo.loadVideoFirst)

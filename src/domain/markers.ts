@@ -13,10 +13,9 @@
  */
 import type { Corner } from './layout'
 
-export const MARKER_DICTIONARY = 'ARUCO_MIP_36h12'
-export const MARKER_DATA_BITS = 36
+const MARKER_DATA_BITS = 36
 /** Data modules per side. */
-export const MARKER_DATA_SIZE = 6
+const MARKER_DATA_SIZE = 6
 /** Modules per side including the black border. */
 export const MARKER_MODULES = MARKER_DATA_SIZE + 2
 

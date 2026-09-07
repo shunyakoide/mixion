@@ -13,7 +13,7 @@ import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
 import { frameTimestamp } from '../domain/frameMap'
 import { stopwatch } from '../lib/timing'
 
-export type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
+type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
 
 export interface ScanItem {
   id: string
@@ -43,14 +43,14 @@ export interface ScanItem {
   rotation: number
 }
 
-export type FrameSource = 'scan' | 'original' | 'hold' | 'blank'
+type FrameSource = 'scan' | 'original' | 'hold' | 'blank'
 
 export interface ResolvedFrames {
   frames: Blob[]
   sources: FrameSource[]
 }
 
-export interface OutputFrame {
+interface OutputFrame {
   blob: Blob
   source: 'scan' | 'original'
   scanId?: string

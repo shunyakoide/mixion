@@ -119,7 +119,7 @@ export const LAYOUT_CONSTANTS = {
   labelGap: 1,
 } as const
 
-export const PAPER_SIZES: Record<Paper, Size> = {
+const PAPER_SIZES: Record<Paper, Size> = {
   /** Portrait dimensions. */
   A4: { w: 210, h: 297 },
 }
@@ -177,7 +177,7 @@ export function parseGrid(text: string): Grid | null {
   return { cols, rows }
 }
 
-export function pageSizeFor(paper: Paper, orientation: Orientation): Size {
+function pageSizeFor(paper: Paper, orientation: Orientation): Size {
   const p = PAPER_SIZES[paper]
   return orientation === 'portrait' ? { w: p.w, h: p.h } : { w: p.h, h: p.w }
 }
@@ -197,7 +197,7 @@ export function insetRect(r: Rect, inset: number): Rect {
   return { x: r.x + inset, y: r.y + inset, w: r.w - 2 * inset, h: r.h - 2 * inset }
 }
 
-export function rectCenter(r: Rect): Point {
+function rectCenter(r: Rect): Point {
   return { x: r.x + r.w / 2, y: r.y + r.h / 2 }
 }
 
@@ -336,9 +336,6 @@ export function mmToPx(mm: number, dpi: number): number {
   return (mm / 25.4) * dpi
 }
 
-export function pxToMm(px: number, dpi: number): number {
-  return (px / dpi) * 25.4
-}
 
 /** Convert millimetres to PDF points (1/72 inch). */
 export function mmToPt(mm: number): number {
