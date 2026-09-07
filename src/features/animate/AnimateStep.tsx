@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '../../app/store'
 import { useScanStore } from '../../app/scanStore'
-import { Button } from '../../components/ui/Button'
 import { FrameStrip } from './FrameStrip'
 import { ExportPanel } from './ExportPanel'
 import { OriginalDrop } from './OriginalDrop'
@@ -19,17 +18,12 @@ export function AnimateStep() {
   const onFrame = useCallback((i: number) => setCurrent(i), [])
   const t = useT()
 
-  if (!settings || applied === 0) {
-    return (
-      <div className="mx-auto max-w-xl pt-8 text-center sm:pt-16">
-        <h1 className="text-[32px] font-semibold leading-9 tracking-[-0.03em]">{t.animate.emptyTitle}</h1>
-        <p className="mx-auto mt-3 max-w-[48ch] text-pretty text-sm leading-[22px] text-ink-2">{t.animate.emptyBody}</p>
-        <Button size="lg" className="mt-8 min-w-48" onClick={() => setStep('scan')}>
-          {t.animate.goScan}
-        </Button>
-      </div>
-    )
-  }
+  // The stepper only opens Animate with cut frames; if they vanish underneath us, fall back to Scan.
+  const ready = settings !== null && applied > 0
+  useEffect(() => {
+    if (!ready) setStep('scan')
+  }, [ready, setStep])
+  if (!ready || !settings) return null
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">

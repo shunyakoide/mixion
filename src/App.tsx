@@ -1,5 +1,4 @@
 import { leaveSample } from './app/demo'
-import { StepBar } from './app/StepBar'
 import { Steps } from './app/Steps'
 import { useAppStore } from './app/store'
 import { useUnloadGuard } from './app/useUnloadGuard'
@@ -40,10 +39,9 @@ export default function App() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[1280px] px-4 pb-[140px] pt-7 sm:px-6 sm:pt-9">
+      <main className="mx-auto max-w-[1280px] px-4 pb-16 pt-7 sm:px-6 sm:pt-9">
         {step === 'print' ? <PrintStep /> : step === 'scan' ? <ScanStep /> : <AnimateStep />}
       </main>
-      <StepBar />
     </div>
   )
 }

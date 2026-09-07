@@ -29,12 +29,14 @@ export function ScanStep() {
         </div>
         <SettingsBar />
       </div>
-      {allDone && settings && (
+      {settings && outputFrames.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-full bg-surface py-2 pl-5 pr-2 text-sm" aria-live="polite">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white">
-            <Check size={12} strokeWidth={3} />
-          </span>
-          <span className="font-medium">{t.scan.allDone(settings.frameCount)}</span>
+          {allDone && (
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-white">
+              <Check size={12} strokeWidth={3} />
+            </span>
+          )}
+          <span className="font-medium">{allDone ? t.scan.allDone(settings.frameCount) : t.scan.partialDone(outputFrames.size, settings.frameCount)}</span>
           <Button className="ml-auto" onClick={() => setStep('animate')}>
             {t.scan.goAnimate} <ArrowRight size={16} />
           </Button>

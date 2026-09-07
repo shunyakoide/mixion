@@ -17,10 +17,16 @@ export function Steps() {
             <button
               type="button"
               onClick={() => setStep(s.id)}
+              disabled={!s.enabled}
+              title={s.lockedHint}
               aria-current={active ? 'step' : undefined}
               className={[
                 'flex items-center gap-2.5 whitespace-nowrap px-2.5 text-[15px] transition-colors sm:px-3.5',
-                active ? 'font-semibold text-ink shadow-[inset_0_-2px_0_#0e0e0e]' : 'font-medium text-ink-3 hover:text-ink',
+                active
+                  ? 'font-semibold text-ink shadow-[inset_0_-2px_0_#0e0e0e]'
+                  : s.enabled
+                    ? 'font-medium text-ink-3 hover:text-ink'
+                    : 'cursor-not-allowed font-medium text-ink-3/50',
               ].join(' ')}
             >
               <span
