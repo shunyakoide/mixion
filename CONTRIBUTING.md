@@ -32,7 +32,48 @@ A few conventions:
 - Nothing may be uploaded or stored. The only browser storage is the locale preference.
 - The printed page layout is versioned (`LAYOUT_VERSION` in `src/domain/layout.ts`, `QR_VERSION` in `src/domain/settings.ts`). A change that moves markers, cells or the QR, or alters the QR payload, needs a version bump so old printouts are recognised as such.
 
-You can exercise the whole pipeline without a printer: use **Try the sample** on the first screen, or in the dev console call `window.__dev.simulateScan(page, { dpi, rotateDeg })` to make a fake scan from the current print settings.
+## How the code is organised
+
+```
+src/
+  domain/      page layout (mm), frame mapping, homography, markers, QR settings. Pure TS, covered by vitest
+  features/    the print / scan / animate screens and their logic
+  lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
+  workers/     the warp Web Worker
+  app/         zustand stores, header stepper, dev helpers
+  components/  Button / Chip / icons / logo
+  i18n/        en (source) and ja dictionaries, locale switch
+```
+
+| Area | Built with | Used for |
+|---|---|---|
+| Build | Vite 8, TypeScript 6, Node 24 | dev server, type check, production build; `BASE_PATH` selects the deploy sub-path |
+| UI | React 19, Tailwind CSS v4 | the screens; design tokens live in `@theme` in `src/index.css` |
+| Type | Instrument Sans, Noto Sans JP, JetBrains Mono, Space Grotesk (Google Fonts) | text, Japanese, numbers/IDs/file names, the wordmark |
+| State | zustand | two stores (Print, Scan); nothing persisted except the locale |
+| Video | WebCodecs via mediabunny | in-browser decoding (frame extraction) and MP4 encoding (H.264 + original audio) |
+| GIF | gifenc | GIF export |
+| PDF | pdf-lib | the A4 print PDF; shares its painting logic with the canvas preview |
+| Markers / QR | own ArUco (MIP_36h12) detector and decoder, jsqr, qrcode | finding the corners, recovering orientation and page number, embedding and reading the page settings |
+| Geometry | own homography | straightening scans and cutting out frames; heavy work runs in Web Workers |
+| Validation | zod | the settings embedded in the QR code |
+| Quality | vitest, oxlint, GitHub Actions (lint → test → build) | unit tests for the domain layer (layout, markers, homography, i18n parity) |
+| Saving | File System Access API (`showSaveFilePicker`), download fallback | save dialogs for PDF / MP4 / GIF |
+
+## Working without a printer
+
+Use **Try the sample** on the first screen, or **Preview the flow before printing** on the Scan step with your own video. With `npm run dev` there are also two hooks in the browser console:
+
+- `window.__dev`: `simulateScan(page, { dpi, rotateDeg })` renders a print page as a fake scan from the current settings; also `imageDiff`, `encodeMp4`, `encodeGif`, `deriveSettings`, the stores and the marker/QR detectors.
+- `window.__timings`: per-stage timings of the last scan import.
+
+## Deployment
+
+`.github/workflows/deploy.yml` builds with `BASE_PATH=/mixion/` on every push to `main` and publishes to GitHub Pages (Settings → Pages → Source must be "GitHub Actions"). To reproduce that build locally:
+
+```bash
+BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
+```
 
 ## Pull requests
 
