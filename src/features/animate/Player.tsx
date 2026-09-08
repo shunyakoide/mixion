@@ -70,8 +70,9 @@ export function Player({ settings, resolved, seek, onFrame }: PlayerProps) {
         <span className="whitespace-nowrap font-mono tabular-nums">
           {frameLabel(index + 1, settings.frameCount)} / {urls.length}
         </span>
-        <span className="h-4 w-px bg-rule-3" aria-hidden />
-        <span className="whitespace-nowrap font-mono">{settings.fps} fps</span>
+        {/* The fps is already in the summary next door; on a phone the two pills need the room. */}
+        <span className="hidden h-4 w-px bg-rule-3 sm:block" aria-hidden />
+        <span className="hidden whitespace-nowrap font-mono sm:inline">{settings.fps} fps</span>
       </div>
       <div className={`${pill} absolute bottom-3 right-3 px-3.5 font-mono text-xs sm:bottom-4 sm:right-4`}>{t.animate.source[resolved.sources[index]]}</div>
     </div>
