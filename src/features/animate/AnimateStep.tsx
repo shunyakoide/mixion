@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '../../app/store'
 import { useScanStore } from '../../app/scanStore'
 import { useStartOver } from '../../app/useStartOver'
-import { Button } from '../../components/ui/Button'
 import { FrameStrip } from './FrameStrip'
 import { ExportPanel } from './ExportPanel'
 import { OriginalDrop } from './OriginalDrop'
@@ -43,9 +42,9 @@ export function AnimateStep() {
         </div>
         <OriginalDrop />
         <ExportPanel settings={settings} resolved={resolved} />
-        <Button variant="secondary" className="self-start" onClick={goHome}>
+        <button type="button" className="-mt-3 self-center py-1 text-center text-[13px] leading-[18px] text-ink-2 underline underline-offset-2 hover:text-ink" onClick={goHome}>
           {t.animate.backToStart}
-        </Button>
+        </button>
       </div>
     </div>
   )
