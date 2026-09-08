@@ -14,7 +14,7 @@ export function SettingsBar() {
 
   if (settings && !open) {
     return (
-      <div className="flex h-10 max-w-full items-center gap-3.5 overflow-x-auto whitespace-nowrap rounded-full bg-surface pl-4 pr-2 font-mono text-xs text-[#3c3c3a]">
+      <div className="flex max-w-full flex-wrap items-center gap-x-3.5 gap-y-1.5 whitespace-nowrap rounded-2xl bg-surface py-1.5 pl-4 pr-2 font-mono text-xs text-[#3c3c3a] sm:h-10 sm:flex-nowrap sm:overflow-x-auto sm:rounded-full sm:py-0">
         <span className="font-medium text-ink">{settings.projectId}</span>
         <span>{settings.fps}fps</span>
         <span>{settings.grid.cols}×{settings.grid.rows}</span>
