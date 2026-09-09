@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { firstUnusedPage, useScanStore, type ScanItem } from '../src/app/scanStore'
+import { useScanStore, type ScanItem } from '../src/app/scanStore'
+import { firstUnusedPage } from '../src/app/mergePrepared'
 import { GRID_PRESETS } from '../src/domain/layout'
 import { createProjectSettings } from '../src/domain/settings'
 
