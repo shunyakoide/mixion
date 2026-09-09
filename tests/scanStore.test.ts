@@ -13,7 +13,6 @@ const settings = createProjectSettings({
 })
 
 const blob = (label: string) => new Blob([label], { type: 'text/plain' })
-const text = (b: Blob) => b.text()
 
 function scan(id: string, over: Partial<ScanItem> = {}): ScanItem {
   return {
@@ -45,31 +44,6 @@ const detected = { 0: { x: 100, y: 100 }, 1: { x: 2300, y: 100 }, 2: { x: 2300, 
 
 beforeEach(() => {
   useScanStore.getState().reset()
-})
-
-describe('resolveFrames', () => {
-  it('orders frames by number, not by the order they were cut', async () => {
-    const outputFrames = new Map()
-    for (const f of [5, 1, 8, 3]) outputFrames.set(f, { blob: blob(`f${f}`), source: 'scan' as const, scanId: `s${f}` })
-    useScanStore.setState({ settings, outputFrames })
-    const r = await useScanStore.getState().resolveFrames()
-    expect(r.frames).toHaveLength(8)
-    expect(await text(r.frames[0])).toBe('f1')
-    expect(await text(r.frames[2])).toBe('f3')
-    expect(await text(r.frames[4])).toBe('f5')
-    expect(await text(r.frames[7])).toBe('f8')
-  })
-  it('holds the previous frame where a page is missing and there is no original video', async () => {
-    const outputFrames = new Map()
-    for (const f of [1, 2, 3, 4]) outputFrames.set(f, { blob: blob(`f${f}`), source: 'scan' as const, scanId: 's1' })
-    useScanStore.setState({ settings, outputFrames })
-    const r = await useScanStore.getState().resolveFrames()
-    expect(r.sources).toEqual(['scan', 'scan', 'scan', 'scan', 'hold', 'hold', 'hold', 'hold'])
-    expect(await text(r.frames[7])).toBe('f4')
-  })
-  it('refuses without settings', async () => {
-    await expect(useScanStore.getState().resolveFrames()).rejects.toThrow()
-  })
 })
 
 describe('corners', () => {

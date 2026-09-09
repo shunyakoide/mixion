@@ -1,11 +1,11 @@
 /**
  * The scan store's async actions against changes that land while they run:
- * a page removed during its cut, the list cleared during an import, a second
- * original video chosen before the first one was probed.
+ * a page removed during its cut, the list cleared during an import, and a
+ * page from another project through import and re-detect.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const pending: { bitmaps: (() => void)[]; warps: ((blobs: Blob[]) => void)[]; probes: (() => void)[] } = { bitmaps: [], warps: [], probes: [] }
+const pending: { bitmaps: (() => void)[]; warps: ((blobs: Blob[]) => void)[] } = { bitmaps: [], warps: [] }
 const fakeBitmap = { width: 2480, height: 3508, close: () => undefined }
 /** What every QR read returns; tests swap it for a real page. */
 let qrRead: QrRead = { ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }
@@ -29,10 +29,6 @@ vi.mock('../src/lib/qrPage', async (importOriginal) => ({
 vi.mock('../src/lib/files', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/lib/files')>()),
   hashBlob: (blob: Blob) => Promise.resolve(`hash-${blob.size}`),
-}))
-vi.mock('../src/lib/video/decode', () => ({
-  probeVideo: () => new Promise<{ width: number; height: number; duration: number }>((resolve) => pending.probes.push(() => resolve({ width: 640, height: 360, duration: 1 }))),
-  extractFrames: () => Promise.resolve([]),
 }))
 
 import { useScanStore, type ScanItem } from '../src/app/scanStore'
@@ -82,7 +78,6 @@ const file = (name: string, size = 1) => new File(['x'.repeat(size)], name, { ty
 beforeEach(() => {
   pending.bitmaps = []
   pending.warps = []
-  pending.probes = []
   qrRead = { ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }
   useScanStore.getState().reset()
   globalThis.URL.createObjectURL ??= () => 'blob:mock'
@@ -154,32 +149,6 @@ describe('importScans', () => {
     expect(s.importing).toBe(false)
     // The abandoned batch did not go on decoding pages that are no longer listed.
     expect(pending.bitmaps).toHaveLength(0)
-  })
-})
-
-describe('loadOriginal', () => {
-  it('keeps the video chosen last, even when an earlier probe finishes later', async () => {
-    const a = file('a.mp4')
-    const b = file('b.mp4')
-    const first = useScanStore.getState().loadOriginal(a)
-    const second = useScanStore.getState().loadOriginal(b)
-    await until('probes', 2)
-    pending.probes[1]()
-    await second
-    expect(useScanStore.getState().original?.file).toBe(b)
-    pending.probes[0]()
-    await first
-    expect(useScanStore.getState().original?.file).toBe(b)
-    expect(useScanStore.getState().originalLoading).toBe(false)
-  })
-  it('does not bring a video back after it was cleared', async () => {
-    const a = file('a.mp4')
-    const done = useScanStore.getState().loadOriginal(a)
-    await until('probes')
-    useScanStore.getState().clearOriginal()
-    pending.probes[0]()
-    await done
-    expect(useScanStore.getState().original).toBeNull()
   })
 })
 

@@ -9,7 +9,7 @@ import { SettingsPanel } from './SettingsPanel'
 import { VideoDrop } from './VideoDrop'
 
 export function PrintStep() {
-  const { info, fps, gridKey, projectId, status, progress, pdfError, lastSaved, savedKind, createPdf, createPngPages, setStep, file } = useAppStore()
+  const { info, fps, gridKey, projectId, status, progress, pdfError, lastSaved, savedKind, createPdf, createPngPages, cancelPrint, setStep, file } = useAppStore()
   const demo = useDemoStore()
   const t = useT()
   const settings = deriveSettings({ info, fps, gridKey, projectId })
@@ -80,8 +80,13 @@ export function PrintStep() {
             )}
           </Button>
           {busy && progress ? (
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-rule-3" role="progressbar" aria-valuenow={progress.done} aria-valuemax={progress.total}>
-              <div className="h-full rounded-full bg-ink transition-[width]" style={{ width: `${(100 * progress.done) / Math.max(1, progress.total)}%` }} />
+            <div className="flex items-center gap-3">
+              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-rule-3" role="progressbar" aria-valuenow={progress.done} aria-valuemax={progress.total}>
+                <div className="h-full rounded-full bg-ink transition-[width]" style={{ width: `${(100 * progress.done) / Math.max(1, progress.total)}%` }} />
+              </div>
+              <button type="button" onClick={cancelPrint} className="shrink-0 text-[13px] leading-[18px] text-ink-2 underline underline-offset-2 hover:text-ink">
+                {t.common.cancel}
+              </button>
             </div>
           ) : (
             <p className="text-center text-xs leading-[18px] text-ink-3">{t.print.afterSave}</p>

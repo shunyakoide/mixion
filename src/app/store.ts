@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import { describeError, t } from '../i18n'
-import { frameTimestamp, framesOnPage, framesPerPage } from '../domain/frameMap'
+import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { GRID_PRESETS, coerceGridPreset, type GridPreset, type Layout } from '../domain/layout'
 import { createProjectSettings, generateProjectId, isValidFps, layoutFromSettings, settingsProblem, type ProjectSettings, type SettingsProblem } from '../domain/settings'
 import { buildPrintPdf } from '../lib/print/buildPdf'
 import { renderPageToBlob } from '../lib/print/renderPage'
 import { saveAsZip, saveBlob } from '../lib/files'
 import { FrameExtractor, probeVideo, type VideoInfo } from '../lib/video/decode'
+import { extractMissing, isAbort } from '../lib/video/extractMissing'
 
 export type Step = 'print' | 'scan' | 'animate'
 export const STEP_ORDER: readonly Step[] = ['print', 'scan', 'animate']
@@ -54,6 +55,8 @@ interface Actions {
   createPdf: () => Promise<void>
   /** Save a zip with one 300 dpi PNG per page instead of the PDF, for drawing in an app. */
   createPngPages: () => Promise<void>
+  /** Stop the PDF or PNG run that is extracting or building. Frames already decoded stay cached. */
+  cancelPrint: () => void
 }
 
 export interface AppState extends PrintSlice, Actions {
@@ -88,6 +91,11 @@ export function deriveLayout(settings: ProjectSettings | null): Layout | null {
   return settings ? layoutFromSettings(settings) : null
 }
 
+/** Every decode of the current file listens to this; a new file or none at all aborts it before the decoder is closed. */
+let source = new AbortController()
+/** The PDF or PNG run in progress, for the Cancel button. */
+let job: AbortController | null = null
+
 export const useAppStore = create<AppState>((set, get) => ({
   step: 'print',
   file: null,
@@ -110,6 +118,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setStep: (step) => set({ step }),
 
   loadVideo: async (file, options) => {
+    source.abort()
+    source = new AbortController()
     void get().extractor?.dispose()
     set({ file, sample: options?.sample === true, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), frameError: null, status: 'idle', pdfError: null, lastSaved: null, savedKind: null, projectId: generateProjectId() })
     try {
@@ -127,6 +137,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   clearVideo: () => {
+    source.abort()
     void get().extractor?.dispose()
     set({ file: null, sample: false, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), frameError: null, status: 'idle', progress: null, pdfError: null, lastSaved: null, savedKind: null })
   },
@@ -142,30 +153,24 @@ export const useAppStore = create<AppState>((set, get) => ({
   ensureFrames: async (frameNumbers) => {
     const { file, fps, frames, extractor } = get()
     if (!file || !extractor) return
-    const missing = frameNumbers.filter((f) => !frames.has(f))
-    if (missing.length === 0) return
-    let extracted
+    let got: Map<number, Blob>
     try {
-      extracted = await extractor.extract(missing.map((f) => frameTimestamp(f, fps)))
+      got = await extractMissing(extractor, fps, frames, frameNumbers, { signal: source.signal })
     } catch (e) {
       const now = get()
-      if (now.file === file && now.fps === fps) set({ frameError: describeError(e) })
+      if (now.file === file && now.fps === fps && !isAbort(e)) set({ frameError: describeError(e) })
       return
     }
+    if (got.size === 0) return
     // Ignore results if the source changed meanwhile.
     const now = get()
     if (now.file !== file || now.fps !== fps) return
-    const next = new Map(now.frames)
-    extracted.forEach((e, i) => next.set(missing[i], e.blob))
-    set({ frames: next, frameError: null })
+    set({ frames: merge(now.frames, got), frameError: null })
   },
 
-  createPdf: async () => {
-    const state = get()
-    const settings = deriveSettings(state)
-    if (!settings || !state.file || !state.extractor) return
-    try {
-      const frames = await extractAllFrames(settings)
+  createPdf: () =>
+    printRun(async (settings, signal) => {
+      const frames = await extractAllFrames(settings, signal)
       set({ status: 'building', progress: { label: t().app.buildingPdf, done: 0, total: settings.pageCount } })
       const bytes = await buildPrintPdf({
         settings,
@@ -173,7 +178,10 @@ export const useAppStore = create<AppState>((set, get) => ({
           const blob = frames.get(frame)
           return blob ? { kind: 'jpeg', bytes: new Uint8Array(await blob.arrayBuffer()) } : null
         },
-        onProgress: (done, total) => set({ progress: { label: t().app.buildingPdf, done, total } }),
+        onProgress: (done, total) => {
+          throwIfAborted(signal)
+          set({ progress: { label: t().app.buildingPdf, done, total } })
+        },
       })
       set({ status: 'saving', progress: null })
       const filename = `${baseName(settings)}.pdf`
@@ -181,17 +189,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       const result = await saveBlob(new Blob([pdfBuffer], { type: 'application/pdf' }), filename, 'application/pdf')
       if (result === 'cancelled') set({ status: 'idle', lastSaved: null, savedKind: null })
       else set({ status: 'done', lastSaved: filename, savedKind: 'pdf' })
-    } catch (e) {
-      set({ status: 'idle', progress: null, pdfError: describeError(e) })
-    }
-  },
+    }),
 
-  createPngPages: async () => {
-    const state = get()
-    const settings = deriveSettings(state)
-    if (!settings || !state.file || !state.extractor) return
-    try {
-      const frames = await extractAllFrames(settings)
+  createPngPages: () =>
+    printRun(async (settings, signal) => {
+      const frames = await extractAllFrames(settings, signal)
       const layout = layoutFromSettings(settings)
       const perPage = framesPerPage(settings.grid)
       const base = baseName(settings)
@@ -199,6 +201,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const files = []
       set({ status: 'building', progress: { label: t().app.renderingPages, done: 0, total: settings.pageCount } })
       for (let page = 1; page <= settings.pageCount; page++) {
+        throwIfAborted(signal)
         // Only hand the renderer the frames on this page; it decodes every blob it is given.
         const onPage = new Map<number, Blob>()
         for (const f of framesOnPage(page, perPage, settings.frameCount)) {
@@ -214,11 +217,42 @@ export const useAppStore = create<AppState>((set, get) => ({
       const result = await saveAsZip(files, zipName)
       if (result === 'cancelled') set({ status: 'idle', lastSaved: null, savedKind: null })
       else set({ status: 'done', lastSaved: zipName, savedKind: 'png' })
-    } catch (e) {
-      set({ status: 'idle', progress: null, pdfError: describeError(e) })
-    }
-  },
+    }),
+
+  cancelPrint: () => job?.abort(),
 }))
+
+function merge(base: ReadonlyMap<number, Blob>, more: ReadonlyMap<number, Blob>): Map<number, Blob> {
+  const next = new Map(base)
+  for (const [f, blob] of more) next.set(f, blob)
+  return next
+}
+
+function throwIfAborted(signal: AbortSignal): void {
+  if (signal.aborted) throw new DOMException('aborted', 'AbortError')
+}
+
+/**
+ * One PDF or PNG run: a fresh job to cancel, tied to the file's own signal so
+ * clearing or replacing the video stops it too. Only one runs at a time; a
+ * cancelled run leaves no error, the decoded frames stay for the next one.
+ */
+async function printRun(work: (settings: ProjectSettings, signal: AbortSignal) => Promise<void>): Promise<void> {
+  const state = useAppStore.getState()
+  const settings = deriveSettings(state)
+  if (!settings || !state.file || !state.extractor || job) return
+  const own = new AbortController()
+  job = own
+  const signal = AbortSignal.any([source.signal, own.signal])
+  try {
+    await work(settings, signal)
+  } catch (e) {
+    if (isAbort(e) || signal.aborted) useAppStore.setState({ status: 'idle', progress: null })
+    else useAppStore.setState({ status: 'idle', progress: null, pdfError: describeError(e) })
+  } finally {
+    if (job === own) job = null
+  }
+}
 
 /** Resolution of the PNG pages: the same 300 dpi that is recommended for scans. */
 export const PNG_PAGE_DPI = 300
@@ -231,23 +265,18 @@ function baseName(settings: ProjectSettings): string {
  * Make sure every frame of the project is decoded, reporting progress on the
  * store, and return the complete frame map. Shared by the PDF and PNG saves.
  */
-async function extractAllFrames(settings: ProjectSettings): Promise<Map<number, Blob>> {
+async function extractAllFrames(settings: ProjectSettings, signal: AbortSignal): Promise<Map<number, Blob>> {
   const state = useAppStore.getState()
   const { extractor, fps } = state
   if (!extractor) throw new Error('no video loaded')
   const all = Array.from({ length: settings.frameCount }, (_, i) => i + 1)
   const set = useAppStore.setState
   set({ status: 'extracting', progress: { label: t().app.extractingFrames, done: 0, total: all.length }, pdfError: null, lastSaved: null, savedKind: null })
-  const missing = all.filter((f) => !state.frames.has(f))
-  if (missing.length > 0) {
-    const extracted = await extractor.extract(
-      missing.map((f) => frameTimestamp(f, fps)),
-      { onFrame: (_f, total) => set((s) => ({ progress: { label: t().app.extractingFrames, done: (s.progress?.done ?? 0) + 1, total } })) },
-    )
-    const next = new Map(useAppStore.getState().frames)
-    extracted.forEach((e, i) => next.set(missing[i], e.blob))
-    set({ frames: next })
-  }
+  const got = await extractMissing(extractor, fps, state.frames, all, {
+    signal,
+    onProgress: (done, total) => set({ progress: { label: t().app.extractingFrames, done, total } }),
+  })
+  if (got.size > 0) set({ frames: merge(useAppStore.getState().frames, got) })
   return useAppStore.getState().frames
 }
 

@@ -1,3 +1,4 @@
+import { useAnimateStore } from './animateStore'
 import { useScanStore } from './scanStore'
 import { STEP_ORDER, useAppStore, type Step } from './store'
 import { useT } from '../i18n'
@@ -21,7 +22,7 @@ export function useStepProgress(): { steps: StepInfo[]; current: Step; currentIn
   const current = useAppStore((s) => s.step)
   const printDone = useAppStore((s) => s.status === 'done')
   const applied = useScanStore((s) => s.outputFrames.size)
-  const exported = useScanStore((s) => s.exported)
+  const exported = useAnimateStore((s) => s.exported)
   const t = useT()
 
   const steps: StepInfo[] = [

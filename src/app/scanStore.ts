@@ -5,6 +5,7 @@ import { pageToScanHomography, reprojectionError, type Homography } from '../dom
 import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
 import { cornersComplete, mergePrepared, statusFor, type Prepared } from './mergePrepared'
+import { useAnimateStore } from './animateStore'
 import { QR_QUICK_PASSES, QR_THOROUGH_PASSES, readPageQr, type QrRead } from '../lib/qrPage'
 import type { QrReadFailure } from '../domain/scan/qrRead'
 import { detectMarkers, detectMarkersBlind, type BlindDetectResult } from '../domain/scan/detectMarkers'
@@ -13,8 +14,6 @@ import { warmUpWarpPool, warpCells } from '../workers/warpPool'
 import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rotateBitmap } from '../lib/image'
 import { hashBlob } from '../lib/files'
 import { splitDuplicateFiles, type SkippedDuplicate } from '../domain/scan/duplicates'
-import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
-import { frameTimestamp } from '../domain/frameMap'
 import { stopwatch } from '../lib/timing'
 
 /** What to say about the QR beside the page number: why it was not read, or that it belongs elsewhere. */
@@ -52,13 +51,6 @@ export interface ScanItem {
   hash: string | null
 }
 
-type FrameSource = 'scan' | 'original' | 'hold' | 'blank'
-
-export interface ResolvedFrames {
-  frames: Blob[]
-  sources: FrameSource[]
-}
-
 interface OutputFrame {
   blob: Blob
   source: 'scan' | 'original'
@@ -76,20 +68,6 @@ interface ScanState {
   /** Files of the last import that were not added because the same image was already in the list. */
   skippedDuplicates: SkippedDuplicate[]
   dismissSkipped: () => void
-  /** Last export per format (file name), for the step indicator. */
-  exported: { mp4: string | null; gif: string | null }
-  markExported: (kind: 'mp4' | 'gif', name: string) => void
-  /** Optional source video: audio and fallback frames. */
-  original: { file: File; info: VideoInfo } | null
-  originalLoading: boolean
-  originalError: string | null
-  /** Frames extracted from the original at the project fps, by frame number. */
-  originalFrames: Map<number, Blob>
-
-  loadOriginal: (file: File) => Promise<void>
-  clearOriginal: () => void
-  /** Final frame list for export/preview, filling gaps from the original or by holding the previous frame. */
-  resolveFrames: () => Promise<ResolvedFrames>
   importScans: (files: File[]) => Promise<void>
   removeScan: (id: string) => void
   select: (id: string | null) => void
@@ -104,7 +82,7 @@ interface ScanState {
   redetectScan: (id: string) => Promise<void>
   setManualSettings: (settings: ProjectSettings) => void
   clearSettings: () => void
-  /** Forget everything: scans, cut frames, settings, original video. */
+  /** Forget everything: scans, cut frames, settings, and the Animate store with them. */
   reset: () => void
   /** Drop the imported pages and cut frames to start the import over. Manual settings survive; QR-restored ones come back with the next import. */
   clearScans: () => void
@@ -116,8 +94,6 @@ let nextId = 1
 let generation = 0
 /** Imports run one after another: a drop that lands while a batch is still being read waits for it. */
 let importQueue: Promise<void> = Promise.resolve()
-/** The original video being probed, so a slower probe cannot overwrite a newer choice. */
-let pendingOriginal: File | null = null
 
 const ALL_CORNERS: Corner[] = [0, 1, 2, 3]
 
@@ -216,85 +192,6 @@ export const useScanStore = create<ScanState>((set, get) => ({
   importError: null,
   skippedDuplicates: [],
   dismissSkipped: () => set({ skippedDuplicates: [] }),
-  exported: { mp4: null, gif: null },
-  markExported: (kind, name) => set((s) => ({ exported: { ...s.exported, [kind]: name } })),
-  original: null,
-  originalLoading: false,
-  originalError: null,
-  originalFrames: new Map(),
-
-  loadOriginal: async (file) => {
-    pendingOriginal = file
-    set({ originalLoading: true, originalError: null, original: null, originalFrames: new Map() })
-    try {
-      const info = await probeVideo(file)
-      if (pendingOriginal !== file) return
-      set({ original: { file, info }, originalLoading: false })
-    } catch (e) {
-      if (pendingOriginal !== file) return
-      set({ originalLoading: false, originalError: describeError(e) })
-    }
-  },
-
-  clearOriginal: () => {
-    pendingOriginal = null
-    set({ original: null, originalError: null, originalFrames: new Map() })
-  },
-
-  resolveFrames: async () => {
-    const { settings, outputFrames, original } = get()
-    if (!settings) throw new Error(t().scan.errNoSettings)
-    const n = settings.frameCount
-    const missing: number[] = []
-    for (let f = 1; f <= n; f++) if (!outputFrames.has(f)) missing.push(f)
-
-    let originalFrames = get().originalFrames
-    if (original && missing.length > 0) {
-      const need = missing.filter((f) => !originalFrames.has(f))
-      if (need.length > 0) {
-        const extracted = await extractFrames(original.file, need.map((f) => frameTimestamp(f, settings.fps)))
-        originalFrames = new Map(originalFrames)
-        extracted.forEach((e, i) => originalFrames.set(need[i], e.blob))
-        // Keep the cache only if it is still the same video; the frames are right for this call either way.
-        if (get().original === original) set({ originalFrames })
-      }
-    }
-
-    const frames: Blob[] = []
-    const sources: FrameSource[] = []
-    let blank: Blob | null = null
-    for (let f = 1; f <= n; f++) {
-      const out = outputFrames.get(f)
-      if (out) {
-        frames.push(out.blob)
-        sources.push('scan')
-        continue
-      }
-      const orig = original ? originalFrames.get(f) : undefined
-      if (orig) {
-        frames.push(orig)
-        sources.push('original')
-        continue
-      }
-      if (frames.length > 0) {
-        frames.push(frames[frames.length - 1])
-        sources.push('hold')
-        continue
-      }
-      if (!blank) {
-        const c = new OffscreenCanvas(settings.dims.width, settings.dims.height)
-        const ctx = c.getContext('2d')
-        if (ctx) {
-          ctx.fillStyle = '#fff'
-          ctx.fillRect(0, 0, c.width, c.height)
-        }
-        blank = await c.convertToBlob({ type: 'image/jpeg', quality: 0.8 })
-      }
-      frames.push(blank)
-      sources.push('blank')
-    }
-    return { frames, sources }
-  },
 
   importScans: (files) => {
     const turn = importQueue.then(() => importBatch(files))
@@ -365,15 +262,15 @@ export const useScanStore = create<ScanState>((set, get) => ({
       importing: false,
       importError: null,
       skippedDuplicates: [],
-      exported: { mp4: null, gif: null },
       settings: s.settingsSource === 'manual' ? s.settings : null,
       settingsSource: s.settingsSource === 'manual' ? 'manual' : null,
     }))
+    // What was exported came from frames that are gone now.
+    useAnimateStore.getState().forgetExports()
   },
 
   reset: () => {
     generation++
-    pendingOriginal = null
     for (const item of get().scans) URL.revokeObjectURL(item.url)
     set({
       settings: null,
@@ -384,12 +281,9 @@ export const useScanStore = create<ScanState>((set, get) => ({
       importing: false,
       importError: null,
       skippedDuplicates: [],
-      exported: { mp4: null, gif: null },
-      original: null,
-      originalLoading: false,
-      originalError: null,
-      originalFrames: new Map(),
     })
+    // Animate builds on these frames: the original video and the export record go with them.
+    useAnimateStore.getState().reset()
   },
 
   applyScan: async (id) => {

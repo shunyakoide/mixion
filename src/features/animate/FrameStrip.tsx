@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import type { ResolvedFrames } from '../../app/scanStore'
+import type { ResolvedFrames } from '../../app/animateStore'
 import { frameLabel } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
 import { useT } from '../../i18n'

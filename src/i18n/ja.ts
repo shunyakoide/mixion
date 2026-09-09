@@ -213,6 +213,7 @@ export const ja: Dict = {
     gifWidth: 'GIF の幅',
     originalOptional: '元動画（任意）',
     originalDrop: 'ドロップすると音声と未スキャン分を補完します',
+    filling: (done, total) => `元動画からコマを取り出し中 ${done} / ${total}`,
     framesTitle: 'コマ一覧',
     fromScan: (n) => `スキャンから ${n}`,
     fromOriginal: (n) => `元動画で補完 ${n}`,

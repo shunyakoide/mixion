@@ -30,6 +30,7 @@ A few conventions:
 - `tests/scanPipeline.test.ts` paints a page, scans it with rotation, margin and ink spread, and runs it through the QR read, marker detection, homography and warp, next to a real inkjet scan in `tests/fixtures/`. Before changing the QR payload, the read passes or the detector, add the case there; a pass there is what says a printed page still reads.
 - UI strings live in `src/i18n/en.ts` (source of truth) and `src/i18n/ja.ts`. Add every new key to both; a test fails when they drift.
 - Design tokens (colours, type, radius, shadows) are in `@theme` in `src/index.css`. Prefer them over raw values in components.
+- Long work is cancellable: frame extraction, the PDF and PNG runs and the MP4/GIF encoders take an `AbortSignal`, and the stores abort it when the source changes, the user cancels, or the screen goes away. Pass the signal through when adding another long step.
 - Nothing may be uploaded. The only browser storage is the locale preference and the export options (size, quality, GIF width); video, frames and scans never leave memory.
 - The printed page is versioned by `QR_VERSION` in `src/domain/settings.ts`. A change that moves markers, cells or the QR, or alters the QR payload, needs a version bump so old printouts are recognised as such: the scan side rebuilds the layout from the payload alone. QR payload v2 is `2/<project>/<page>/<frames>/<fps>/<grid>/<width>x<height>`; v1 was the same fields as JSON and is still read. Keep the text short: the code sits in a 16 mm square, and a 300 dpi scan of an inkjet print only decodes reliably up to about 29 modules (roughly 40 characters).
 
@@ -41,9 +42,9 @@ src/
   domain/scan/ the pure half of the scan pipeline: QR reading, marker detection, orientation, warp, duplicate handling
   lib/         browser adapters over domain: file save (File System Access API with download fallback), store-only zip writer, image/bitmap utils, the page QR reader, error codes, feature detection, timing, frame cache
   lib/print/   the page painter's two backends (canvas, pdf-lib), the PDF builder and the page-to-PNG renderer
-  lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
+  lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny); extractMissing is the one frame-filling routine behind the preview, the print run and Animate
   workers/     the warp Web Worker and its pool
-  app/         zustand stores (store = Print, scanStore = Scan and Animate, exportStore = export options), the page-placement rules (mergePrepared), header stepper, hooks, the sample run and dev helpers
+  app/         zustand stores (store = Print, scanStore = Scan, animateStore = Animate, exportStore = export options), the page-placement rules (mergePrepared), header stepper, hooks, the sample run and dev helpers
   features/    the print / scan / animate screens: React components and their hooks only
   components/  Button / Chip / icons / logo
   i18n/        en (source) and ja dictionaries, locale switch
@@ -55,7 +56,7 @@ tests/         vitest, flat, one file per source module or scenario; fixtures/ h
 | Build | Vite 8, TypeScript 6, Node 24 | dev server, type check, production build; `BASE_PATH` selects the deploy sub-path |
 | UI | React 19, Tailwind CSS v4 | the screens; design tokens live in `@theme` in `src/index.css` |
 | Type | Instrument Sans, Noto Sans JP, JetBrains Mono, Space Grotesk (Google Fonts) | text, Japanese, numbers/IDs/file names, the wordmark |
-| State | zustand | stores for Print, Scan, export options, the sample run and the locale; only the export options and the locale are persisted (localStorage) |
+| State | zustand | stores for Print, Scan, Animate, export options, the sample run and the locale; only the export options and the locale are persisted (localStorage) |
 | Video | WebCodecs via mediabunny | in-browser decoding (frame extraction) and MP4 encoding (H.264 + original audio) |
 | GIF | gifenc | GIF export |
 | PDF | pdf-lib | the A4 print PDF; shares its painting logic with the canvas preview |
