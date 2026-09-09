@@ -1,8 +1,28 @@
-# Mixion
+<p align="center">
+  <img src="public/favicon.svg" width="72" height="72" alt="">
+</p>
 
-動画のフレームを紙に印刷して、描いて、スキャンして、アニメーションに戻す。
+<h1 align="center">Mixion</h1>
 
-[アプリを開く](https://shunyakoide.github.io/mixion/) · [English](README.md)
+<p align="center">
+  動画のフレームを紙に印刷して、描いて、スキャンして、アニメーションに戻す。
+</p>
+
+<p align="center">
+  <a href="https://shunyakoide.github.io/mixion/"><strong>アプリを開く</strong></a> ·
+  <a href="README.md">English</a>
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/images/drawn-page.jpg" width="380" alt="水面の 12 コマを印刷し、それぞれに mixion と手描きした A4 ページ"></td>
+    <td align="center"><img src="docs/images/demo.gif" width="460" alt="スキャンしたページを再生したもの。揺れる水面の上で文字がゆらぐ"></td>
+  </tr>
+  <tr>
+    <td align="center">描き込んだ後の印刷ページ</td>
+    <td align="center">スキャンから作ったアニメーション</td>
+  </tr>
+</table>
 
 Mixed Media Animation は、実写動画のコマの上に 1 枚ずつ紙の上で描き足したり、コラージュしたりして作るアニメーションです。描くのは楽しい。でも動画をコマに分けて、印刷用に並べて、スキャンをまた切り分けて、元の順番に戻す作業は楽しくありません。Mixion はその部分を引き受けます。
 
@@ -10,10 +30,19 @@ Mixed Media Animation は、実写動画のコマの上に 1 枚ずつ紙の上�
 
 ## 使い方
 
-1. **Print.** 動画をドロップし、フレームレートと 1 ページあたりのコマ数を選んで PDF を保存します。縦動画は紙も縦向きになります。
-2. **Draw.** A4 に印刷して、コマの上に描いたり塗ったり貼ったりします。四隅のマーカーと QR コードは汚さず、ページは切り離さないでください。
-3. **Scan.** ページごとにスキャン（300 dpi で十分）してファイルを取り込みます。QR からページ番号と設定を読み、四隅のマーカーを見つけてページを起こし、全コマを切り出します。傾いていても横向きでも、スマホで撮った写真でも構いません。見つからなかった隅だけクリックします。
-4. **Animate.** 結果を再生して、MP4 か GIF で保存します。元動画をドロップすると、音声を戻したり、スキャンしなかったコマを補ったりできます。
+**1. Print.** 動画をドロップし、フレームレートと 1 ページあたりのコマ数を選んで PDF を保存します。縦動画は紙も縦向きになります。
+
+<img src="docs/images/print.webp" width="800" alt="Print ステップ: 読み込んだ動画、フレームレートとグリッドの選択肢、2 ページのプレビュー">
+
+**2. Draw.** A4 に印刷して、コマの上に描いたり塗ったり貼ったりします。四隅のマーカーと QR コードは汚さず、ページは切り離さないでください。
+
+**3. Scan.** ページごとにスキャン（300 dpi で十分）してファイルを取り込みます。QR からページ番号と設定を読み、四隅のマーカーを見つけてページを起こし、全コマを切り出します。傾いていても横向きでも、スマホで撮った写真でも構いません。見つからなかった隅だけクリックします。
+
+<img src="docs/images/scan.webp" width="800" alt="Scan ステップ: 取り込んだ 2 ページ、24 コマすべて切り出し済み、検出した隅とコマの枠がスキャンの上に描かれている">
+
+**4. Animate.** 結果を再生して、MP4 か GIF で保存します。元動画をドロップすると、音声を戻したり、スキャンしなかったコマを補ったりできます。
+
+<img src="docs/images/animate.webp" width="800" alt="Animate ステップ: プレイヤー、切り出したコマの一覧、音声用の元動画、MP4 と GIF の書き出し設定">
 
 ## プリンターなしで試す
 
