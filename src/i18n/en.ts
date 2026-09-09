@@ -180,6 +180,12 @@ export const en = {
     errBadCorners: (msg: string) => `The corner positions are invalid (${msg})`,
     errNotMixionQr: (detail: string) => `A QR code was read but it is not a Mixion page (${detail})`,
     errNoQr: 'No QR code found',
+    duplicateSkipped: (n: number) => `${n} ${n === 1 ? 'file was' : 'files were'} not added: the same image is already in the list`,
+    duplicateSameAs: (name: string) => `same as ${name}`,
+    duplicatePage: 'Duplicate page',
+    duplicateInUse: 'in use',
+    duplicateUnused: 'not used',
+    duplicatePageNote: (page: number, others: string) => `There is another scan of page ${page} (${others}). The one cut last is used for this page; remove the one you do not want from the list.`,
   },
   animate: {
     title: 'Back to video',

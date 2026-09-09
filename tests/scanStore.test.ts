@@ -35,6 +35,7 @@ function scan(id: string, over: Partial<ScanItem> = {}): ScanItem {
     error: null,
     fitError: null,
     rotation: 0,
+    hash: null,
     ...over,
   }
 }

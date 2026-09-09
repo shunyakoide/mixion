@@ -1,7 +1,9 @@
-import { useRef, useState, type DragEvent } from 'react'
+import { useMemo, useRef, useState, type DragEvent } from 'react'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Upload, X } from '../../components/ui/icons'
+import { framesPerPage } from '../../domain/frameMap'
 import { useT } from '../../i18n'
+import { pageDuplicates } from './duplicates'
 
 const DOT: Record<ScanItem['status'], string> = {
   reading: 'bg-ink-3',
@@ -22,7 +24,8 @@ function sortByPage(scans: ScanItem[]): ScanItem[] {
 }
 
 export function ScanList() {
-  const { scans, selectedId, select, importScans, importing, importError, removeScan, clearScans } = useScanStore()
+  const { settings, scans, selectedId, select, importScans, importing, importError, removeScan, clearScans, outputFrames, skippedDuplicates, dismissSkipped } = useScanStore()
+  const duplicates = useMemo(() => (settings ? pageDuplicates(scans, outputFrames, framesPerPage(settings.grid)) : new Map()), [settings, scans, outputFrames])
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
   const t = useT()
@@ -62,10 +65,26 @@ export function ScanList() {
         }}
       />
       {importError && <p className="text-sm text-danger">{importError}</p>}
+      {skippedDuplicates.length > 0 && (
+        <div className="flex items-start gap-2 rounded-xl bg-warn/10 py-2 pl-3 pr-1 text-xs text-ink-2" role="status">
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium text-ink">{t.scan.duplicateSkipped(skippedDuplicates.length)}</span>
+            {skippedDuplicates.map((d, i) => (
+              <span key={i} className="block truncate" title={`${d.name} — ${t.scan.duplicateSameAs(d.sameAs)}`}>
+                {d.name} · {t.scan.duplicateSameAs(d.sameAs)}
+              </span>
+            ))}
+          </span>
+          <button type="button" aria-label={t.common.close} onClick={dismissSkipped} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-50 hover:opacity-100">
+            <X size={12} />
+          </button>
+        </div>
+      )}
       <ul className={['flex min-h-40 flex-1 flex-col gap-1 overflow-auto rounded-2xl transition-shadow', over ? 'shadow-[inset_0_0_0_2px_#0e0e0e]' : ''].join(' ')}>
         {scans.length === 0 && <li className="p-3 text-sm text-ink-3">{t.scan.dropScans}</li>}
         {sortByPage(scans).map((s) => {
           const active = s.id === selectedId
+          const dup = duplicates.get(s.id)
           return (
             <li key={s.id} className="relative">
               <button
@@ -80,9 +99,17 @@ export function ScanList() {
                     {s.page !== null ? `P${s.page} · ` : ''}
                     {s.name}
                   </span>
-                  <span className="block text-xs leading-4 opacity-70">{t.scan.status[s.status]}</span>
+                  <span className="block text-xs leading-4">
+                    <span className="opacity-70">{t.scan.status[s.status]}</span>
+                    {dup && (
+                      <span className={['font-medium', active ? 'text-white' : 'text-warn'].join(' ')}>
+                        {' · '}
+                        {t.scan.duplicatePage} · {dup.inUse ? t.scan.duplicateInUse : t.scan.duplicateUnused}
+                      </span>
+                    )}
+                  </span>
                 </span>
-                <span className={['h-2 w-2 shrink-0 rounded-full', active ? 'bg-white' : DOT[s.status]].join(' ')} aria-hidden />
+                <span className={['h-2 w-2 shrink-0 rounded-full', active ? 'bg-white' : dup && !dup.inUse ? 'bg-warn' : DOT[s.status]].join(' ')} aria-hidden />
               </button>
               <button
                 type="button"
