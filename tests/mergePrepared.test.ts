@@ -64,6 +64,20 @@ describe('project and settings', () => {
     expect(r.settings).toEqual(settings)
     expect(r.settingsSource).toBe('qr')
   })
+  it('replaces settings typed in under the default id with the first QR read, and places the page', () => {
+    const typed = { ...other, projectId: 'manual' }
+    const r = merge(scan('a'), prepared({ qr: read(settings, 2) }), { settings: typed, settingsSource: 'manual', scans: [] })
+    expect(r.settings).toEqual(settings)
+    expect(r.settingsSource).toBe('qr')
+    expect(r.item).toMatchObject({ page: 2, pageSource: 'qr', qrNote: null })
+  })
+  it('holds typed settings against other projects once a page has confirmed their id', () => {
+    const typed = { ...settings, fps: 6 }
+    const confirming = scan('a', { qr: buildQrPayload(settings, 1), page: 1, pageSource: 'qr' })
+    const r = merge(scan('b'), prepared({ qr: read(other, 1) }), { settings: typed, settingsSource: 'manual', scans: [confirming] })
+    expect(r.settings).toBe(typed)
+    expect(r.item).toMatchObject({ page: null, qrNote: { kind: 'otherProject', projectId: 'theirs' } })
+  })
   it('keeps settings that came from a QR when a later page reads the same project', () => {
     const r = merge(scan('b'), prepared({ qr: read(settings, 2) }), withSettings())
     expect(r.settings).toBe(settings)
@@ -94,6 +108,15 @@ describe('a page from another project', () => {
     expect(r.item).toMatchObject({ page: 2, pageSource: 'qr', qrNote: null })
     expect(r.settings).toEqual(other)
   })
+  it('is a stranger too when it carries the project id but was printed with another grid', () => {
+    const reprint = { ...settings, grid: GRID_PRESETS['3x3'], pageCount: 1 }
+    const r = merge(scan('b'), prepared({ qr: read(reprint, 1), markerPage: 1 }), withSettings([scan('a', { page: 1 })]))
+    expect(r.item).toMatchObject({ page: null, pageSource: null, qrNote: { kind: 'otherPrint' } })
+    expect(r.settings).toBe(settings)
+    const first = scan('a', { qr: buildQrPayload(settings, 1), page: 1, pageSource: 'qr' })
+    const noSettings = merge(scan('b'), prepared({ qr: read(reprint, 1) }), { settings: null, settingsSource: null, scans: [first] })
+    expect(noSettings.item.qrNote).toEqual({ kind: 'otherPrint' })
+  })
   it('keeps a page the user chose for it by hand', () => {
     const chosen = scan('b', { qr: buildQrPayload(other, 1), qrNote: { kind: 'otherProject', projectId: 'theirs' }, page: 2, pageSource: 'manual' })
     const r = merge(chosen, prepared({ qr: read(other, 1) }), withSettings())
@@ -115,6 +138,14 @@ describe('page priority', () => {
     const r = merge(earlier, prepared({ markerPage: 1, rotation: 90 }), withSettings())
     expect(r.item).toMatchObject({ page: 2, pageSource: 'qr', qrNote: null, qrRect: null, rotation: 90 })
     expect(r.item.qr).toBe(earlier.qr)
+  })
+  it('a page placed by its markers or by import order keeps it when a re-read finds nothing', () => {
+    const byMarker = scan('a', { page: 2, pageSource: 'marker' })
+    expect(merge(byMarker, prepared({ rotation: 90 }), withSettings()).item).toMatchObject({ page: 2, pageSource: 'marker', qrNote: { kind: 'noQr' } })
+    const byOrder = scan('b', { page: 2, pageSource: 'order' })
+    expect(merge(byOrder, prepared(), withSettings([scan('a', { page: null })])).item).toMatchObject({ page: 2, pageSource: 'order' })
+    // The markers still have the last word when they read.
+    expect(merge(byOrder, prepared({ markerPage: 1 }), withSettings()).item).toMatchObject({ page: 1, pageSource: 'marker' })
   })
   it('the markers beat import order, but only for a page the project has', () => {
     expect(merge(scan('a'), prepared({ markerPage: 2 }), withSettings()).item).toMatchObject({ page: 2, pageSource: 'marker' })

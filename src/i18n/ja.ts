@@ -180,6 +180,7 @@ export const ja: Dict = {
     errNoSettings: '設定がありません',
     errChooseImages: '画像ファイル（JPEG / PNG）を選んでください',
     errOtherProject: (p) => `別のプロジェクト (${p}) のページです`,
+    errOtherPrint: 'ここにあるページとは別の設定で印刷されたページです',
     errBadCorners: (msg) => `四隅の位置が不正です (${msg})`,
     errNotMixionQr: (detail) => `QR は読めましたが Mixion の形式ではありません (${detail})`,
     errNoQr: 'QR コードが見つかりません',

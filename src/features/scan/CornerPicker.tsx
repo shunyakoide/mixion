@@ -20,6 +20,8 @@ function qrNoteText(note: QrNote, t: Dict): string {
       return t.scan.errNotMixionQr(note.detail)
     case 'otherProject':
       return t.scan.errOtherProject(note.projectId)
+    case 'otherPrint':
+      return t.scan.errOtherPrint
   }
 }
 
@@ -297,7 +299,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           {scan.pageSource === 'order' && <span className="text-xs text-warn">{t.scan.orderSource}</span>}
         </label>
         {scan.qrNote && <span className={['text-xs', scan.pageSource === 'marker' ? 'text-ink-3' : 'text-warn'].join(' ')}>{qrNoteText(scan.qrNote, t)}</span>}
-        {scan.qrNote?.kind === 'otherProject' && (
+        {(scan.qrNote?.kind === 'otherProject' || scan.qrNote?.kind === 'otherPrint') && (
           <button
             type="button"
             onClick={() => removeScan(scan.id)}
