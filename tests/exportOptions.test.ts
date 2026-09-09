@@ -25,8 +25,8 @@ describe('resolveSize', () => {
     expect(resolveSize(UHD, 720)).toBe(720)
     expect(resolveSize(HD, 'source')).toBe('source')
   })
-  it('falls back to 1080p, or to the source when that is not available', () => {
-    expect(resolveSize(UHD, 4 as never)).toBe(1080)
+  it('falls back to the source', () => {
+    expect(resolveSize(UHD, 4 as never)).toBe('source')
     expect(resolveSize(HD, 1080)).toBe('source')
     expect(resolveSize(SD, 720)).toBe('source')
   })
@@ -61,7 +61,7 @@ describe('gif width', () => {
 describe('parseExportOptions', () => {
   it('keeps valid stored values and defaults the rest', () => {
     expect(parseExportOptions({ size: 'source', quality: 'high', gifWidth: 320 })).toEqual({ size: 'source', quality: 'high', gifWidth: 320 })
-    expect(parseExportOptions({ size: 999, quality: 'best', gifWidth: 5 })).toEqual({ size: 1080, quality: 'standard', gifWidth: 640 })
-    expect(parseExportOptions(null)).toEqual({ size: 1080, quality: 'standard', gifWidth: 640 })
+    expect(parseExportOptions({ size: 999, quality: 'best', gifWidth: 5 })).toEqual({ size: 'source', quality: 'standard', gifWidth: 640 })
+    expect(parseExportOptions(null)).toEqual({ size: 'source', quality: 'standard', gifWidth: 640 })
   })
 })

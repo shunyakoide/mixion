@@ -15,8 +15,8 @@ export const SIZE_PRESETS = [1080, 720, 480] as const
 export const GIF_WIDTHS = [320, 480, 640, 960] as const
 export const MP4_QUALITIES = ['high', 'standard', 'light'] as const
 
-/** HD is plenty for a drawing traced from a 60 mm print; the source's own size stays available. */
-export const DEFAULT_EXPORT_OPTIONS: ExportOptions = { size: 1080, quality: 'standard', gifWidth: 640 }
+/** The source's own size, so an export matches the video that was printed; smaller presets are a click away. */
+export const DEFAULT_EXPORT_OPTIONS: ExportOptions = { size: 'source', quality: 'standard', gifWidth: 640 }
 
 /** Bits per second for 1080p at the standard quality; other sizes scale with their pixel count. */
 const BITRATE_1080P = 8e6
@@ -48,11 +48,9 @@ export function sizeOptionsFor(source: Dims): SizeOption[] {
   return options
 }
 
-/** The stored choice if the source offers it, else the default: 1080p when the source is bigger, otherwise the source itself. */
+/** The stored choice if the source offers it, else the source itself. */
 export function resolveSize(source: Dims, choice: SizeChoice): SizeChoice {
-  const options = sizeOptionsFor(source)
-  if (options.some((o) => o.choice === choice)) return choice
-  return options.some((o) => o.choice === DEFAULT_EXPORT_OPTIONS.size) ? DEFAULT_EXPORT_OPTIONS.size : 'source'
+  return sizeOptionsFor(source).some((o) => o.choice === choice) ? choice : 'source'
 }
 
 export function outputDims(source: Dims, choice: SizeChoice): Dims {
