@@ -9,6 +9,37 @@ export async function loadBitmap(file: Blob): Promise<ImageBitmap> {
   }
 }
 
+/**
+ * Decode an image straight to `width`×`height` (or to `width` keeping the
+ * aspect), so the bitmap costs only what is shown. Browsers without resize
+ * options decode at full size and scale on a canvas.
+ */
+export async function decodeScaled(blob: Blob, width: number, height?: number): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(blob, { resizeWidth: width, resizeHeight: height, resizeQuality: 'high' })
+  } catch {
+    const full = await createImageBitmap(blob)
+    const h = height ?? Math.max(1, Math.round((full.height * width) / full.width))
+    const canvas = new OffscreenCanvas(width, h)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('canvas context unavailable')
+    ctx.drawImage(full, 0, 0, width, h)
+    full.close()
+    return createImageBitmap(canvas)
+  }
+}
+
+/** A small JPEG of an image, `width` px wide, for lists of many frames. */
+export async function thumbnailBlob(blob: Blob, width: number, quality = 0.8): Promise<Blob> {
+  const bitmap = await decodeScaled(blob, width)
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas context unavailable')
+  ctx.drawImage(bitmap, 0, 0)
+  bitmap.close()
+  return canvas.convertToBlob({ type: 'image/jpeg', quality })
+}
+
 /** Draw a bitmap (or canvas) into RGBA pixels, optionally downscaled to `maxWidth`. */
 export function bitmapToRgba(bitmap: ImageBitmap | OffscreenCanvas, maxWidth?: number): RgbaImage {
   const scale = maxWidth && bitmap.width > maxWidth ? maxWidth / bitmap.width : 1
