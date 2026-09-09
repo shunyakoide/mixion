@@ -3,7 +3,7 @@ import { MarkerGlyph } from './MarkerGlyph'
 import { cornerFromPosition, cornersConsistent } from '../../domain/scan/cornerGeometry'
 import { checkOrientation } from '../../domain/scan/orientation'
 import { useScanStore, type QrNote, type ScanItem } from '../../app/scanStore'
-import { Check, RotateCw } from '../../components/ui/icons'
+import { Check, RotateCw, X } from '../../components/ui/icons'
 import { Button } from '../../components/ui/Button'
 import { pageToScanHomography, projectRect, type Homography } from '../../domain/homography'
 import { CORNERS, type Corner, type Layout, type Point } from '../../domain/layout'
@@ -20,6 +20,8 @@ function qrNoteText(note: QrNote, t: Dict): string {
       return t.scan.errNotMixionQr(note.detail)
     case 'otherProject':
       return t.scan.errOtherProject(note.projectId)
+    case 'otherPrint':
+      return t.scan.errOtherPrint
   }
 }
 
@@ -52,7 +54,7 @@ interface Props {
  * loupe and a live overlay of where the frames will be cut.
  */
 export function CornerPicker({ scan, settings, layout }: Props) {
-  const { setCorner, resetCorners, restoreDetectedCorners, setPage, applyScan, rotateScan, redetectScan } = useScanStore()
+  const { setCorner, resetCorners, restoreDetectedCorners, setPage, applyScan, rotateScan, redetectScan, removeScan } = useScanStore()
   const scans = useScanStore((s) => s.scans)
   const outputFrames = useScanStore((s) => s.outputFrames)
   const duplicate = useMemo(() => pageDuplicates(scans, outputFrames, framesPerPage(settings.grid)).get(scan.id) ?? null, [scans, outputFrames, settings.grid, scan.id])
@@ -297,6 +299,17 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           {scan.pageSource === 'order' && <span className="text-xs text-warn">{t.scan.orderSource}</span>}
         </label>
         {scan.qrNote && <span className={['text-xs', scan.pageSource === 'marker' ? 'text-ink-3' : 'text-warn'].join(' ')}>{qrNoteText(scan.qrNote, t)}</span>}
+        {(scan.qrNote?.kind === 'otherProject' || scan.qrNote?.kind === 'otherPrint') && (
+          <button
+            type="button"
+            onClick={() => removeScan(scan.id)}
+            disabled={busy}
+            className="flex h-7 items-center gap-1 rounded-full bg-surface px-2.5 text-xs text-ink transition-colors hover:bg-rule disabled:opacity-35"
+          >
+            <X size={12} />
+            {t.scan.remove}
+          </button>
+        )}
         <span className="ml-auto flex items-center gap-2">
           {scan.rotation !== 0 && <span className="font-mono text-xs text-ink-3">{t.scan.rotated(scan.rotation)}</span>}
           <button

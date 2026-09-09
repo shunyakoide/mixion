@@ -234,6 +234,21 @@ export function settingsFromQr(payload: QrPayload): ProjectSettings {
   }
 }
 
+/** True when two settings describe the same print run: same project, cut along the same lines. */
+export function sameSettings(a: ProjectSettings, b: ProjectSettings): boolean {
+  return (
+    a.projectId === b.projectId &&
+    a.paper === b.paper &&
+    a.fps === b.fps &&
+    a.grid.cols === b.grid.cols &&
+    a.grid.rows === b.grid.rows &&
+    a.dims.width === b.dims.width &&
+    a.dims.height === b.dims.height &&
+    a.frameCount === b.frameCount &&
+    a.pageCount === b.pageCount
+  )
+}
+
 /** True when two pages belong to the same print run. */
 export function sameProject(a: QrPayload, b: QrPayload): boolean {
   return (

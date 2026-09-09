@@ -3,7 +3,8 @@ import { describeError, t } from '../i18n'
 import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { pageToScanHomography, reprojectionError, type Homography } from '../domain/homography'
 import type { Corner, Point } from '../domain/layout'
-import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
+import { layoutFromSettings, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
+import { cornersComplete, mergePrepared, statusFor, type Prepared } from './mergePrepared'
 import { QR_QUICK_PASSES, QR_THOROUGH_PASSES, readPageQr, type QrRead } from '../lib/qrPage'
 import type { QrReadFailure } from '../domain/scan/qrRead'
 import { detectMarkers, detectMarkersBlind, type BlindDetectResult } from '../domain/scan/detectMarkers'
@@ -17,9 +18,9 @@ import { frameTimestamp } from '../domain/frameMap'
 import { stopwatch } from '../lib/timing'
 
 /** What to say about the QR beside the page number: why it was not read, or that it belongs elsewhere. */
-export type QrNote = QrReadFailure | { kind: 'otherProject'; projectId: string }
+export type QrNote = QrReadFailure | { kind: 'otherProject'; projectId: string } | { kind: 'otherPrint' }
 
-type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
+export type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
 
 export interface ScanItem {
   id: string
@@ -118,38 +119,7 @@ let importQueue: Promise<void> = Promise.resolve()
 /** The original video being probed, so a slower probe cannot overwrite a newer choice. */
 let pendingOriginal: File | null = null
 
-function bbox(pts: Point[]): { x: number; y: number; w: number; h: number } {
-  const xs = pts.map((p) => p.x)
-  const ys = pts.map((p) => p.y)
-  const x = Math.min(...xs)
-  const y = Math.min(...ys)
-  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }
-}
-
-function cornersComplete(c: Partial<Record<Corner, Point>>): c is Record<Corner, Point> {
-  return c[0] !== undefined && c[1] !== undefined && c[2] !== undefined && c[3] !== undefined
-}
-
-interface Prepared {
-  file: File
-  width: number
-  height: number
-  qr: QrRead
-  detected: { corners: Partial<Record<Corner, Point>>; missing: Corner[] } | null
-  /** Page number read from the corner markers when the QR could not be. */
-  markerPage: number | null
-  /** Degrees clockwise the image was turned here. */
-  rotation: number
-}
-
 const ALL_CORNERS: Corner[] = [0, 1, 2, 3]
-
-/** Lowest page not yet claimed by another scan, for pages whose QR and markers could not be read. */
-export function firstUnusedPage(scans: Pick<ScanItem, 'id' | 'page'>[], excludeId: string, pageCount: number): number | null {
-  const used = new Set(scans.filter((x) => x.id !== excludeId && x.page !== null).map((x) => x.page))
-  for (let p = 1; p <= pageCount; p++) if (!used.has(p)) return p
-  return null
-}
 
 /**
  * Read the QR, turn the image upright when it was scanned sideways, and find the corner markers.
@@ -234,12 +204,6 @@ async function prepareScan(file: File, settings: ProjectSettings | null, options
   const { width, height } = bitmap
   bitmap.close()
   return { file: outFile, width, height, qr, detected, markerPage, rotation }
-}
-
-function statusFor(item: ScanItem): ScanStatus {
-  if (item.status === 'applied' || item.status === 'applying' || item.status === 'reading' || item.status === 'detecting') return item.status
-  if (item.error) return 'error'
-  return cornersComplete(item.corners) && item.page !== null ? 'ready' : 'needs_corners'
 }
 
 export const useScanStore = create<ScanState>((set, get) => ({
@@ -551,64 +515,10 @@ async function importBatch(files: File[]): Promise<void> {
     if (!listed(id)) continue
     try {
       set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
-      const { file: scanFile, width, height, qr, detected, markerPage, rotation } = await prepareScan(file, get().settings, { autoRotate: true, quickQr: quickQr.get(file) })
+      const prepared = await prepareScan(file, get().settings, { autoRotate: true, quickQr: quickQr.get(file) })
       // Removed while it was being read: its URL is already revoked and nothing must be written back.
       if (!listed(id)) continue
-      const url = scanFile === file ? item.url : URL.createObjectURL(scanFile)
-      if (url !== item.url) URL.revokeObjectURL(item.url)
-      set((s) => {
-        let settings = s.settings
-        let settingsSource = s.settingsSource
-        let qrNote: QrNote | null = qr.ok ? null : qr.failure
-        let page: number | null = null
-        let pageSource: ScanItem['pageSource'] = null
-        if (qr.ok) {
-          const first = s.scans.find((x) => x.qr)?.qr
-          if (first && !sameProject(first, qr.payload)) {
-            qrNote = { kind: 'otherProject', projectId: qr.payload.p }
-          } else {
-            if (!settings || settingsSource !== 'qr') {
-              settings = settingsFromQr(qr.payload)
-              settingsSource = 'qr'
-            }
-            page = qr.payload.pg
-            pageSource = 'qr'
-          }
-        }
-        if (page === null && markerPage !== null && settings && markerPage <= settings.pageCount) {
-          page = markerPage
-          pageSource = 'marker'
-        }
-        if (page === null && settings) {
-          // Fall back to import order for pages without a readable QR.
-          page = firstUnusedPage(s.scans, id, settings.pageCount)
-          if (page !== null) pageSource = 'order'
-        }
-        const corners = detected?.corners ?? {}
-        const scans = s.scans.map((x) =>
-          x.id === id
-            ? statusUpdate({
-                ...x,
-                file: scanFile,
-                url,
-                width,
-                height,
-                rotation,
-                qr: qr.ok ? qr.payload : null,
-                qrRect: qr.ok ? bbox([qr.corners.topLeft, qr.corners.topRight, qr.corners.bottomRight, qr.corners.bottomLeft]) : null,
-                qrNote,
-                page,
-                pageSource,
-                corners,
-                cornerSource: detected ? 'auto' : null,
-                missingCorners: detected?.missing ?? [],
-                detectedCorners: detected?.corners ?? {},
-                status: 'needs_corners',
-              })
-            : x,
-        )
-        return { scans, settings, settingsSource }
-      })
+      takeOver(id, prepared)
       // Everything found: cut the page out right away.
       const after = get().scans.find((x) => x.id === id)
       if (after && after.status === 'ready') await get().applyScan(id)
@@ -632,6 +542,24 @@ function statusUpdate(item: ScanItem): ScanItem {
   return { ...item, status: statusFor(item) }
 }
 
+/**
+ * Write a `prepareScan` result into the listed scan `id` through `mergePrepared`, swapping the
+ * image URL when the page was turned. The caller has checked that the scan is still listed.
+ */
+function takeOver(id: string, prepared: Prepared): void {
+  const { set, get } = { set: useScanStore.setState, get: useScanStore.getState }
+  const item = get().scans.find((x) => x.id === id)
+  if (!item) return
+  const url = prepared.file === item.file ? item.url : URL.createObjectURL(prepared.file)
+  if (url !== item.url) URL.revokeObjectURL(item.url)
+  set((s) => {
+    const current = s.scans.find((x) => x.id === id)
+    if (!current) return {}
+    const merged = mergePrepared({ ...current, url }, prepared, { settings: s.settings, settingsSource: s.settingsSource, scans: s.scans })
+    return { scans: s.scans.map((x) => (x.id === id ? merged.item : x)), settings: merged.settings, settingsSource: merged.settingsSource }
+  })
+}
+
 /** Run `prepareScan` again on an imported page and take over its image, corners and page number. */
 async function reanalyze(id: string, options: { forceTurns?: number; autoRotate: boolean }): Promise<void> {
   const { set, get } = { set: useScanStore.setState, get: useScanStore.getState }
@@ -639,40 +567,10 @@ async function reanalyze(id: string, options: { forceTurns?: number; autoRotate:
   if (!item || item.status === 'reading' || item.status === 'detecting' || item.status === 'applying') return
   set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting', error: null } : x)) }))
   try {
-    const { file, width, height, qr, detected, markerPage, rotation } = await prepareScan(item.file, get().settings, options)
+    const prepared = await prepareScan(item.file, get().settings, options)
     // Removed meanwhile: its URL is already revoked and nothing must be written back.
     if (!get().scans.some((x) => x.id === id)) return
-    const url = file === item.file ? item.url : URL.createObjectURL(file)
-    if (url !== item.url) URL.revokeObjectURL(item.url)
-    set((s) => ({
-      scans: s.scans.map((x) => {
-        if (x.id !== id) return x
-        const fromQr = qr.ok && s.settings && qr.payload.p === s.settings.projectId ? qr.payload.pg : null
-        let page = fromQr ?? (x.pageSource === 'manual' ? x.page : (markerPage ?? x.page))
-        let pageSource: ScanItem['pageSource'] = fromQr !== null ? 'qr' : x.pageSource === 'manual' ? 'manual' : markerPage !== null ? 'marker' : x.pageSource
-        if (page === null && s.settings) {
-          page = firstUnusedPage(s.scans, id, s.settings.pageCount)
-          if (page !== null) pageSource = 'order'
-        }
-        return statusUpdate({
-          ...x,
-          file,
-          url,
-          width,
-          height,
-          rotation: (x.rotation + rotation) % 360,
-          qrRect: qr.ok ? bbox([qr.corners.topLeft, qr.corners.topRight, qr.corners.bottomRight, qr.corners.bottomLeft]) : null,
-          page,
-          pageSource,
-          corners: detected?.corners ?? {},
-          cornerSource: detected ? 'auto' : null,
-          missingCorners: detected?.missing ?? [],
-          detectedCorners: detected?.corners ?? {},
-          status: 'needs_corners',
-          fitError: null,
-        })
-      }),
-    }))
+    takeOver(id, prepared)
     const after = get().scans.find((x) => x.id === id)
     if (after && after.status === 'ready') await get().applyScan(id)
   } catch (e) {

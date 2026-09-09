@@ -43,7 +43,7 @@ src/
   lib/print/   the page painter's two backends (canvas, pdf-lib), the PDF builder and the page-to-PNG renderer
   lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
   workers/     the warp Web Worker and its pool
-  app/         zustand stores (store = Print, scanStore = Scan and Animate, exportStore = export options), header stepper, hooks, the sample run and dev helpers
+  app/         zustand stores (store = Print, scanStore = Scan and Animate, exportStore = export options), the page-placement rules (mergePrepared), header stepper, hooks, the sample run and dev helpers
   features/    the print / scan / animate screens: React components and their hooks only
   components/  Button / Chip / icons / logo
   i18n/        en (source) and ja dictionaries, locale switch

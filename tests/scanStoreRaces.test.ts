@@ -7,11 +7,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const pending: { bitmaps: (() => void)[]; warps: ((blobs: Blob[]) => void)[]; probes: (() => void)[] } = { bitmaps: [], warps: [], probes: [] }
 const fakeBitmap = { width: 2480, height: 3508, close: () => undefined }
+/** What every QR read returns; tests swap it for a real page. */
+let qrRead: QrRead = { ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }
 
 vi.mock('../src/lib/image', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/lib/image')>()),
   loadBitmap: () => new Promise<typeof fakeBitmap>((resolve) => pending.bitmaps.push(() => resolve(fakeBitmap))),
   bitmapToRgba: () => ({ width: 4, height: 4, data: new Uint8ClampedArray(64) }),
+  rotateBitmap: (bitmap: { width: number; height: number }, quarterTurns: number) =>
+    Promise.resolve(quarterTurns % 2 === 1 ? { blob: new Blob(['turned'], { type: 'image/jpeg' }), width: bitmap.height, height: bitmap.width } : { blob: new Blob(['same']), width: bitmap.width, height: bitmap.height }),
   isImageFile: () => true,
 }))
 vi.mock('../src/workers/warpPool', () => ({
@@ -20,7 +24,7 @@ vi.mock('../src/workers/warpPool', () => ({
 }))
 vi.mock('../src/lib/qrPage', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/lib/qrPage')>()),
-  readPageQr: () => ({ ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }),
+  readPageQr: () => qrRead,
 }))
 vi.mock('../src/lib/files', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/lib/files')>()),
@@ -33,7 +37,8 @@ vi.mock('../src/lib/video/decode', () => ({
 
 import { useScanStore, type ScanItem } from '../src/app/scanStore'
 import { GRID_PRESETS } from '../src/domain/layout'
-import { createProjectSettings, layoutFromSettings } from '../src/domain/settings'
+import type { QrRead } from '../src/domain/scan/qrRead'
+import { buildQrPayload, createProjectSettings, layoutFromSettings } from '../src/domain/settings'
 
 const settings = createProjectSettings({ projectId: 'test', fps: 8, grid: GRID_PRESETS['2x2'], dims: { width: 640, height: 360 }, duration: 1 })
 /** Marker centres as they would sit on a 10 px/mm scan of the page. */
@@ -78,6 +83,7 @@ beforeEach(() => {
   pending.bitmaps = []
   pending.warps = []
   pending.probes = []
+  qrRead = { ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }
   useScanStore.getState().reset()
   globalThis.URL.createObjectURL ??= () => 'blob:mock'
   globalThis.URL.revokeObjectURL ??= () => undefined
@@ -174,5 +180,53 @@ describe('loadOriginal', () => {
     pending.probes[0]()
     await done
     expect(useScanStore.getState().original).toBeNull()
+  })
+})
+
+describe("another project's page", () => {
+  const theirs = createProjectSettings({ projectId: 'theirs', fps: 12, grid: GRID_PRESETS['3x3'], dims: { width: 1280, height: 720 }, duration: 3 })
+  const upright = { topLeft: { x: 100, y: 100 }, topRight: { x: 260, y: 100 }, bottomRight: { x: 260, y: 260 }, bottomLeft: { x: 100, y: 260 } }
+  /** Release page reads until the action is through. */
+  async function release(done: Promise<void>) {
+    let settled = false
+    void done.then(() => (settled = true))
+    for (let i = 0; i < 100 && !settled; i++) {
+      pending.bitmaps.shift()?.()
+      await settle()
+    }
+    await done
+  }
+  it('is imported without a page and is not cut, and the pass after the import does not place it either', async () => {
+    useScanStore.setState({ settings, settingsSource: 'qr' })
+    qrRead = { ok: true, payload: buildQrPayload(theirs, 1), text: '', corners: upright }
+    await release(useScanStore.getState().importScans([file('theirs-1.jpg')]))
+    const s = useScanStore.getState()
+    expect(s.scans).toHaveLength(1)
+    expect(s.scans[0]).toMatchObject({ page: null, pageSource: null, status: 'needs_corners', qrNote: { kind: 'otherProject', projectId: 'theirs' } })
+    expect(s.settings).toBe(settings)
+    expect(s.outputFrames.size).toBe(0)
+    expect(pending.warps).toHaveLength(0)
+  })
+  it('stays without a page after a rotate', async () => {
+    useScanStore.setState({ settings, settingsSource: 'qr' })
+    qrRead = { ok: true, payload: buildQrPayload(theirs, 1), text: '', corners: upright }
+    await release(useScanStore.getState().importScans([file('theirs-1.jpg')]))
+    const id = useScanStore.getState().scans[0].id
+    // The code is not found again on the turned image.
+    qrRead = { ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }
+    await release(useScanStore.getState().rotateScan(id))
+    const x = useScanStore.getState().scans[0]
+    expect(x).toMatchObject({ page: null, pageSource: null, rotation: 90, status: 'needs_corners', qrNote: { kind: 'otherProject', projectId: 'theirs' } })
+    expect(await x.file.text()).toBe('turned')
+  })
+  it('takes the page from its QR once the settings are those of its project', async () => {
+    useScanStore.setState({ settings, settingsSource: 'qr' })
+    qrRead = { ok: true, payload: buildQrPayload(theirs, 2), text: '', corners: upright }
+    await release(useScanStore.getState().importScans([file('theirs-2.jpg')]))
+    const id = useScanStore.getState().scans[0].id
+    useScanStore.getState().setManualSettings(theirs)
+    await release(useScanStore.getState().redetectScan(id))
+    expect(useScanStore.getState().scans[0]).toMatchObject({ page: 2, pageSource: 'qr', qrNote: null })
+    expect(useScanStore.getState().settingsSource).toBe('qr')
   })
 })
