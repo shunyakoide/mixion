@@ -1,8 +1,28 @@
-# Mixion
+<p align="center">
+  <img src="public/favicon.svg" width="72" height="72" alt="">
+</p>
 
-Print the frames of a video on paper, draw on them, scan them back, and get an animation.
+<h1 align="center">Mixion</h1>
 
-[Open the app](https://shunyakoide.github.io/mixion/) · [日本語](README.ja.md)
+<p align="center">
+  Print the frames of a video on paper, draw on them, scan them back, and get an animation.
+</p>
+
+<p align="center">
+  <a href="https://shunyakoide.github.io/mixion/"><strong>Open the app</strong></a> ·
+  <a href="README.ja.md">日本語</a>
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/images/drawn-page.jpg" width="380" alt="A printed A4 page with 12 frames of rippling water, the word mixion hand-lettered on each"></td>
+    <td align="center"><img src="docs/images/demo.gif" width="460" alt="The scanned pages played back: the lettering wobbles over the moving water"></td>
+  </tr>
+  <tr>
+    <td align="center">A printed page after drawing</td>
+    <td align="center">The animation made from the scans</td>
+  </tr>
+</table>
 
 Mixed media animation is drawing or collaging over the frames of a real video, one by one, on paper. The drawing is the fun part. Splitting the video into frames, laying them out for printing, cutting the scans up again and putting them back in order is not. Mixion does that part.
 
@@ -10,10 +30,19 @@ It runs entirely in your browser. There is no server, no account and nothing to 
 
 ## How it works
 
-1. **Print.** Drop a video, choose the frame rate and how many frames go on each page, and save the PDF. Vertical videos get portrait pages.
-2. **Draw.** Print on A4 and draw, paint or paste on the frames. Keep the four corner markers and the QR code clean, and do not cut the pages apart.
-3. **Scan.** Scan each page (300 dpi is plenty) and import the files. Mixion reads the page number and settings from the QR code, finds the corner markers, straightens the page and cuts out every frame. Crooked or sideways scans are fine, and so is a phone photo. If a corner was not found, click it.
-4. **Animate.** Play the result and save it as MP4 or GIF. Drop the original video to bring back its audio and to fill in any frames you did not scan.
+**1. Print.** Drop a video, choose the frame rate and how many frames go on each page, and save the PDF. Vertical videos get portrait pages.
+
+<img src="docs/images/print.webp" width="800" alt="The Print step: the loaded video, frame rate and grid options, and a preview of the two pages">
+
+**2. Draw.** Print on A4 and draw, paint or paste on the frames. Keep the four corner markers and the QR code clean, and do not cut the pages apart.
+
+**3. Scan.** Scan each page (300 dpi is plenty) and import the files. Mixion reads the page number and settings from the QR code, finds the corner markers, straightens the page and cuts out every frame. Crooked or sideways scans are fine, and so is a phone photo. If a corner was not found, click it.
+
+<img src="docs/images/scan.webp" width="800" alt="The Scan step: two imported pages, all 24 frames cut, with the detected corners and the frame boxes drawn over the scan">
+
+**4. Animate.** Play the result and save it as MP4 or GIF. Drop the original video to bring back its audio and to fill in any frames you did not scan.
+
+<img src="docs/images/animate.webp" width="800" alt="The Animate step: the player, the strip of cut frames, the original video for its audio, and the MP4 and GIF options">
 
 ## Try it without a printer
 
