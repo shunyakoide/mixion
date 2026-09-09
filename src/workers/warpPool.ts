@@ -1,6 +1,7 @@
-import type { Homography } from '../../domain/homography'
-import type { WarpRequest, WarpResponse } from '../../workers/warp.worker'
-import { cropRgba, sourceWindow, translateHomography, type RgbaImage, type WarpJob } from './warp'
+import type { Homography } from '../domain/homography'
+import type { WarpRequest, WarpResponse } from './warp.worker'
+import type { RgbaImage } from '../domain/scan/rgba'
+import { cropRgba, sourceWindow, translateHomography, type WarpJob } from '../domain/scan/warp'
 
 /** Enough workers to use the cores without starving the UI thread. */
 const POOL_SIZE = Math.max(1, Math.min(4, (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2) - 1))
@@ -17,7 +18,7 @@ const queue: Task[] = []
 let nextId = 1
 
 function spawn() {
-  const slot: { worker: Worker; task: Task | null } = { worker: new Worker(new URL('../../workers/warp.worker.ts', import.meta.url), { type: 'module' }), task: null }
+  const slot: { worker: Worker; task: Task | null } = { worker: new Worker(new URL('./warp.worker.ts', import.meta.url), { type: 'module' }), task: null }
   slot.worker.onmessage = (e: MessageEvent<WarpResponse>) => {
     const task = slot.task
     slot.task = null

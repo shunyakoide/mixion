@@ -8,7 +8,7 @@ import { encodeGif } from '../lib/video/gif'
 import { layoutFromSettings } from '../domain/settings'
 import { deriveSettings, useAppStore } from './store'
 import { useScanStore } from './scanStore'
-import { decodeMarker, detectMarkersBlind, findMarkerNear } from '../features/scan/detectMarkers'
+import { decodeMarker, detectMarkersBlind, findMarkerNear } from '../domain/scan/detectMarkers'
 import { bitmapToRgba, loadBitmap } from '../lib/image'
 import { readPageQr } from '../features/scan/qrPage'
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cornerFromPosition, cornersConsistent } from '../src/features/scan/cornerGeometry'
+import { cornerFromPosition, cornersConsistent } from '../src/domain/scan/cornerGeometry'
 
 const W = 2480
 const H = 3508

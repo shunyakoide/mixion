@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { solveHomography, type Homography } from '../src/domain/homography'
-import { cropRgba, sourceWindow, translateHomography, warpCell, type RgbaImage } from '../src/features/scan/warp'
+import type { RgbaImage } from '../src/domain/scan/rgba'
+import { cropRgba, sourceWindow, translateHomography, warpCell } from '../src/domain/scan/warp'
 
 /** Horizontal gradient in R, vertical in G, constant B. */
 function gradientImage(w: number, h: number): RgbaImage {

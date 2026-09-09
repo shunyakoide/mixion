@@ -14,7 +14,7 @@ vi.mock('../src/lib/image', async (importOriginal) => ({
   bitmapToRgba: () => ({ width: 4, height: 4, data: new Uint8ClampedArray(64) }),
   isImageFile: () => true,
 }))
-vi.mock('../src/features/scan/warpClient', () => ({
+vi.mock('../src/workers/warpPool', () => ({
   warmUpWarpPool: () => undefined,
   warpCells: () => new Promise<Blob[]>((resolve) => pending.warps.push(resolve)),
 }))

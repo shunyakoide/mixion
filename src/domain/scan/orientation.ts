@@ -1,5 +1,5 @@
 import type { QrCornersPx } from './detectMarkers'
-import type { Corner, Point, Rect, Size } from '../../domain/layout'
+import type { Corner, Point, Rect, Size } from '../layout'
 import { cornerFromPosition } from './cornerGeometry'
 
 /** Quarter turns, clockwise, 0..3. */

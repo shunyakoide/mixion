@@ -4,7 +4,7 @@
  * first is dropped at import; the second is kept, because the second scan may
  * be the better one, and flagged so the user can remove the one they do not want.
  */
-import { frameAt } from '../../domain/frameMap'
+import { frameAt } from '../frameMap'
 
 export interface SkippedDuplicate {
   /** File that was not added. */

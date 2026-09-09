@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import type { Homography } from '../domain/homography'
-import { warpCell, type RgbaImage, type WarpJob } from '../features/scan/warp'
+import type { RgbaImage } from '../domain/scan/rgba'
+import { warpCell, type WarpJob } from '../domain/scan/warp'
 
 export interface WarpRequest {
   id: number

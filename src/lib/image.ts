@@ -1,4 +1,4 @@
-import type { RgbaImage } from '../features/scan/warp'
+import type { RgbaImage } from '../domain/scan/rgba'
 import { t } from '../i18n'
 
 export async function loadBitmap(file: Blob): Promise<ImageBitmap> {
@@ -87,40 +87,3 @@ export function rgbaToCanvas(img: RgbaImage): OffscreenCanvas {
   return canvas
 }
 
-/**
- * Grayscale copy with every dark feature thinned by one pixel on each side
- * (a 3×3 maximum filter). Ink spreads when a page is printed, so black QR
- * modules come back from the scanner bolder than the white ones; this undoes
- * roughly that much and makes the finder patterns readable again.
- */
-export function thinBlack(img: RgbaImage): RgbaImage {
-  const { width: w, height: h, data: d } = img
-  const gray = new Uint8Array(w * h)
-  for (let i = 0, p = 0; i < gray.length; i++, p += 4) gray[i] = (d[p] * 299 + d[p + 1] * 587 + d[p + 2] * 114) / 1000
-  // Separable max: rows first, then columns.
-  const rows = new Uint8Array(w * h)
-  for (let y = 0; y < h; y++) {
-    const o = y * w
-    for (let x = 0; x < w; x++) {
-      let m = gray[o + x]
-      if (x > 0 && gray[o + x - 1] > m) m = gray[o + x - 1]
-      if (x + 1 < w && gray[o + x + 1] > m) m = gray[o + x + 1]
-      rows[o + x] = m
-    }
-  }
-  const out = new Uint8ClampedArray(w * h * 4)
-  for (let y = 0; y < h; y++) {
-    const o = y * w
-    for (let x = 0; x < w; x++) {
-      let m = rows[o + x]
-      if (y > 0 && rows[o - w + x] > m) m = rows[o - w + x]
-      if (y + 1 < h && rows[o + w + x] > m) m = rows[o + w + x]
-      const p = (o + x) * 4
-      out[p] = m
-      out[p + 1] = m
-      out[p + 2] = m
-      out[p + 3] = 255
-    }
-  }
-  return { width: w, height: h, data: out }
-}

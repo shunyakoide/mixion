@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkOrientation, orientationMismatch, quarterTurnsToUpright, rotatePoint, rotateQrCorners } from '../src/features/scan/orientation'
+import { checkOrientation, orientationMismatch, quarterTurnsToUpright, rotatePoint, rotateQrCorners } from '../src/domain/scan/orientation'
 
 /** A 100 px QR whose page has been turned `deg` clockwise on the scan. */
 function qrTurned(deg: number) {
