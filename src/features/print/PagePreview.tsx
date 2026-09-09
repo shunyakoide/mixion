@@ -40,6 +40,7 @@ export function PagePreview() {
 
 function PageCard({ settings, layout, page }: { settings: ProjectSettings; layout: Layout; page: number }) {
   const frames = useAppStore((s) => s.frames)
+  const frameError = useAppStore((s) => s.frameError)
   const ensureFrames = useAppStore((s) => s.ensureFrames)
   const t = useT()
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -130,11 +131,15 @@ function PageCard({ settings, layout, page }: { settings: ProjectSettings; layou
       <div ref={wrapRef} className="relative">
         <canvas ref={canvasRef} className="block max-w-full rounded-md bg-white shadow-page" style={{ width, height }} />
         {visible && missing && (
-          <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center" aria-live="polite">
-            <span className="flex items-center gap-2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
-              {t.print.loadingFrames}
-            </span>
+          <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center px-4" aria-live="polite">
+            {frameError ? (
+              <span className="rounded-full bg-danger px-3 py-1 text-center text-xs text-white">{frameError}</span>
+            ) : (
+              <span className="flex items-center gap-2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />
+                {t.print.loadingFrames}
+              </span>
+            )}
           </div>
         )}
       </div>

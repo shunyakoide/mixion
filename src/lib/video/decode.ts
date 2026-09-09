@@ -27,12 +27,16 @@ export async function probeVideo(file: Blob): Promise<VideoInfo> {
     const video = await input.getPrimaryVideoTrack()
     if (!video) throw new Error(t().errors.noVideoTrackInFile)
     const audio = await input.getPrimaryAudioTrack()
-    const [duration, width, height, canDecodeVideo] = await Promise.all([
+    const [end, start, width, height, canDecodeVideo] = await Promise.all([
       input.computeDuration(),
+      video.getFirstTimestamp(),
       video.getDisplayWidth(),
       video.getDisplayHeight(),
       video.canDecode(),
     ])
+    // Some files (phone clips, trimmed exports) start later than t=0. Frame 1 is the
+    // first frame of the video, so everything is measured from there.
+    const duration = Math.max(0, end - start)
     let frameRate: number | null = null
     try {
       frameRate = (await video.computeFrameRateMetrics()).bestGuessFrameRate
@@ -57,9 +61,9 @@ export async function probeVideo(file: Blob): Promise<VideoInfo> {
 export interface ExtractedFrame {
   /** 0-based index into the requested timestamps. */
   index: number
-  /** Requested timestamp in seconds. */
+  /** Requested timestamp in seconds, measured from the first frame of the video. */
   requested: number
-  /** Timestamp of the frame actually used, in seconds. */
+  /** Timestamp of the frame actually used, in the file's own time. */
   actual: number
   /** JPEG bytes. */
   blob: Blob
@@ -80,7 +84,7 @@ export interface ExtractOptions {
  */
 export class FrameExtractor {
   private readonly input: Input
-  private readonly ready: Promise<CanvasSink>
+  private readonly ready: Promise<{ sink: CanvasSink; start: number }>
   private queue: Promise<unknown> = Promise.resolve()
   private disposed = false
 
@@ -91,14 +95,18 @@ export class FrameExtractor {
     this.ready.catch(() => {})
   }
 
-  private static async open(input: Input): Promise<CanvasSink> {
+  private static async open(input: Input): Promise<{ sink: CanvasSink; start: number }> {
     const video = await input.getPrimaryVideoTrack()
     if (!video) throw new Error(t().errors.noVideoTrack)
     if (!(await video.canDecode())) throw new Error(t().errors.cannotDecodeCodec(video.codec ?? null))
-    return new CanvasSink(video, { poolSize: 2 })
+    return { sink: new CanvasSink(video, { poolSize: 2 }), start: await video.getFirstTimestamp() }
   }
 
-  /** Decode the frame shown at each timestamp as JPEG. Past the end, the last frame is reused. */
+  /**
+   * Decode the frame shown at each timestamp as JPEG. Timestamps count from the
+   * first frame of the video, as `probeVideo`'s duration does. Past the end, the
+   * last frame is reused.
+   */
   extract(timestamps: number[], options: ExtractOptions = {}): Promise<ExtractedFrame[]> {
     const run = this.queue.then(() => this.run(timestamps, options))
     this.queue = run.catch(() => {})
@@ -108,11 +116,11 @@ export class FrameExtractor {
   private async run(timestamps: number[], options: ExtractOptions): Promise<ExtractedFrame[]> {
     if (this.disposed) throw new Error('extractor disposed')
     const quality = options.quality ?? 0.92
-    const sink = await this.ready
+    const { sink, start } = await this.ready
     const out: ExtractedFrame[] = []
     let index = 0
     let last: ExtractedFrame | null = null
-    for await (const wrapped of sink.canvasesAtTimestamps(timestamps)) {
+    for await (const wrapped of sink.canvasesAtTimestamps(timestamps.map((ts) => ts + start))) {
       if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError')
       const requested = timestamps[index]
       let frame: ExtractedFrame
