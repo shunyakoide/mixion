@@ -1,4 +1,3 @@
-import { t } from '../../i18n'
 /**
  * MP4 writing on top of WebCodecs via mediabunny. Video is encoded as H.264;
  * the audio track of the source file, when given, is copied packet by packet
@@ -18,6 +17,7 @@ import {
   VideoSample,
   VideoSampleSource,
 } from 'mediabunny'
+import { MediaError, type AudioNote } from '../errors'
 
 export interface EncodeMp4Options {
   /** Frame images in order. Each is drawn to a canvas of `width`x`height`. */
@@ -37,7 +37,7 @@ export interface EncodeMp4Result {
   blob: Blob
   audioCopied: boolean
   /** Why audio was not copied, if it was requested. */
-  audioNote: string | null
+  audioNote: AudioNote | null
 }
 
 /** Even dimensions are required by H.264 4:2:0. */
@@ -47,10 +47,10 @@ function evenDims(width: number, height: number): { width: number; height: numbe
 
 export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Result> {
   const { frames, fps } = options
-  if (frames.length === 0) throw new Error(t().errors.noFrames)
+  if (frames.length === 0) throw new MediaError({ code: 'noFrames' })
   const { width, height } = evenDims(options.width, options.height)
   if (!(await canEncodeVideo('avc', { width, height }))) {
-    throw new Error(t().errors.cannotEncodeH264)
+    throw new MediaError({ code: 'cannotEncodeH264' })
   }
 
   const output = new Output({
@@ -65,7 +65,7 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
 
   const videoDuration = frames.length / fps
   let audioCopied = false
-  let audioNote: string | null = null
+  let audioNote: AudioNote | null = null
   let audioInput: Input | null = null
   let audioSource: EncodedAudioPacketSource | null = null
   let audioCodec: string | null = null
@@ -84,8 +84,8 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
       const track = await audioInput.getPrimaryAudioTrack()
       const videoTrack = await audioInput.getPrimaryVideoTrack()
       if (videoTrack) videoStart = await videoTrack.getFirstTimestamp()
-      if (!track) audioNote = t().errors.noAudioTrack
-      else if (!track.codec) audioNote = t().errors.unknownAudioCodec
+      if (!track) audioNote = 'noAudioTrack'
+      else if (!track.codec) audioNote = 'unknownAudioCodec'
       else {
         audioCodec = track.codec
         audioDecoderConfig = await track.getDecoderConfig()
@@ -130,7 +130,7 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
       }
       audioSource.close()
       audioCopied = count > 0
-      if (!audioCopied) audioNote = t().errors.noAudioPackets
+      if (!audioCopied) audioNote = 'noAudioPackets'
     }
 
     await output.finalize()
@@ -143,6 +143,6 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
   }
 
   const buffer = output.target.buffer
-  if (!buffer) throw new Error(t().errors.mp4Failed)
+  if (!buffer) throw new MediaError({ code: 'mp4Failed' })
   return { blob: new Blob([buffer], { type: 'video/mp4' }), audioCopied, audioNote }
 }

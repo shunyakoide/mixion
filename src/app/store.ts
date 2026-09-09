@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { t } from '../i18n'
+import { describeError, t } from '../i18n'
 import { frameTimestamp, framesOnPage, framesPerPage } from '../domain/frameMap'
 import { GRID_PRESETS, coerceGridPreset, type GridPreset, type Layout } from '../domain/layout'
 import { createProjectSettings, generateProjectId, isValidFps, layoutFromSettings, settingsProblem, type ProjectSettings, type SettingsProblem } from '../domain/settings'
@@ -122,7 +122,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ info, gridKey: coerceGridPreset(get().gridKey, info), probing: false, extractor: new FrameExtractor(file) })
     } catch (e) {
       if (get().file !== file) return
-      set({ probing: false, loadError: e instanceof Error ? e.message : String(e) })
+      set({ probing: false, loadError: describeError(e) })
     }
   },
 
@@ -149,7 +149,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       extracted = await extractor.extract(missing.map((f) => frameTimestamp(f, fps)))
     } catch (e) {
       const now = get()
-      if (now.file === file && now.fps === fps) set({ frameError: e instanceof Error ? e.message : String(e) })
+      if (now.file === file && now.fps === fps) set({ frameError: describeError(e) })
       return
     }
     // Ignore results if the source changed meanwhile.
@@ -182,7 +182,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (result === 'cancelled') set({ status: 'idle', lastSaved: null, savedKind: null })
       else set({ status: 'done', lastSaved: filename, savedKind: 'pdf' })
     } catch (e) {
-      set({ status: 'idle', progress: null, pdfError: e instanceof Error ? e.message : String(e) })
+      set({ status: 'idle', progress: null, pdfError: describeError(e) })
     }
   },
 
@@ -215,7 +215,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (result === 'cancelled') set({ status: 'idle', lastSaved: null, savedKind: null })
       else set({ status: 'done', lastSaved: zipName, savedKind: 'png' })
     } catch (e) {
-      set({ status: 'idle', progress: null, pdfError: e instanceof Error ? e.message : String(e) })
+      set({ status: 'idle', progress: null, pdfError: describeError(e) })
     }
   },
 }))

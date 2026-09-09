@@ -2,15 +2,26 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { MarkerGlyph } from './MarkerGlyph'
 import { cornerFromPosition, cornersConsistent } from '../../domain/scan/cornerGeometry'
 import { checkOrientation } from '../../domain/scan/orientation'
-import { useScanStore, type ScanItem } from '../../app/scanStore'
+import { useScanStore, type QrNote, type ScanItem } from '../../app/scanStore'
 import { Check, RotateCw } from '../../components/ui/icons'
 import { Button } from '../../components/ui/Button'
 import { pageToScanHomography, projectRect, type Homography } from '../../domain/homography'
 import { CORNERS, type Corner, type Layout, type Point } from '../../domain/layout'
 import { framesOnPage, framesPerPage } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
-import { useT } from '../../i18n'
+import { useT, type Dict } from '../../i18n'
 import { pageDuplicates } from '../../domain/scan/duplicates'
+
+function qrNoteText(note: QrNote, t: Dict): string {
+  switch (note.kind) {
+    case 'noQr':
+      return t.scan.errNoQr
+    case 'notMixion':
+      return t.scan.errNotMixionQr(note.detail)
+    case 'otherProject':
+      return t.scan.errOtherProject(note.projectId)
+  }
+}
 
 const HIT_RADIUS = { mouse: 14, touch: 28 }
 /** Corner handles and marker outlines: orange so they stand apart from the black-and-white markers and the green frame boxes. */
@@ -285,7 +296,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           {scan.pageSource === 'marker' && <span className="font-mono text-xs text-ink-3">{t.scan.markerSource}</span>}
           {scan.pageSource === 'order' && <span className="text-xs text-warn">{t.scan.orderSource}</span>}
         </label>
-        {scan.qrNote && <span className={['text-xs', scan.pageSource === 'marker' ? 'text-ink-3' : 'text-warn'].join(' ')}>{scan.qrNote}</span>}
+        {scan.qrNote && <span className={['text-xs', scan.pageSource === 'marker' ? 'text-ink-3' : 'text-warn'].join(' ')}>{qrNoteText(scan.qrNote, t)}</span>}
         <span className="ml-auto flex items-center gap-2">
           {scan.rotation !== 0 && <span className="font-mono text-xs text-ink-3">{t.scan.rotated(scan.rotation)}</span>}
           <button

@@ -13,7 +13,7 @@ const SRC = resolve(__dirname, '../src')
 /** Which top-level folders each layer may import from (besides itself and packages). */
 const ALLOWED: Record<string, string[]> = {
   domain: [],
-  lib: ['domain', 'i18n'],
+  lib: ['domain'],
   workers: ['domain', 'lib'],
 }
 

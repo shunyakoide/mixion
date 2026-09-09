@@ -8,7 +8,7 @@ import type { ProjectSettings } from '../../domain/settings'
 import { saveBlob } from '../../lib/files'
 import { encodeMp4 } from '../../lib/video/encode'
 import { encodeGif } from '../../lib/video/gif'
-import { useT } from '../../i18n'
+import { describeAudioNote, describeError, useT } from '../../i18n'
 
 type Busy = { kind: 'mp4' | 'gif'; done: number; total: number } | null
 
@@ -63,7 +63,7 @@ export function ExportPanel({ settings, resolved }: { settings: ProjectSettings;
         })
         const saved = await saveBlob(r.blob, `${base}.mp4`, 'video/mp4')
         if (saved !== 'cancelled') markExported('mp4', `${base}.mp4`)
-        setNote(saved === 'cancelled' ? null : t.animate.savedMp4((r.blob.size / 1024 / 1024).toFixed(1), r.audioCopied ? t.common.withAudio : r.audioNote))
+        setNote(saved === 'cancelled' ? null : t.animate.savedMp4((r.blob.size / 1024 / 1024).toFixed(1), r.audioCopied ? t.common.withAudio : r.audioNote ? describeAudioNote(r.audioNote, t) : null))
       } else {
         const blob = await encodeGif({ frames: resolved.frames, fps: settings.fps, width: gifWidth, onProgress: (done, total) => setBusy({ kind, done, total }) })
         const saved = await saveBlob(blob, `${base}.gif`, 'image/gif')
@@ -71,7 +71,7 @@ export function ExportPanel({ settings, resolved }: { settings: ProjectSettings;
         setNote(saved === 'cancelled' ? null : t.animate.savedGif((blob.size / 1024 / 1024).toFixed(1)))
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(describeError(e, t))
     } finally {
       setBusy(null)
     }

@@ -1,10 +1,11 @@
 import { create } from 'zustand'
-import { t } from '../i18n'
+import { describeError, t } from '../i18n'
 import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { pageToScanHomography, reprojectionError, type Homography } from '../domain/homography'
 import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
-import { QR_QUICK_PASSES, QR_THOROUGH_PASSES, readPageQr, type QrReadResult } from '../features/scan/qrPage'
+import { QR_QUICK_PASSES, QR_THOROUGH_PASSES, readPageQr, type QrRead } from '../features/scan/qrPage'
+import type { QrReadFailure } from '../domain/scan/qrRead'
 import { detectMarkers, detectMarkersBlind, type BlindDetectResult } from '../domain/scan/detectMarkers'
 import { orientationMismatch, quarterTurnsToUpright, rotateQrCorners } from '../domain/scan/orientation'
 import { warmUpWarpPool, warpCells } from '../workers/warpPool'
@@ -14,6 +15,9 @@ import { splitDuplicateFiles, type SkippedDuplicate } from '../domain/scan/dupli
 import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
 import { frameTimestamp } from '../domain/frameMap'
 import { stopwatch } from '../lib/timing'
+
+/** What to say about the QR beside the page number: why it was not read, or that it belongs elsewhere. */
+export type QrNote = QrReadFailure | { kind: 'otherProject'; projectId: string }
 
 type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
 
@@ -27,7 +31,7 @@ export interface ScanItem {
   qr: QrPayload | null
   /** Bounding box of the QR in scan px, so a click on it can be told apart from a marker. */
   qrRect: { x: number; y: number; w: number; h: number } | null
-  qrNote: string | null
+  qrNote: QrNote | null
   page: number | null
   pageSource: 'qr' | 'marker' | 'manual' | 'order' | null
   corners: Partial<Record<Corner, Point>>
@@ -130,7 +134,7 @@ interface Prepared {
   file: File
   width: number
   height: number
-  qr: QrReadResult
+  qr: QrRead
   detected: { corners: Partial<Record<Corner, Point>>; missing: Corner[] } | null
   /** Page number read from the corner markers when the QR could not be. */
   markerPage: number | null
@@ -156,14 +160,14 @@ export function firstUnusedPage(scans: Pick<ScanItem, 'id' | 'page'>[], excludeI
  * else can tell us about the page (no settings yet, or no marker decoded either). `quickQr` hands
  * over a downscaled read that was already made while looking for the project settings.
  */
-async function prepareScan(file: File, settings: ProjectSettings | null, options: { forceTurns?: number; autoRotate: boolean; quickQr?: QrReadResult }): Promise<Prepared> {
+async function prepareScan(file: File, settings: ProjectSettings | null, options: { forceTurns?: number; autoRotate: boolean; quickQr?: QrRead }): Promise<Prepared> {
   const lap = stopwatch(`prepare ${file.name}`)
   let bitmap = await loadBitmap(file)
   lap('decode')
-  let qr: QrReadResult = options.quickQr ?? readPageQr(bitmap, QR_QUICK_PASSES)
+  let qr: QrRead = options.quickQr ?? readPageQr(bitmap, QR_QUICK_PASSES)
   lap(options.quickQr ? 'qr cached' : 'qr quick')
   let thorough = false
-  const readThorough = (current: QrReadResult): QrReadResult => {
+  const readThorough = (current: QrRead): QrRead => {
     if (current.ok || thorough) return current
     thorough = true
     const r = readPageQr(bitmap, QR_THOROUGH_PASSES, current.tried)
@@ -264,7 +268,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       set({ original: { file, info }, originalLoading: false })
     } catch (e) {
       if (pendingOriginal !== file) return
-      set({ originalLoading: false, originalError: e instanceof Error ? e.message : String(e) })
+      set({ originalLoading: false, originalError: describeError(e) })
     }
   },
 
@@ -434,7 +438,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
     try {
       h = pageToScanHomography(layout, item.corners)
     } catch (e) {
-      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: t().scan.errBadCorners(e instanceof Error ? e.message : String(e)) } : x)) }))
+      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: t().scan.errBadCorners(describeError(e)) } : x)) }))
       return
     }
     const fitError = reprojectionError(
@@ -465,7 +469,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
         return { outputFrames, scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'applied', fitError } : x)) }
       })
     } catch (e) {
-      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)) }))
+      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: describeError(e) } : x)) }))
     }
   },
 }))
@@ -518,7 +522,7 @@ async function importBatch(files: File[]): Promise<void> {
   }))
   set((s) => ({ scans: [...s.scans, ...items], selectedId: s.selectedId ?? items[0].id }))
   // Find the project settings before analysing anything, so pages ahead of the first readable QR get a layout too.
-  const quickQr = new Map<File, QrReadResult>()
+  const quickQr = new Map<File, QrRead>()
   if (!get().settings) {
     const lap = stopwatch('settings pass')
     for (const file of fresh) {
@@ -555,13 +559,13 @@ async function importBatch(files: File[]): Promise<void> {
       set((s) => {
         let settings = s.settings
         let settingsSource = s.settingsSource
-        let qrNote: string | null = qr.ok ? null : qr.error
+        let qrNote: QrNote | null = qr.ok ? null : qr.failure
         let page: number | null = null
         let pageSource: ScanItem['pageSource'] = null
         if (qr.ok) {
           const first = s.scans.find((x) => x.qr)?.qr
           if (first && !sameProject(first, qr.payload)) {
-            qrNote = t().scan.errOtherProject(qr.payload.p)
+            qrNote = { kind: 'otherProject', projectId: qr.payload.p }
           } else {
             if (!settings || settingsSource !== 'qr') {
               settings = settingsFromQr(qr.payload)
@@ -610,7 +614,7 @@ async function importBatch(files: File[]): Promise<void> {
       if (after && after.status === 'ready') await get().applyScan(id)
     } catch (e) {
       set((s) => ({
-        scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)),
+        scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: describeError(e) } : x)),
       }))
     }
   }
@@ -672,7 +676,7 @@ async function reanalyze(id: string, options: { forceTurns?: number; autoRotate:
     const after = get().scans.find((x) => x.id === id)
     if (after && after.status === 'ready') await get().applyScan(id)
   } catch (e) {
-    set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)) }))
+    set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: describeError(e) } : x)) }))
   }
 }
 

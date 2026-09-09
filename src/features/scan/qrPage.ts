@@ -1,13 +1,8 @@
-import { t } from '../../i18n'
-import { readQrFromRgba, type QrPass, type QrRead, type QrReadFailure } from '../../domain/scan/qrRead'
+import { readQrFromRgba, type QrPass, type QrRead } from '../../domain/scan/qrRead'
 import type { RgbaImage } from '../../domain/scan/rgba'
 import { bitmapToRgba, rgbaToCanvas } from '../../lib/image'
 
-export { QR_ALL_PASSES, QR_QUICK_PASSES, QR_THOROUGH_PASSES, type QrPass } from '../../domain/scan/qrRead'
-
-export type QrReadResult =
-  | Extract<QrRead, { ok: true }>
-  | { ok: false; error: string; text: string | null; /** Passes already searched (see `passKey`), so a later call can skip them. */ tried: string[] }
+export { QR_ALL_PASSES, QR_QUICK_PASSES, QR_THOROUGH_PASSES, type QrPass, type QrRead } from '../../domain/scan/qrRead'
 
 /**
  * Downscale on a canvas, as the browser does it best. The page itself is
@@ -27,18 +22,12 @@ function canvasResampler(bitmap: ImageBitmap, page: RgbaImage): (img: RgbaImage,
   }
 }
 
-function describeFailure(failure: QrReadFailure): string {
-  return failure.kind === 'noQr' ? t().scan.errNoQr : t().scan.errNotMixionQr(failure.detail)
-}
-
 /**
  * Find and decode the Mixion QR on a scanned page, trying each pass in
  * `passes` and skipping any already in `tried`.
  * Corner positions are returned in the bitmap's own pixel coordinates.
  */
-export function readPageQr(bitmap: ImageBitmap, passes?: QrPass[], tried: string[] = []): QrReadResult {
+export function readPageQr(bitmap: ImageBitmap, passes?: QrPass[], tried: string[] = []): QrRead {
   const page = bitmapToRgba(bitmap)
-  const r = readQrFromRgba(page, passes, tried, canvasResampler(bitmap, page))
-  if (r.ok) return r
-  return { ok: false, error: describeFailure(r.failure), text: r.text, tried: r.tried }
+  return readQrFromRgba(page, passes, tried, canvasResampler(bitmap, page))
 }
