@@ -43,6 +43,13 @@ describe('extractMissing', () => {
       [3, 3],
     ])
   })
+  it('hands each frame over as it is decoded, by frame number', async () => {
+    const { extractor } = fakeExtractor()
+    const onFrame = vi.fn()
+    await extractMissing(extractor, 8, new Map([[1, new Blob()]]), [1, 2, 3], { onFrame })
+    expect(onFrame.mock.calls.map(([f]) => f)).toEqual([2, 3])
+    expect(await onFrame.mock.calls[0][1].text()).toBe('t0.125')
+  })
   it('rejects without decoding when the signal is already aborted', async () => {
     const { extract, extractor } = fakeExtractor()
     const controller = new AbortController()

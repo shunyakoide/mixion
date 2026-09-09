@@ -1,10 +1,13 @@
 import { frameTimestamp } from '../../domain/frameMap'
+import { throwIfAborted } from '../abort'
 import type { FrameExtractor } from './decode'
 
 export interface ExtractMissingOptions {
   signal?: AbortSignal
   /** Called before the first frame with `done` 0 and after each frame, so a page with nothing to do never reports. */
   onProgress?: (done: number, total: number) => void
+  /** Each frame as it is decoded, so a caller can keep what a cancelled run got before the stop. */
+  onFrame?: (frame: number, blob: Blob) => void
 }
 
 /**
@@ -24,18 +27,16 @@ export async function extractMissing(
   const missing = [...new Set(wanted)].filter((f) => !have.has(f))
   const out = new Map<number, Blob>()
   if (missing.length === 0) return out
-  if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError')
+  throwIfAborted(options.signal)
   let done = 0
   options.onProgress?.(0, missing.length)
-  const extracted = await extractor.extract(
-    missing.map((f) => frameTimestamp(f, fps)),
-    { signal: options.signal, onFrame: (_frame, total) => options.onProgress?.(++done, total) },
-  )
+  const extracted = await extractor.extract(missing.map((f) => frameTimestamp(f, fps)), {
+    signal: options.signal,
+    onFrame: (frame, total) => {
+      options.onFrame?.(missing[frame.index], frame.blob)
+      options.onProgress?.(++done, total)
+    },
+  })
   extracted.forEach((e, i) => out.set(missing[i], e.blob))
   return out
-}
-
-/** True for the rejection an aborted signal produces, so callers can stay quiet about it. */
-export function isAbort(e: unknown): boolean {
-  return e instanceof DOMException && e.name === 'AbortError'
 }

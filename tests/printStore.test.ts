@@ -76,6 +76,8 @@ describe('createPdf', () => {
     expect(s.progress).toBeNull()
     expect(s.pdfError).toBeNull()
     expect(s.file).not.toBeNull()
+    // The one frame decoded before the stop is kept for the next run.
+    expect([...s.frames.keys()]).toEqual([1])
   })
   it('runs to the save when nothing stops it, and a second click during the run is ignored', async () => {
     const done = useAppStore.getState().createPdf()

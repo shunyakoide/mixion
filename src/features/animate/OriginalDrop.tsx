@@ -29,7 +29,7 @@ export function OriginalDrop() {
             <span className="block truncate text-sm font-medium" title={original.file.name}>
               {original.file.name}
             </span>
-            <span className="block font-mono text-xs leading-4 text-ink-2">{filling ? t.animate.filling(filling.done, filling.total) : original.info.hasAudio ? t.common.withAudio : t.common.noAudio}</span>
+            <span className="block font-mono text-xs leading-4 text-ink-2">{filling ? t.animate.filling(filling.done, filling.total) : !original.info.canDecodeVideo ? t.animate.audioOnly : original.info.hasAudio ? t.common.withAudio : t.common.noAudio}</span>
           </span>
           <button type="button" onClick={clearOriginal} aria-label={t.common.clear} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface hover:text-ink">
             <X size={16} />

@@ -104,17 +104,25 @@ describe('resolveFrames', () => {
     expect(again.sources[5]).toBe('original')
     expect(pending.extracts).toHaveLength(0)
   })
-  it('stops taking frames when the caller aborts, and caches nothing from that resolve', async () => {
+  it('stops taking frames when the caller aborts, keeping the frames decoded before the stop', async () => {
     await loaded()
     const controller = new AbortController()
     const done = useAnimateStore.getState().resolveFrames(settings, cut(1, 2, 3, 4), { signal: controller.signal })
     await until('extracts')
     const job = pending.extracts.shift()!
+    job.options.onFrame?.(framesFor([0.5])[0], 4)
     controller.abort()
     expect(job.options.signal?.aborted).toBe(true)
     await expect(done).rejects.toMatchObject({ name: 'AbortError' })
     expect(useAnimateStore.getState().filling).toBeNull()
-    expect(useAnimateStore.getState().originalFrames.size).toBe(0)
+    expect([...useAnimateStore.getState().originalFrames.keys()]).toEqual([5])
+    // The next resolve asks only for what is still missing.
+    const next = useAnimateStore.getState().resolveFrames(settings, cut(1, 2, 3, 4))
+    await until('extracts')
+    const job2 = pending.extracts.shift()!
+    expect(job2.timestamps).toEqual([0.625, 0.75, 0.875])
+    job2.resolve(framesFor(job2.timestamps))
+    expect((await next).sources.slice(4)).toEqual(['original', 'original', 'original', 'original'])
   })
   it('lets a newer resolve supersede the fill of an older one', async () => {
     await loaded()
@@ -169,13 +177,17 @@ describe('loadOriginal', () => {
     await done
     expect(useAnimateStore.getState().original).toBeNull()
   })
-  it('refuses a video this browser cannot decode', async () => {
+  it('keeps a video this browser cannot decode for its audio, and takes no frames from it', async () => {
     const done = useAnimateStore.getState().loadOriginal(file('a.mov'))
     await until('probes')
-    pending.probes[0]({ canDecodeVideo: false, videoCodec: 'hvc1' })
+    pending.probes[0]({ canDecodeVideo: false, videoCodec: 'hvc1', hasAudio: true })
     await done
-    expect(useAnimateStore.getState().original).toBeNull()
-    expect(useAnimateStore.getState().originalError).toContain('hvc1')
+    const s = useAnimateStore.getState()
+    expect(s.original?.file.name).toBe('a.mov')
+    expect(s.originalError).toBeNull()
+    const r = await s.resolveFrames(settings, cut(1, 2, 3, 4))
+    expect(r.sources.slice(4)).toEqual(['hold', 'hold', 'hold', 'hold'])
+    expect(pending.extracts).toHaveLength(0)
   })
   it('stops a fill from the previous original when a new one is chosen', async () => {
     await loaded('a.mp4')

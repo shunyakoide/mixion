@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAnimateStore, type ResolvedFrames } from '../../app/animateStore'
 import { useScanStore } from '../../app/scanStore'
+import { isAbort } from '../../lib/abort'
 
 type Deps = readonly [unknown, unknown, unknown]
 
@@ -26,8 +27,9 @@ export function useResolvedFrames(): { resolved: ResolvedFrames | null; loading:
       .then((r) => {
         if (!controller.signal.aborted) setState({ resolved: r, deps: [outputFrames, original, settings] })
       })
-      .catch(() => {
-        if (!controller.signal.aborted) setState({ resolved: null, deps: [outputFrames, original, settings] })
+      .catch((e: unknown) => {
+        // A fill the store stopped (original cleared or replaced) is followed by a new resolve; keep the old frames until then.
+        if (!controller.signal.aborted && !isAbort(e)) setState({ resolved: null, deps: [outputFrames, original, settings] })
       })
     return () => controller.abort()
   }, [outputFrames, original, settings, resolveFrames])

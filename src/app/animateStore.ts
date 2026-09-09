@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { describeError, t } from '../i18n'
+import { describeError } from '../i18n'
 import type { ProjectSettings } from '../domain/settings'
+import { anySignal } from '../lib/abort'
 import { FrameExtractor, probeVideo, type VideoInfo } from '../lib/video/decode'
 import { extractMissing } from '../lib/video/extractMissing'
 
@@ -12,7 +13,7 @@ export interface ResolvedFrames {
 }
 
 interface AnimateState {
-  /** Optional source video: audio and fallback frames. */
+  /** Optional source video: audio and fallback frames. Kept even when this browser cannot decode its video, for the audio. */
   original: { file: File; info: VideoInfo } | null
   originalLoading: boolean
   originalError: string | null
@@ -70,11 +71,8 @@ export const useAnimateStore = create<AnimateState>((set, get) => ({
     try {
       const info = await probeVideo(file)
       if (pendingOriginal !== file) return
-      if (!info.canDecodeVideo) {
-        set({ originalLoading: false, originalError: t().app.cannotDecode(info.videoCodec ?? null) })
-        return
-      }
-      extractor = new FrameExtractor(file)
+      // Without a decoder the frames come from the scans alone; the audio track is copied, not decoded.
+      if (info.canDecodeVideo) extractor = new FrameExtractor(file)
       set({ original: { file, info }, originalLoading: false })
     } catch (e) {
       if (pendingOriginal !== file) return
@@ -99,12 +97,18 @@ export const useAnimateStore = create<AnimateState>((set, get) => ({
       fill?.abort()
       const own = new AbortController()
       fill = own
-      const signal = options.signal ? AbortSignal.any([options.signal, own.signal]) : own.signal
+      const signal = options.signal ? anySignal([options.signal, own.signal]) : own.signal
       try {
-        const got = await extractMissing(extractor, settings.fps, originalFrames, missing, { signal, onProgress: (done, total) => set({ filling: { done, total } }) })
+        const got = await extractMissing(extractor, settings.fps, originalFrames, missing, {
+          signal,
+          onProgress: (done, total) => set({ filling: { done, total } }),
+          // Cached as they come, so a fill stopped halfway is not repeated from the start. Only for the same video.
+          onFrame: (f, blob) => {
+            if (get().original === original) set((s) => ({ originalFrames: new Map(s.originalFrames).set(f, blob) }))
+          },
+        })
         originalFrames = new Map(get().originalFrames)
         for (const [f, blob] of got) originalFrames.set(f, blob)
-        // Keep the cache only if it is still the same video; the frames are right for this call either way.
         if (get().original === original) set({ originalFrames })
       } finally {
         if (fill === own) {

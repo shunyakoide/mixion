@@ -7,7 +7,8 @@ import { buildPrintPdf } from '../lib/print/buildPdf'
 import { renderPageToBlob } from '../lib/print/renderPage'
 import { saveAsZip, saveBlob } from '../lib/files'
 import { FrameExtractor, probeVideo, type VideoInfo } from '../lib/video/decode'
-import { extractMissing, isAbort } from '../lib/video/extractMissing'
+import { anySignal, isAbort, throwIfAborted } from '../lib/abort'
+import { extractMissing } from '../lib/video/extractMissing'
 
 export type Step = 'print' | 'scan' | 'animate'
 export const STEP_ORDER: readonly Step[] = ['print', 'scan', 'animate']
@@ -187,6 +188,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const filename = `${baseName(settings)}.pdf`
       const pdfBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
       const result = await saveBlob(new Blob([pdfBuffer], { type: 'application/pdf' }), filename, 'application/pdf')
+      // The video went away during the dialog: nothing to record the save against.
+      throwIfAborted(signal)
       if (result === 'cancelled') set({ status: 'idle', lastSaved: null, savedKind: null })
       else set({ status: 'done', lastSaved: filename, savedKind: 'pdf' })
     }),
@@ -215,6 +218,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ status: 'saving', progress: null })
       const zipName = `${base}-png.zip`
       const result = await saveAsZip(files, zipName)
+      throwIfAborted(signal)
       if (result === 'cancelled') set({ status: 'idle', lastSaved: null, savedKind: null })
       else set({ status: 'done', lastSaved: zipName, savedKind: 'png' })
     }),
@@ -228,10 +232,6 @@ function merge(base: ReadonlyMap<number, Blob>, more: ReadonlyMap<number, Blob>)
   return next
 }
 
-function throwIfAborted(signal: AbortSignal): void {
-  if (signal.aborted) throw new DOMException('aborted', 'AbortError')
-}
-
 /**
  * One PDF or PNG run: a fresh job to cancel, tied to the file's own signal so
  * clearing or replacing the video stops it too. Only one runs at a time; a
@@ -243,7 +243,7 @@ async function printRun(work: (settings: ProjectSettings, signal: AbortSignal) =
   if (!settings || !state.file || !state.extractor || job) return
   const own = new AbortController()
   job = own
-  const signal = AbortSignal.any([source.signal, own.signal])
+  const signal = anySignal([source.signal, own.signal])
   try {
     await work(settings, signal)
   } catch (e) {
@@ -275,6 +275,8 @@ async function extractAllFrames(settings: ProjectSettings, signal: AbortSignal):
   const got = await extractMissing(extractor, fps, state.frames, all, {
     signal,
     onProgress: (done, total) => set({ progress: { label: t().app.extractingFrames, done, total } }),
+    // Frame by frame, so a cancelled run keeps what it got and the next one starts from there.
+    onFrame: (f, blob) => set({ frames: merge(useAppStore.getState().frames, new Map([[f, blob]])) }),
   })
   if (got.size > 0) set({ frames: merge(useAppStore.getState().frames, got) })
   return useAppStore.getState().frames
