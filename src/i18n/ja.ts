@@ -12,8 +12,6 @@ export const ja: Dict = {
   },
   header: {
     steps: '手順',
-    samplePill: 'サンプル中 · 最初に戻る',
-    samplePillShort: '最初に戻る',
     home: '最初の画面に戻る',
     startOverConfirm: '最初の画面に戻りますか？ 読み込んだ動画と取り込んだスキャンは破棄されます。保存はされていません。',
     switchLanguage: '言語を切り替える',
@@ -48,6 +46,7 @@ export const ja: Dict = {
     goScan: '描いたページをスキャンして取り込む',
     loadingFrames: 'フレームを読み込み中…',
     preview: 'プレビュー',
+    backToStart: '最初の画面に戻る',
     previewMeta: (pages, landscape, fps, grid) => `${pages} pages · A4 ${landscape ? '横' : '縦'} · ${fps}fps · ${grid}`,
     pageLabel: (page) => `Page ${page}`,
     drawNotes: [
@@ -181,6 +180,7 @@ export const ja: Dict = {
     title: '動画に戻す',
     summary: (frames, fps, seconds, w, h) => `${frames} コマ · ${fps} fps · ${seconds} 秒 · ${w}×${h}`,
     preview: 'プレビュー',
+    backToStart: '最初の画面に戻る',
     frameAlt: (n) => `コマ ${n}`,
     source: { scan: 'スキャン', original: '元動画', hold: '前のコマ', blank: '空白' },
     savedMp4: (mb, audio) => `MP4 を保存しました (${mb} MB${audio ? `、${audio}` : ''})`,

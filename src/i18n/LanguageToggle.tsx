@@ -12,7 +12,7 @@ export function LanguageToggle({ className = '' }: { className?: string }) {
       onClick={() => setLocale(other.id)}
       lang={other.id}
       aria-label={t.header.switchLanguage}
-      className={['h-9 whitespace-nowrap rounded-full px-3 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink', className].join(' ')}
+      className={['h-9 whitespace-nowrap rounded-full px-2 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink sm:px-3', className].join(' ')}
     >
       {other.label}
     </button>

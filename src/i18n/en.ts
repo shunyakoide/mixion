@@ -11,8 +11,6 @@ export const en = {
   },
   header: {
     steps: 'Steps',
-    samplePill: 'Sample · Start over',
-    samplePillShort: 'Start over',
     home: 'Back to the start',
     startOverConfirm: 'Go back to the start? The loaded video and imported scans will be dropped. Nothing is saved.',
     switchLanguage: 'Switch language',
@@ -47,6 +45,7 @@ export const en = {
     goScan: 'Scan the drawn pages',
     loadingFrames: 'Loading frames…',
     preview: 'Preview',
+    backToStart: 'Back to the start',
     previewMeta: (pages: number, landscape: boolean, fps: number, grid: string) => `${pages} pages · A4 ${landscape ? 'landscape' : 'portrait'} · ${fps}fps · ${grid}`,
     pageLabel: (page: number) => `Page ${page}`,
     drawNotes: [
@@ -180,6 +179,7 @@ export const en = {
     title: 'Back to video',
     summary: (frames: number, fps: number, seconds: string, w: number, h: number) => `${frames} frames · ${fps} fps · ${seconds} s · ${w}×${h}`,
     preview: 'Preview',
+    backToStart: 'Back to the start',
     frameAlt: (n: number) => `Frame ${n}`,
     source: { scan: 'scan', original: 'original', hold: 'hold', blank: 'blank' } as Record<'scan' | 'original' | 'hold' | 'blank', string>,
     savedMp4: (mb: string, audio: string | null) => `MP4 saved (${mb} MB${audio ? `, ${audio}` : ''})`,

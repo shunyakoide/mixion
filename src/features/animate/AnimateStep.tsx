@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '../../app/store'
 import { useScanStore } from '../../app/scanStore'
+import { useStartOver } from '../../app/useStartOver'
 import { FrameStrip } from './FrameStrip'
 import { ExportPanel } from './ExportPanel'
 import { OriginalDrop } from './OriginalDrop'
@@ -17,6 +18,7 @@ export function AnimateStep() {
   const [current, setCurrent] = useState(0)
   const onFrame = useCallback((i: number) => setCurrent(i), [])
   const t = useT()
+  const goHome = useStartOver()
 
   // The stepper only opens Animate with cut frames; if they vanish underneath us, fall back to Scan.
   const ready = settings !== null && applied > 0
@@ -40,6 +42,9 @@ export function AnimateStep() {
         </div>
         <OriginalDrop />
         <ExportPanel settings={settings} resolved={resolved} />
+        <button type="button" className="-mt-3 self-center py-1 text-center text-[13px] leading-[18px] text-ink-2 underline underline-offset-2 hover:text-ink" onClick={goHome}>
+          {t.animate.backToStart}
+        </button>
       </div>
     </div>
   )
