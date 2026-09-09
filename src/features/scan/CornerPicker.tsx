@@ -90,14 +90,15 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   // Only worth warning while corners still have to be clicked: a detected set already knows where the page is.
   const orientation = scan.status === 'needs_corners' && scan.width > 0 ? checkOrientation(scan, scan.qrRect, layout) : { kind: 'ok' as const }
 
-  let homography: Homography | null = null
-  if (complete) {
+  // Memoised: it is a dependency of the canvas effects, and a fresh object per render would redraw the full-resolution scan on every cursor move.
+  const homography = useMemo<Homography | null>(() => {
+    if (!complete) return null
     try {
-      homography = pageToScanHomography(layout, scan.corners as Record<Corner, Point>)
+      return pageToScanHomography(layout, scan.corners as Record<Corner, Point>)
     } catch {
-      homography = null
+      return null
     }
-  }
+  }, [complete, layout, scan.corners])
 
   // Draw the main canvas.
   useEffect(() => {

@@ -107,6 +107,12 @@ interface ScanState {
 }
 
 let nextId = 1
+/** Bumped by `reset` and `clearScans`, so work started on an earlier set of pages stops writing into the new one. */
+let generation = 0
+/** Imports run one after another: a drop that lands while a batch is still being read waits for it. */
+let importQueue: Promise<void> = Promise.resolve()
+/** The original video being probed, so a slower probe cannot overwrite a newer choice. */
+let pendingOriginal: File | null = null
 
 function bbox(pts: Point[]): { x: number; y: number; w: number; h: number } {
   const xs = pts.map((p) => p.x)
@@ -250,16 +256,22 @@ export const useScanStore = create<ScanState>((set, get) => ({
   originalFrames: new Map(),
 
   loadOriginal: async (file) => {
+    pendingOriginal = file
     set({ originalLoading: true, originalError: null, original: null, originalFrames: new Map() })
     try {
       const info = await probeVideo(file)
+      if (pendingOriginal !== file) return
       set({ original: { file, info }, originalLoading: false })
     } catch (e) {
+      if (pendingOriginal !== file) return
       set({ originalLoading: false, originalError: e instanceof Error ? e.message : String(e) })
     }
   },
 
-  clearOriginal: () => set({ original: null, originalError: null, originalFrames: new Map() }),
+  clearOriginal: () => {
+    pendingOriginal = null
+    set({ original: null, originalError: null, originalFrames: new Map() })
+  },
 
   resolveFrames: async () => {
     const { settings, outputFrames, original } = get()
@@ -275,7 +287,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
         const extracted = await extractFrames(original.file, need.map((f) => frameTimestamp(f, settings.fps)))
         originalFrames = new Map(originalFrames)
         extracted.forEach((e, i) => originalFrames.set(need[i], e.blob))
-        set({ originalFrames })
+        // Keep the cache only if it is still the same video; the frames are right for this call either way.
+        if (get().original === original) set({ originalFrames })
       }
     }
 
@@ -315,144 +328,10 @@ export const useScanStore = create<ScanState>((set, get) => ({
     return { frames, sources }
   },
 
-  importScans: async (files) => {
-    const images = files.filter(isImageFile).sort((a, b) => compareNames(a.name, b.name))
-    if (images.length === 0) {
-      set({ importError: t().scan.errChooseImages })
-      return
-    }
-    set({ importing: true, importError: null, skippedDuplicates: [] })
-    // The same file added twice brings nothing; drop it and say so. Hashing is quick next to decoding.
-    const hashed = await Promise.all(images.map(async (file) => ({ file, hash: await hashBlob(file).catch(() => null) })))
-    const existing = new Map<string, string>()
-    for (const x of get().scans) if (x.hash) existing.set(x.hash, x.name)
-    const { fresh, skipped } = splitDuplicateFiles(hashed, existing)
-    set({ skippedDuplicates: skipped })
-    if (fresh.length === 0) {
-      set({ importing: false })
-      return
-    }
-    const hashOf = new Map(hashed.map((h) => [h.file, h.hash]))
-    warmUpWarpPool()
-    const items = fresh.map((file): ScanItem => ({
-      id: `scan-${nextId++}`,
-      file,
-      name: file.name,
-      url: URL.createObjectURL(file),
-      width: 0,
-      height: 0,
-      qr: null,
-      qrRect: null,
-      qrNote: null,
-      page: null,
-      pageSource: null,
-      corners: {},
-      cornerSource: null,
-      missingCorners: [],
-      detectedCorners: {},
-      status: 'reading',
-      error: null,
-      fitError: null,
-      rotation: 0,
-      hash: hashOf.get(file) ?? null,
-    }))
-    set((s) => ({ scans: [...s.scans, ...items], selectedId: s.selectedId ?? items[0].id }))
-    // Find the project settings before analysing anything, so pages ahead of the first readable QR get a layout too.
-    const quickQr = new Map<File, QrReadResult>()
-    if (!get().settings) {
-      const lap = stopwatch('settings pass')
-      for (const file of fresh) {
-        try {
-          const bitmap = await loadBitmap(file)
-          const qr = readPageQr(bitmap, QR_QUICK_PASSES)
-          bitmap.close()
-          lap(file.name)
-          quickQr.set(file, qr)
-          if (qr.ok) {
-            set({ settings: settingsFromQr(qr.payload), settingsSource: 'qr' })
-            break
-          }
-        } catch {
-          // The page itself reports the problem when it is analysed below.
-        }
-      }
-    }
-    for (const item of items) {
-      const { id, file } = item
-      try {
-        set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
-        const { file: scanFile, width, height, qr, detected, markerPage, rotation } = await prepareScan(file, get().settings, { autoRotate: true, quickQr: quickQr.get(file) })
-        const url = scanFile === file ? item.url : URL.createObjectURL(scanFile)
-        if (url !== item.url) URL.revokeObjectURL(item.url)
-        set((s) => {
-          let settings = s.settings
-          let settingsSource = s.settingsSource
-          let qrNote: string | null = qr.ok ? null : qr.error
-          let page: number | null = null
-          let pageSource: ScanItem['pageSource'] = null
-          if (qr.ok) {
-            const first = s.scans.find((x) => x.qr)?.qr
-            if (first && !sameProject(first, qr.payload)) {
-              qrNote = t().scan.errOtherProject(qr.payload.p)
-            } else {
-              if (!settings || settingsSource !== 'qr') {
-                settings = settingsFromQr(qr.payload)
-                settingsSource = 'qr'
-              }
-              page = qr.payload.pg
-              pageSource = 'qr'
-            }
-          }
-          if (page === null && markerPage !== null && settings && markerPage <= settings.pageCount) {
-            page = markerPage
-            pageSource = 'marker'
-          }
-          if (page === null && settings) {
-            // Fall back to import order for pages without a readable QR.
-            page = firstUnusedPage(s.scans, id, settings.pageCount)
-            if (page !== null) pageSource = 'order'
-          }
-          const corners = detected?.corners ?? {}
-          const scans = s.scans.map((x) =>
-            x.id === id
-              ? statusUpdate({
-                  ...x,
-                  file: scanFile,
-                  url,
-                  width,
-                  height,
-                  rotation,
-                  qr: qr.ok ? qr.payload : null,
-                  qrRect: qr.ok ? bbox([qr.corners.topLeft, qr.corners.topRight, qr.corners.bottomRight, qr.corners.bottomLeft]) : null,
-                  qrNote,
-                  page,
-                  pageSource,
-                  corners,
-                  cornerSource: detected ? 'auto' : null,
-                  missingCorners: detected?.missing ?? [],
-                  detectedCorners: detected?.corners ?? {},
-                  status: 'needs_corners',
-                })
-              : x,
-          )
-          return { scans, settings, settingsSource }
-        })
-        // Everything found: cut the page out right away.
-        const after = get().scans.find((x) => x.id === id)
-        if (after && after.status === 'ready') await get().applyScan(id)
-      } catch (e) {
-        set((s) => ({
-          scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)),
-        }))
-      }
-    }
-    // Pages read before any QR fixed the settings had no layout to work with; give them one now.
-    if (get().settings) {
-      for (const x of get().scans) {
-        if (x.page === null && x.status !== 'applied' && x.status !== 'applying' && x.status !== 'error') await reanalyze(x.id, { autoRotate: true })
-      }
-    }
-    set({ importing: false })
+  importScans: (files) => {
+    const turn = importQueue.then(() => importBatch(files))
+    importQueue = turn.catch(() => undefined)
+    return turn
   },
 
   removeScan: (id) => {
@@ -509,6 +388,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
   clearSettings: () => set({ settings: null, settingsSource: null }),
 
   clearScans: () => {
+    generation++
     for (const item of get().scans) URL.revokeObjectURL(item.url)
     set((s) => ({
       scans: [],
@@ -524,6 +404,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
   },
 
   reset: () => {
+    generation++
+    pendingOriginal = null
     for (const item of get().scans) URL.revokeObjectURL(item.url)
     set({
       settings: null,
@@ -574,6 +456,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
       const blobs = await warpCells(rgba, h, jobs)
       lap(`warp ${jobs.length}`)
       set((s) => {
+        // Removed while its cells were being cut: the frames went with it.
+        if (!s.scans.some((x) => x.id === id)) return {}
         const outputFrames = new Map(s.outputFrames)
         // Drop frames previously produced by this scan (page may have changed).
         for (const [f, o] of outputFrames) if (o.scanId === id) outputFrames.delete(f)
@@ -585,6 +469,160 @@ export const useScanStore = create<ScanState>((set, get) => ({
     }
   },
 }))
+
+/** One import: hash, read the QR, find the markers and cut every page that comes out complete. */
+async function importBatch(files: File[]): Promise<void> {
+  const { set, get } = { set: useScanStore.setState, get: useScanStore.getState }
+  const images = files.filter(isImageFile).sort((a, b) => compareNames(a.name, b.name))
+  if (images.length === 0) {
+    set({ importError: t().scan.errChooseImages })
+    return
+  }
+  set({ importing: true, importError: null, skippedDuplicates: [] })
+  const gen = generation
+  /** Whether the page is still in the list; `reset`, `clearScans` and `removeScan` can take it out while it is being read. */
+  const listed = (id: string) => generation === gen && get().scans.some((x) => x.id === id)
+  // The same file added twice brings nothing; drop it and say so. Hashing is quick next to decoding.
+  const hashed = await Promise.all(images.map(async (file) => ({ file, hash: await hashBlob(file).catch(() => null) })))
+  const existing = new Map<string, string>()
+  for (const x of get().scans) if (x.hash) existing.set(x.hash, x.name)
+  const { fresh, skipped } = splitDuplicateFiles(hashed, existing)
+  set({ skippedDuplicates: skipped })
+  if (fresh.length === 0) {
+    set({ importing: false })
+    return
+  }
+  const hashOf = new Map(hashed.map((h) => [h.file, h.hash]))
+  warmUpWarpPool()
+  const items = fresh.map((file): ScanItem => ({
+    id: `scan-${nextId++}`,
+    file,
+    name: file.name,
+    url: URL.createObjectURL(file),
+    width: 0,
+    height: 0,
+    qr: null,
+    qrRect: null,
+    qrNote: null,
+    page: null,
+    pageSource: null,
+    corners: {},
+    cornerSource: null,
+    missingCorners: [],
+    detectedCorners: {},
+    status: 'reading',
+    error: null,
+    fitError: null,
+    rotation: 0,
+    hash: hashOf.get(file) ?? null,
+  }))
+  set((s) => ({ scans: [...s.scans, ...items], selectedId: s.selectedId ?? items[0].id }))
+  // Find the project settings before analysing anything, so pages ahead of the first readable QR get a layout too.
+  const quickQr = new Map<File, QrReadResult>()
+  if (!get().settings) {
+    const lap = stopwatch('settings pass')
+    for (const file of fresh) {
+      try {
+        const bitmap = await loadBitmap(file)
+        if (generation !== gen) {
+          bitmap.close()
+          return
+        }
+        const qr = readPageQr(bitmap, QR_QUICK_PASSES)
+        bitmap.close()
+        lap(file.name)
+        quickQr.set(file, qr)
+        if (qr.ok) {
+          set({ settings: settingsFromQr(qr.payload), settingsSource: 'qr' })
+          break
+        }
+      } catch {
+        // The page itself reports the problem when it is analysed below.
+      }
+    }
+  }
+  for (const item of items) {
+    const { id, file } = item
+    if (generation !== gen) return
+    if (!listed(id)) continue
+    try {
+      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
+      const { file: scanFile, width, height, qr, detected, markerPage, rotation } = await prepareScan(file, get().settings, { autoRotate: true, quickQr: quickQr.get(file) })
+      // Removed while it was being read: its URL is already revoked and nothing must be written back.
+      if (!listed(id)) continue
+      const url = scanFile === file ? item.url : URL.createObjectURL(scanFile)
+      if (url !== item.url) URL.revokeObjectURL(item.url)
+      set((s) => {
+        let settings = s.settings
+        let settingsSource = s.settingsSource
+        let qrNote: string | null = qr.ok ? null : qr.error
+        let page: number | null = null
+        let pageSource: ScanItem['pageSource'] = null
+        if (qr.ok) {
+          const first = s.scans.find((x) => x.qr)?.qr
+          if (first && !sameProject(first, qr.payload)) {
+            qrNote = t().scan.errOtherProject(qr.payload.p)
+          } else {
+            if (!settings || settingsSource !== 'qr') {
+              settings = settingsFromQr(qr.payload)
+              settingsSource = 'qr'
+            }
+            page = qr.payload.pg
+            pageSource = 'qr'
+          }
+        }
+        if (page === null && markerPage !== null && settings && markerPage <= settings.pageCount) {
+          page = markerPage
+          pageSource = 'marker'
+        }
+        if (page === null && settings) {
+          // Fall back to import order for pages without a readable QR.
+          page = firstUnusedPage(s.scans, id, settings.pageCount)
+          if (page !== null) pageSource = 'order'
+        }
+        const corners = detected?.corners ?? {}
+        const scans = s.scans.map((x) =>
+          x.id === id
+            ? statusUpdate({
+                ...x,
+                file: scanFile,
+                url,
+                width,
+                height,
+                rotation,
+                qr: qr.ok ? qr.payload : null,
+                qrRect: qr.ok ? bbox([qr.corners.topLeft, qr.corners.topRight, qr.corners.bottomRight, qr.corners.bottomLeft]) : null,
+                qrNote,
+                page,
+                pageSource,
+                corners,
+                cornerSource: detected ? 'auto' : null,
+                missingCorners: detected?.missing ?? [],
+                detectedCorners: detected?.corners ?? {},
+                status: 'needs_corners',
+              })
+            : x,
+        )
+        return { scans, settings, settingsSource }
+      })
+      // Everything found: cut the page out right away.
+      const after = get().scans.find((x) => x.id === id)
+      if (after && after.status === 'ready') await get().applyScan(id)
+    } catch (e) {
+      set((s) => ({
+        scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: e instanceof Error ? e.message : String(e) } : x)),
+      }))
+    }
+  }
+  if (generation !== gen) return
+  // Pages read before any QR fixed the settings had no layout to work with; give them one now.
+  if (get().settings) {
+    for (const x of get().scans) {
+      if (x.page === null && x.status !== 'applied' && x.status !== 'applying' && x.status !== 'error') await reanalyze(x.id, { autoRotate: true })
+    }
+  }
+  set({ importing: false })
+}
 
 function statusUpdate(item: ScanItem): ScanItem {
   return { ...item, status: statusFor(item) }
@@ -598,6 +636,8 @@ async function reanalyze(id: string, options: { forceTurns?: number; autoRotate:
   set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting', error: null } : x)) }))
   try {
     const { file, width, height, qr, detected, markerPage, rotation } = await prepareScan(item.file, get().settings, options)
+    // Removed meanwhile: its URL is already revoked and nothing must be written back.
+    if (!get().scans.some((x) => x.id === id)) return
     const url = file === item.file ? item.url : URL.createObjectURL(file)
     if (url !== item.url) URL.revokeObjectURL(item.url)
     set((s) => ({

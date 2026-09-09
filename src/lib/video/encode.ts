@@ -74,29 +74,29 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
   /** Where the source's video starts: frame 1 was taken there, so the audio has to start there too. */
   let videoStart = 0
 
-  if (options.audioFrom) {
-    audioInput = new Input({ formats: ALL_FORMATS, source: new BlobSource(options.audioFrom) })
-    const track = await audioInput.getPrimaryAudioTrack()
-    const videoTrack = await audioInput.getPrimaryVideoTrack()
-    if (videoTrack) videoStart = await videoTrack.getFirstTimestamp()
-    if (!track) audioNote = t().errors.noAudioTrack
-    else if (!track.codec) audioNote = t().errors.unknownAudioCodec
-    else {
-      audioCodec = track.codec
-      audioDecoderConfig = await track.getDecoderConfig()
-      audioTrackForPackets = track
-      audioSource = new EncodedAudioPacketSource(track.codec)
-      output.addAudioTrack(audioSource)
-    }
-  }
-
-  await output.start()
-
   const canvas = new OffscreenCanvas(width, height)
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('canvas context unavailable')
 
   try {
+    if (options.audioFrom) {
+      audioInput = new Input({ formats: ALL_FORMATS, source: new BlobSource(options.audioFrom) })
+      const track = await audioInput.getPrimaryAudioTrack()
+      const videoTrack = await audioInput.getPrimaryVideoTrack()
+      if (videoTrack) videoStart = await videoTrack.getFirstTimestamp()
+      if (!track) audioNote = t().errors.noAudioTrack
+      else if (!track.codec) audioNote = t().errors.unknownAudioCodec
+      else {
+        audioCodec = track.codec
+        audioDecoderConfig = await track.getDecoderConfig()
+        audioTrackForPackets = track
+        audioSource = new EncodedAudioPacketSource(track.codec)
+        output.addAudioTrack(audioSource)
+      }
+    }
+
+    await output.start()
+
     for (let i = 0; i < frames.length; i++) {
       if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError')
       const bitmap = await createImageBitmap(frames[i])
@@ -134,6 +134,10 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
     }
 
     await output.finalize()
+  } catch (e) {
+    // Whatever failed (a bad source, an abort, an encoder error): release the encoder instead of leaving it open.
+    await output.cancel().catch(() => undefined)
+    throw e
   } finally {
     await audioInput?.dispose()
   }

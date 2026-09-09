@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useScanStore } from '../../app/scanStore'
 import { useAppStore } from '../../app/store'
 import { Button } from '../../components/ui/Button'
@@ -16,7 +17,8 @@ export function ScanStep() {
   const t = useT()
   const allDone = settings !== null && outputFrames.size >= settings.frameCount
   const selected = scans.find((s) => s.id === selectedId) ?? null
-  const layout = settings ? layoutFromSettings(settings) : null
+  // Memoised so the corner picker, which redraws when the layout changes, does not redraw on every store update.
+  const layout = useMemo(() => (settings ? layoutFromSettings(settings) : null), [settings])
 
   if (scans.length === 0 && !settings) return <ScanEmpty />
 
