@@ -28,7 +28,7 @@ export const en = {
     haveDrawnBody: 'The settings are in the QR code on every page, so you can start from Scan without loading the video.',
     importScans: 'Import scanned pages',
     tryTitle: 'No video? Try the sample',
-    tryBody: 'Loads a 5-second sample clip, imports the printed pages as if they were scans, and goes all the way to the animation.',
+    tryBody: 'Loads a 5-second sample clip, imports the printed pages as if they were scans, and stops at Scan, where you can look at the pages before going on to Animate.',
     trySample: 'Try the sample',
     loadedTitle: 'Make the print pages',
     loadedIntro: 'The video is split into frames and laid out on A4. Files never leave this browser.',
