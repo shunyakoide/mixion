@@ -18,7 +18,13 @@ import {
   type Paper,
 } from './layout'
 
-export const QR_VERSION = 1
+/**
+ * QR payload version. Version 1 was JSON; version 2 is a short `/`-separated
+ * string, so a typical project needs a 25-module code instead of a 41-module
+ * one and each module prints about 1.6× larger in the same 16 mm square.
+ * Both versions are still read; the page layout did not change between them.
+ */
+export const QR_VERSION = 2
 
 /** Unambiguous alphabet for project ids (no 0/O, 1/I/l). */
 const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
@@ -80,11 +86,11 @@ export function layoutFromSettings(settings: ProjectSettings): Layout {
   return computeLayout({ paper: settings.paper, grid: settings.grid, dims: settings.dims })
 }
 
-/** Compact JSON printed inside the QR code on each page. Keys are short on purpose. */
+/** What every page carries. Keys are short on purpose (they are the v1 JSON keys). */
 const qrPayloadSchema = z
   .object({
-    /** layout/QR schema version */
-    v: z.literal(QR_VERSION),
+    /** QR payload version */
+    v: z.union([z.literal(1), z.literal(2)]),
     /** project id */
     p: z.string().regex(/^[A-Za-z0-9]{4,8}$/),
     /** this page (1-based) */
@@ -122,24 +128,63 @@ export function buildQrPayload(settings: ProjectSettings, page: number): QrPaylo
   }
 }
 
+/**
+ * Text printed in the QR: `2/<project>/<page>/<frames>/<fps>/<grid>/<width>x<height>`.
+ * Page count and the frame range are left out because they follow from the rest.
+ */
 export function encodeQrPayload(settings: ProjectSettings, page: number): string {
-  return JSON.stringify(buildQrPayload(settings, page))
+  const p = buildQrPayload(settings, page)
+  return [p.v, p.p, p.pg, p.n, p.fps, p.g, `${p.d[0]}x${p.d[1]}`].join('/')
 }
 
 export type DecodeResult = { ok: true; payload: QrPayload } | { ok: false; error: string }
 
-/**
- * Parse and validate QR text. Also checks internal consistency, so a payload
- * that was damaged in a way that still parses is rejected.
- */
-export function decodeQrPayload(text: string): DecodeResult {
+type RawResult = { ok: true; value: unknown } | { ok: false; error: string }
+
+/** Version 1: the payload as JSON. */
+function parseJsonPayload(text: string): RawResult {
   let json: unknown
   try {
     json = JSON.parse(text)
   } catch {
     return { ok: false, error: 'not JSON' }
   }
-  const parsed = qrPayloadSchema.safeParse(json)
+  const v = typeof json === 'object' && json !== null ? (json as { v?: unknown }).v : undefined
+  if (v !== 1) return { ok: false, error: `unsupported version ${String(v)}` }
+  return { ok: true, value: json }
+}
+
+/** Version 2: `2/<project>/<page>/<frames>/<fps>/<grid>/<width>x<height>`. */
+function parseCompactPayload(text: string): RawResult {
+  const parts = text.trim().split('/')
+  if (parts.length !== 7) return { ok: false, error: 'not a Mixion payload' }
+  const [v, p, pg, n, fps, g, d] = parts
+  if (v !== '2') return { ok: false, error: `unsupported version ${v}` }
+  const int = (s: string) => (/^\d{1,6}$/.test(s) ? Number(s) : NaN)
+  const dims = /^(\d{1,5})x(\d{1,5})$/.exec(d)
+  const grid = parseGrid(g)
+  const page = int(pg)
+  const total = int(n)
+  if (!grid || !dims || !Number.isFinite(page) || !Number.isFinite(total) || !Number.isFinite(int(fps))) {
+    return { ok: false, error: 'malformed fields' }
+  }
+  if (page < 1 || total < 1) return { ok: false, error: 'page or frame count out of range' }
+  const perPage = framesPerPage(grid)
+  const f = frameRangeOnPage(page, perPage, total)
+  if (!f) return { ok: false, error: 'page number exceeds page count' }
+  const value: QrPayload = { v: 2, p, pg: page, of: pageCount(total, perPage), f, n: total, fps: int(fps), g, d: [Number(dims[1]), Number(dims[2])] }
+  return { ok: true, value }
+}
+
+/**
+ * Parse and validate QR text in either version. Also checks internal
+ * consistency, so a payload that was damaged in a way that still parses is
+ * rejected.
+ */
+export function decodeQrPayload(text: string): DecodeResult {
+  const raw = text.trimStart().startsWith('{') ? parseJsonPayload(text) : parseCompactPayload(text)
+  if (!raw.ok) return raw
+  const parsed = qrPayloadSchema.safeParse(raw.value)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') }
   }
