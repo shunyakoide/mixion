@@ -80,6 +80,12 @@ export const en = {
     pagesUnit: (landscape: boolean) => `pages · A4 ${landscape ? 'landscape' : 'portrait'}`,
     loadVideoFirst: 'Load a video to see the page count',
   },
+  unsupported: {
+    title: 'This browser cannot run Mixion',
+    body: 'Mixion decodes and encodes video inside the browser with WebCodecs, which this browser does not provide. Please open it in a recent Chrome, Edge, Safari (16.4 or later) or Firefox (130 or later).',
+    insecure: 'The video features Mixion needs are only available on secure pages. Open it from an https:// address.',
+    missing: 'Missing:',
+  },
   app: {
     cannotDecode: (codec: string | null) => `This browser cannot decode ${codec ?? 'this'} video`,
     extractingFrames: 'Extracting frames',

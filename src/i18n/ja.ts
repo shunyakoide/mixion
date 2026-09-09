@@ -81,6 +81,12 @@ export const ja: Dict = {
     pagesUnit: (landscape) => `ページ · A4 ${landscape ? '横' : '縦'}`,
     loadVideoFirst: '動画を読み込むと枚数が表示されます',
   },
+  unsupported: {
+    title: 'このブラウザでは Mixion を実行できません',
+    body: 'Mixion は WebCodecs を使ってブラウザの中で動画をデコード・エンコードしますが、このブラウザにはその機能がありません。最新の Chrome、Edge、Safari（16.4 以降）、Firefox（130 以降）で開いてください。',
+    insecure: 'Mixion に必要な動画機能は安全なページでしか使えません。https:// のアドレスから開いてください。',
+    missing: '不足している機能:',
+  },
   app: {
     cannotDecode: (codec) => `このブラウザでは ${codec ?? '不明な'} コーデックの動画をデコードできません`,
     extractingFrames: 'フレームを抽出中',
