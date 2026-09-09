@@ -8,6 +8,7 @@
  */
 import { z } from 'zod'
 import { frameCount, frameRangeOnPage, framesPerPage, pageCount } from './frameMap'
+import { MAX_MARKER_PAGES } from './markers'
 import {
   computeLayout,
   formatGrid,
@@ -19,10 +20,13 @@ import {
 } from './layout'
 
 /**
- * QR payload version. Version 1 was JSON; version 2 is a short `/`-separated
- * string, so a typical project needs a 25-module code instead of a 41-module
- * one and each module prints about 1.6× larger in the same 16 mm square.
- * Both versions are still read; the page layout did not change between them.
+ * Version of the printed page: the QR payload and the layout it describes.
+ * Version 1 was JSON; version 2 is a short `/`-separated string, so a typical
+ * project needs a 25-module code instead of a 41-module one and each module
+ * prints about 1.6× larger in the same 16 mm square. Both versions are still
+ * read; the page layout did not change between them. A change that moves the
+ * markers, cells or QR needs a new version too, even if the fields stay the
+ * same, since the scan side rebuilds the layout from this payload alone.
  */
 export const QR_VERSION = 2
 
@@ -67,10 +71,25 @@ export function isValidFps(fps: number): boolean {
   return Number.isInteger(fps) && fps >= FPS_MIN && fps <= FPS_MAX
 }
 
+/** Pages a project can have: every page carries four corner markers of its own. */
+export const MAX_PAGES = MAX_MARKER_PAGES
+
+export type SettingsProblem = 'tooShort' | 'tooManyPages'
+
+/** Why a video cannot be printed with these settings, if it cannot. */
+export function settingsProblem(input: Pick<CreateSettingsInput, 'fps' | 'grid' | 'duration'>): SettingsProblem | null {
+  const total = frameCount(input.duration, input.fps)
+  if (total === 0) return 'tooShort'
+  if (pageCount(total, framesPerPage(input.grid)) > MAX_PAGES) return 'tooManyPages'
+  return null
+}
+
 export function createProjectSettings(input: CreateSettingsInput): ProjectSettings {
   if (!isValidFps(input.fps)) throw new Error(`fps must be an integer between ${FPS_MIN} and ${FPS_MAX}`)
+  const problem = settingsProblem(input)
+  if (problem === 'tooShort') throw new Error('video is too short or duration is unknown')
+  if (problem === 'tooManyPages') throw new Error(`more than ${MAX_PAGES} pages: the corner markers cannot label them`)
   const total = frameCount(input.duration, input.fps)
-  if (total === 0) throw new Error('video is too short or duration is unknown')
   return {
     projectId: input.projectId ?? generateProjectId(),
     paper: input.paper ?? 'A4',

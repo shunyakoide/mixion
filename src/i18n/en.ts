@@ -79,6 +79,8 @@ export const en = {
     framesUnit: 'frames',
     pagesUnit: (landscape: boolean) => `pages · A4 ${landscape ? 'landscape' : 'portrait'}`,
     loadVideoFirst: 'Load a video to see the page count',
+    tooShort: 'The video is too short for a single frame',
+    tooManyPages: (max: number) => `More than ${max} pages. Lower the frame rate or choose more frames per page.`,
   },
   unsupported: {
     title: 'This browser cannot run Mixion',

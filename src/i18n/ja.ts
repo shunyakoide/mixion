@@ -80,6 +80,8 @@ export const ja: Dict = {
     framesUnit: 'コマ',
     pagesUnit: (landscape) => `ページ · A4 ${landscape ? '横' : '縦'}`,
     loadVideoFirst: '動画を読み込むと枚数が表示されます',
+    tooShort: '動画が短すぎてコマを切り出せません',
+    tooManyPages: (max) => `${max} ページを超えています。フレームレートを下げるか、1 ページのコマ数を増やしてください。`,
   },
   unsupported: {
     title: 'このブラウザでは Mixion を実行できません',
