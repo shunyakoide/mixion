@@ -361,8 +361,9 @@ describe('ink spread', () => {
     const painted = spreadInk(paintPrintedPage(large, largeLayout, MAX_PAGES, PAINT_PX_PER_MM))
     const scan = scanPage(painted, PAINT_PX_PER_MM, largeLayout, { dpi: 300, rotateDeg: -1.5, paddingMm: 6 })
     const qr = readQrFromRgba(scan.image, QR_QUICK_PASSES)
-    expect(qr.ok && qr.payload.pg).toBe(MAX_PAGES)
-    expect(qr.ok && settingsFromQr(qr.payload)).toEqual(large)
+    if (!qr.ok) throw new Error(`QR not read: ${qr.failure.kind}`)
+    expect(qr.payload.pg).toBe(MAX_PAGES)
+    expect(settingsFromQr(qr.payload)).toEqual(large)
   })
 })
 
