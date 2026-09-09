@@ -24,7 +24,7 @@ Mixed Media Animation は、実写動画のコマの上に 1 枚ずつ紙の上�
 
 ## 動作環境
 
-- Chrome または Edge。動画に WebCodecs、保存ダイアログに File System Access API を使うため、Safari と Firefox は今のところ非対応です。
+- WebCodecs のあるブラウザ。Chrome または Edge 94 以降、Safari 16.4 以降、Firefox 130 以降です。iPhone の Safari では Scan と Animate、GIF の保存まで動きます。iPhone での MP4 書き出しはまだ試していません。古いブラウザではアプリの代わりに案内が表示されます。PDF・MP4・GIF の保存ダイアログは Chrome と Edge だけで、ほかのブラウザではダウンロードフォルダに保存されます。
 - A4 が印刷できるプリンターと、スキャナーかスマホのカメラ。
 
 UI は英語と日本語です。アプリがブラウザに保存するのは選んだ言語だけです。

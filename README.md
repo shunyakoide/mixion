@@ -24,7 +24,7 @@ It runs entirely in your browser. There is no server, no account and nothing to 
 
 ## Requirements
 
-- Chrome or Edge. Mixion uses WebCodecs for video and the File System Access API for save dialogs; Safari and Firefox are not supported yet.
+- A browser with WebCodecs: Chrome or Edge 94 or later, Safari 16.4 or later, or Firefox 130 or later. On iPhone, Safari runs the Scan and Animate steps and saves GIFs; MP4 export there has not been tested yet. Older browsers get a message instead of the app. The save dialog for PDF, MP4 and GIF exists only in Chrome and Edge; other browsers put the file in Downloads.
 - A printer for A4 paper and a scanner, or a phone camera.
 
 The interface is in English and Japanese. The chosen language is the only thing the app stores in the browser.

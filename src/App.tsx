@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { Steps } from './app/Steps'
+import { Unsupported } from './app/Unsupported'
 import { useAppStore } from './app/store'
 import { useStartOver } from './app/useStartOver'
 import { useUnloadGuard } from './app/useUnloadGuard'
@@ -8,11 +10,13 @@ import { AnimateStep } from './features/animate/AnimateStep'
 import { PrintStep } from './features/print/PrintStep'
 import { ScanStep } from './features/scan/ScanStep'
 import { Logo } from './components/ui/Logo'
+import { missingFeatures } from './lib/support'
 
 export default function App() {
   const step = useAppStore((s) => s.step)
   const t = useT()
   const goHome = useStartOver()
+  const missing = useMemo(() => missingFeatures(), [])
   useUnloadGuard()
   return (
     <div className="min-h-screen bg-paper text-ink">
@@ -32,7 +36,7 @@ export default function App() {
         </div>
       </header>
       <main className="mx-auto max-w-[1280px] px-4 pb-16 pt-7 sm:px-6 sm:pt-9">
-        {step === 'print' ? <PrintStep /> : step === 'scan' ? <ScanStep /> : <AnimateStep />}
+        {missing.length > 0 ? <Unsupported missing={missing} /> : step === 'print' ? <PrintStep /> : step === 'scan' ? <ScanStep /> : <AnimateStep />}
       </main>
     </div>
   )
