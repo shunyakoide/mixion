@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { MarkerGlyph } from './MarkerGlyph'
 import { cornerFromPosition, cornersConsistent } from './cornerGeometry'
 import { checkOrientation } from './orientation'
@@ -10,6 +10,7 @@ import { CORNERS, type Corner, type Layout, type Point } from '../../domain/layo
 import { framesOnPage, framesPerPage } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
 import { useT } from '../../i18n'
+import { pageDuplicates } from './duplicates'
 
 const HIT_RADIUS = { mouse: 14, touch: 28 }
 /** Corner handles and marker outlines: orange so they stand apart from the black-and-white markers and the green frame boxes. */
@@ -41,6 +42,9 @@ interface Props {
  */
 export function CornerPicker({ scan, settings, layout }: Props) {
   const { setCorner, resetCorners, restoreDetectedCorners, setPage, applyScan, rotateScan, redetectScan } = useScanStore()
+  const scans = useScanStore((s) => s.scans)
+  const outputFrames = useScanStore((s) => s.outputFrames)
+  const duplicate = useMemo(() => pageDuplicates(scans, outputFrames, framesPerPage(settings.grid)).get(scan.id) ?? null, [scans, outputFrames, settings.grid, scan.id])
   const t = useT()
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -295,6 +299,16 @@ export function CornerPicker({ scan, settings, layout }: Props) {
           </button>
         </span>
       </div>
+
+      {duplicate && (
+        <div className="flex items-center gap-3 rounded-[14px] bg-warn/10 px-3.5 py-2.5 text-[13px] text-ink" role="status">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-warn font-mono text-xs font-semibold text-white">!</span>
+          <span className="min-w-0 flex-1">{t.scan.duplicatePageNote(duplicate.page, duplicate.others.join(', '))}</span>
+          <span className={['shrink-0 rounded-full px-2.5 py-1 text-xs font-medium', duplicate.inUse ? 'bg-ink text-white' : 'bg-white text-ink-2'].join(' ')}>
+            {duplicate.inUse ? t.scan.duplicateInUse : t.scan.duplicateUnused}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 rounded-[14px] bg-ink px-3.5 py-3 text-sm text-white" aria-live="polite">
         {orientation.kind !== 'ok' ? (

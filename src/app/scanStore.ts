@@ -9,6 +9,8 @@ import { detectMarkers, detectMarkersBlind, type BlindDetectResult } from '../fe
 import { orientationMismatch, quarterTurnsToUpright, rotateQrCorners } from '../features/scan/orientation'
 import { warmUpWarpPool, warpCells } from '../features/scan/warpClient'
 import { bitmapToRgba, compareNames, isImageFile, loadBitmap, rotateBitmap } from '../lib/image'
+import { hashBlob } from '../lib/files'
+import { splitDuplicateFiles, type SkippedDuplicate } from '../features/scan/duplicates'
 import { extractFrames, probeVideo, type VideoInfo } from '../lib/video/decode'
 import { frameTimestamp } from '../domain/frameMap'
 import { stopwatch } from '../lib/timing'
@@ -41,6 +43,8 @@ export interface ScanItem {
   fitError: number | null
   /** Degrees the image was turned clockwise after import so the page reads upright. */
   rotation: number
+  /** SHA-256 of the imported file, so the same image is not added twice. Null when it could not be computed. */
+  hash: string | null
 }
 
 type FrameSource = 'scan' | 'original' | 'hold' | 'blank'
@@ -64,6 +68,9 @@ interface ScanState {
   outputFrames: Map<number, OutputFrame>
   importing: boolean
   importError: string | null
+  /** Files of the last import that were not added because the same image was already in the list. */
+  skippedDuplicates: SkippedDuplicate[]
+  dismissSkipped: () => void
   /** Last export per format (file name), for the step indicator. */
   exported: { mp4: string | null; gif: string | null }
   markExported: (kind: 'mp4' | 'gif', name: string) => void
@@ -233,6 +240,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
   outputFrames: new Map(),
   importing: false,
   importError: null,
+  skippedDuplicates: [],
+  dismissSkipped: () => set({ skippedDuplicates: [] }),
   exported: { mp4: null, gif: null },
   markExported: (kind, name) => set((s) => ({ exported: { ...s.exported, [kind]: name } })),
   original: null,
@@ -312,9 +321,20 @@ export const useScanStore = create<ScanState>((set, get) => ({
       set({ importError: t().scan.errChooseImages })
       return
     }
-    set({ importing: true, importError: null })
+    set({ importing: true, importError: null, skippedDuplicates: [] })
+    // The same file added twice brings nothing; drop it and say so. Hashing is quick next to decoding.
+    const hashed = await Promise.all(images.map(async (file) => ({ file, hash: await hashBlob(file).catch(() => null) })))
+    const existing = new Map<string, string>()
+    for (const x of get().scans) if (x.hash) existing.set(x.hash, x.name)
+    const { fresh, skipped } = splitDuplicateFiles(hashed, existing)
+    set({ skippedDuplicates: skipped })
+    if (fresh.length === 0) {
+      set({ importing: false })
+      return
+    }
+    const hashOf = new Map(hashed.map((h) => [h.file, h.hash]))
     warmUpWarpPool()
-    const items = images.map((file): ScanItem => ({
+    const items = fresh.map((file): ScanItem => ({
       id: `scan-${nextId++}`,
       file,
       name: file.name,
@@ -334,13 +354,14 @@ export const useScanStore = create<ScanState>((set, get) => ({
       error: null,
       fitError: null,
       rotation: 0,
+      hash: hashOf.get(file) ?? null,
     }))
     set((s) => ({ scans: [...s.scans, ...items], selectedId: s.selectedId ?? items[0].id }))
     // Find the project settings before analysing anything, so pages ahead of the first readable QR get a layout too.
     const quickQr = new Map<File, QrReadResult>()
     if (!get().settings) {
       const lap = stopwatch('settings pass')
-      for (const file of images) {
+      for (const file of fresh) {
         try {
           const bitmap = await loadBitmap(file)
           const qr = readPageQr(bitmap, QR_QUICK_PASSES)
@@ -437,11 +458,17 @@ export const useScanStore = create<ScanState>((set, get) => ({
   removeScan: (id) => {
     const item = get().scans.find((x) => x.id === id)
     if (item) URL.revokeObjectURL(item.url)
+    const wasInUse = [...get().outputFrames.values()].some((f) => f.scanId === id)
     set((s) => {
       const outputFrames = new Map([...s.outputFrames].filter(([, f]) => f.scanId !== id))
       const scans = s.scans.filter((x) => x.id !== id)
       return { scans, outputFrames, selectedId: s.selectedId === id ? (scans[0]?.id ?? null) : s.selectedId }
     })
+    // Its frames were cut over another scan of the same page: bring that one's back.
+    if (item && wasInUse && item.page !== null) {
+      const other = get().scans.findLast((x) => x.page === item.page && x.status === 'applied')
+      if (other) void get().applyScan(other.id)
+    }
   },
 
   select: (id) => set({ selectedId: id }),
@@ -489,6 +516,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       outputFrames: new Map(),
       importing: false,
       importError: null,
+      skippedDuplicates: [],
       exported: { mp4: null, gif: null },
       settings: s.settingsSource === 'manual' ? s.settings : null,
       settingsSource: s.settingsSource === 'manual' ? 'manual' : null,
@@ -505,6 +533,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       outputFrames: new Map(),
       importing: false,
       importError: null,
+      skippedDuplicates: [],
       exported: { mp4: null, gif: null },
       original: null,
       originalLoading: false,

@@ -181,6 +181,12 @@ export const ja: Dict = {
     errBadCorners: (msg) => `四隅の位置が不正です (${msg})`,
     errNotMixionQr: (detail) => `QR は読めましたが Mixion の形式ではありません (${detail})`,
     errNoQr: 'QR コードが見つかりません',
+    duplicateSkipped: (n) => `${n} 件は同じ画像がすでにあるので追加しませんでした`,
+    duplicateSameAs: (name) => `${name} と同じ`,
+    duplicatePage: 'ページ重複',
+    duplicateInUse: '使用中',
+    duplicateUnused: '未使用',
+    duplicatePageNote: (page, others) => `P${page} のスキャンが他にもあります（${others}）。最後に切り出したものがこのページに使われます。不要な方を一覧から削除してください。`,
   },
   animate: {
     title: '動画に戻す',
