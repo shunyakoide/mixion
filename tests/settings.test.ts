@@ -10,6 +10,7 @@ import {
   layoutFromSettings,
   MAX_PAGES,
   sameProject,
+  sameSettings,
   settingsFromQr,
   settingsProblem,
 } from '../src/domain/settings'
@@ -164,6 +165,15 @@ describe('decodeQrPayload', () => {
     const r = mutateJson({ n: 41 })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.error.length).toBeGreaterThan(0)
+  })
+})
+
+describe('sameSettings', () => {
+  it('is the same print run only when every cut line matches', () => {
+    expect(sameSettings(goal, { ...goal })).toBe(true)
+    expect(sameSettings(goal, { ...goal, grid: GRID_PRESETS['3x3'] })).toBe(false)
+    expect(sameSettings(goal, { ...goal, fps: 12 })).toBe(false)
+    expect(sameSettings(goal, { ...goal, projectId: 'efgh' })).toBe(false)
   })
 })
 

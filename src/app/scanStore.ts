@@ -17,7 +17,7 @@ import { splitDuplicateFiles, type SkippedDuplicate } from '../domain/scan/dupli
 import { stopwatch } from '../lib/timing'
 
 /** What to say about the QR beside the page number: why it was not read, or that it belongs elsewhere. */
-export type QrNote = QrReadFailure | { kind: 'otherProject'; projectId: string }
+export type QrNote = QrReadFailure | { kind: 'otherProject'; projectId: string } | { kind: 'otherPrint' }
 
 export type ScanStatus = 'reading' | 'detecting' | 'needs_corners' | 'ready' | 'applying' | 'applied' | 'error'
 

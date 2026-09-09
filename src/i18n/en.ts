@@ -181,6 +181,7 @@ export const en = {
     errNoSettings: 'No settings',
     errChooseImages: 'Choose image files (JPEG / PNG)',
     errOtherProject: (p: string) => `This page belongs to another project (${p})`,
+    errOtherPrint: 'Printed with other settings than the pages here',
     errBadCorners: (msg: string) => `The corner positions are invalid (${msg})`,
     errNotMixionQr: (detail: string) => `A QR code was read but it is not a Mixion page (${detail})`,
     errNoQr: 'No QR code found',
