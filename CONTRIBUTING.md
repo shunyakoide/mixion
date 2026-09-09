@@ -29,8 +29,8 @@ A few conventions:
 - `src/domain/` is pure TypeScript with no DOM dependencies and is covered by unit tests in `tests/`. Layout, marker, homography and QR changes belong there, with a test.
 - UI strings live in `src/i18n/en.ts` (source of truth) and `src/i18n/ja.ts`. Add every new key to both; a test fails when they drift.
 - Design tokens (colours, type, radius, shadows) are in `@theme` in `src/index.css`. Prefer them over raw values in components.
-- Nothing may be uploaded or stored. The only browser storage is the locale preference.
-- The printed page layout is versioned (`LAYOUT_VERSION` in `src/domain/layout.ts`, `QR_VERSION` in `src/domain/settings.ts`). A change that moves markers, cells or the QR, or alters the QR payload, needs a version bump so old printouts are recognised as such. QR payload v2 is `2/<project>/<page>/<frames>/<fps>/<grid>/<width>x<height>`; v1 was the same fields as JSON and is still read. Keep the text short: the code sits in a 16 mm square, and a 300 dpi scan of an inkjet print only decodes reliably up to about 29 modules (roughly 40 characters).
+- Nothing may be uploaded. The only browser storage is the locale preference and the export options (size, quality, GIF width); video, frames and scans never leave memory.
+- The printed page is versioned by `QR_VERSION` in `src/domain/settings.ts`. A change that moves markers, cells or the QR, or alters the QR payload, needs a version bump so old printouts are recognised as such: the scan side rebuilds the layout from the payload alone. QR payload v2 is `2/<project>/<page>/<frames>/<fps>/<grid>/<width>x<height>`; v1 was the same fields as JSON and is still read. Keep the text short: the code sits in a 16 mm square, and a 300 dpi scan of an inkjet print only decodes reliably up to about 29 modules (roughly 40 characters).
 
 ## How the code is organised
 
@@ -51,7 +51,7 @@ src/
 | Build | Vite 8, TypeScript 6, Node 24 | dev server, type check, production build; `BASE_PATH` selects the deploy sub-path |
 | UI | React 19, Tailwind CSS v4 | the screens; design tokens live in `@theme` in `src/index.css` |
 | Type | Instrument Sans, Noto Sans JP, JetBrains Mono, Space Grotesk (Google Fonts) | text, Japanese, numbers/IDs/file names, the wordmark |
-| State | zustand | two stores (Print, Scan); nothing persisted except the locale |
+| State | zustand | stores for Print, Scan, export options, the sample run and the locale; only the export options and the locale are persisted (localStorage) |
 | Video | WebCodecs via mediabunny | in-browser decoding (frame extraction) and MP4 encoding (H.264 + original audio) |
 | GIF | gifenc | GIF export |
 | PDF | pdf-lib | the A4 print PDF; shares its painting logic with the canvas preview |
@@ -70,7 +70,7 @@ Use **Try the sample** on the first screen, or **Preview the flow before printin
 
 ## Deployment
 
-`.github/workflows/deploy.yml` builds with `BASE_PATH=/mixion/` on every push to `main` and publishes to GitHub Pages (Settings → Pages → Source must be "GitHub Actions"). To reproduce that build locally:
+The `pages` job in `.github/workflows/ci.yml` builds with `BASE_PATH=/mixion/` on every push to `main`, after lint, tests and the default build have passed, and publishes to GitHub Pages (Settings → Pages → Source must be "GitHub Actions"). To reproduce that build locally:
 
 ```bash
 BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/

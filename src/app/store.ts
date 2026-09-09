@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { t } from '../i18n'
 import { frameTimestamp, framesOnPage, framesPerPage } from '../domain/frameMap'
 import { GRID_PRESETS, coerceGridPreset, type GridPreset, type Layout } from '../domain/layout'
-import { createProjectSettings, generateProjectId, isValidFps, layoutFromSettings, type ProjectSettings } from '../domain/settings'
+import { createProjectSettings, generateProjectId, isValidFps, layoutFromSettings, settingsProblem, type ProjectSettings, type SettingsProblem } from '../domain/settings'
 import { buildPrintPdf } from '../features/print/buildPdf'
 import { renderPageToBlob } from '../features/print/renderPage'
 import { saveAsZip, saveBlob } from '../lib/files'
@@ -61,6 +61,13 @@ export interface AppState extends PrintSlice, Actions {
 }
 
 /** Settings derived from the current print inputs, or null until a video is loaded. */
+/** Why the loaded video cannot be printed with the current fps and grid; null when it can or when nothing is loaded. */
+export function deriveProblem(s: Pick<AppState, 'info' | 'fps' | 'gridKey'>): SettingsProblem | null {
+  if (!s.info || !isValidFps(s.fps)) return null
+  const dims = { width: s.info.width, height: s.info.height }
+  return settingsProblem({ fps: s.fps, grid: GRID_PRESETS[coerceGridPreset(s.gridKey, dims)], duration: s.info.duration })
+}
+
 export function deriveSettings(s: Pick<AppState, 'info' | 'fps' | 'gridKey' | 'projectId'>): ProjectSettings | null {
   if (!s.info || !isValidFps(s.fps)) return null
   const dims = { width: s.info.width, height: s.info.height }

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useScanStore } from './scanStore'
 import { useAppStore } from './store'
 
-/** Warn before leaving when there is work that would be lost (nothing is persisted by design). */
+/** Warn before leaving when there is work that would be lost (video, frames and scans are never persisted). */
 export function useUnloadGuard() {
   const hasVideo = useAppStore((s) => s.file !== null)
   const hasScans = useScanStore((s) => s.scans.length > 0)

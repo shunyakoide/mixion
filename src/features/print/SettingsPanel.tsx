@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { deriveLayout, deriveSettings, useAppStore } from '../../app/store'
+import { deriveLayout, deriveProblem, deriveSettings, useAppStore } from '../../app/store'
 import { gridPresetsAround, gridPresetsFor } from '../../domain/layout'
-import { FPS_MAX, FPS_MIN, FPS_PRESETS, isValidFps } from '../../domain/settings'
+import { FPS_MAX, FPS_MIN, FPS_PRESETS, isValidFps, MAX_PAGES } from '../../domain/settings'
 import { Chip } from '../../components/ui/Chip'
 import { ArrowRight } from '../../components/ui/icons'
 import { useT } from '../../i18n'
@@ -20,6 +20,7 @@ export function SettingsPanel() {
   const busy = status === 'extracting' || status === 'building' || status === 'saving'
   const settings = deriveSettings({ info, fps, gridKey, projectId })
   const layout = deriveLayout(settings)
+  const problem = deriveProblem({ info, fps, gridKey })
   const t = useT()
   const [custom, setCustom] = useState<string>(FPS_PRESETS.includes(fps as (typeof FPS_PRESETS)[number]) ? '' : String(fps))
   const customActive = custom !== '' && Number(custom) === fps
@@ -89,7 +90,9 @@ export function SettingsPanel() {
             <div className="ml-auto self-start font-mono text-xs text-ink-3">{settings.projectId}</div>
           </>
         ) : (
-          <div className="text-sm text-ink-2">{t.settings.loadVideoFirst}</div>
+          <div className={problem ? 'text-sm leading-[22px] text-danger' : 'text-sm text-ink-2'}>
+            {problem === 'tooManyPages' ? t.settings.tooManyPages(MAX_PAGES) : problem === 'tooShort' ? t.settings.tooShort : t.settings.loadVideoFirst}
+          </div>
         )}
       </div>
     </div>

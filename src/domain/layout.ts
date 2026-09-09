@@ -7,8 +7,6 @@
  * Pure TypeScript, no DOM dependencies.
  */
 
-export const LAYOUT_VERSION = 1
-
 export type Paper = 'A4'
 export type Orientation = 'landscape' | 'portrait'
 
@@ -70,7 +68,6 @@ export interface CellLayout {
 }
 
 export interface Layout {
-  version: number
   paper: Paper
   orientation: Orientation
   grid: Grid
@@ -293,7 +290,6 @@ function computeForOrientation(paper: Paper, orientation: Orientation, grid: Gri
   const headerTextPos: Point = { x: tlClear.x + tlClear.w + C.contentGap, y: headerRect.y + 4 }
 
   return {
-    version: LAYOUT_VERSION,
     paper,
     orientation,
     grid,

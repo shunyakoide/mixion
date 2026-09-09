@@ -8,8 +8,10 @@ import {
   encodeQrPayload,
   generateProjectId,
   layoutFromSettings,
+  MAX_PAGES,
   sameProject,
   settingsFromQr,
+  settingsProblem,
 } from '../src/domain/settings'
 
 const HD = { width: 1920, height: 1080 }
@@ -36,6 +38,21 @@ describe('createProjectSettings', () => {
     expect(() => createProjectSettings({ fps: 0, grid: GRID_PRESETS['2x2'], dims: HD, duration: 5 })).toThrow()
     expect(() => createProjectSettings({ fps: 7.5, grid: GRID_PRESETS['2x2'], dims: HD, duration: 5 })).toThrow()
     expect(() => createProjectSettings({ fps: 8, grid: GRID_PRESETS['2x2'], dims: HD, duration: 0 })).toThrow()
+  })
+  it('rejects more pages than the corner markers can label', () => {
+    // 62 pages of 4 frames at 8 fps is 31 s; a frame more needs a 63rd page.
+    expect(createProjectSettings({ fps: 8, grid: GRID_PRESETS['2x2'], dims: HD, duration: 31 }).pageCount).toBe(MAX_PAGES)
+    expect(() => createProjectSettings({ fps: 8, grid: GRID_PRESETS['2x2'], dims: HD, duration: 31.125 })).toThrow(/pages/)
+  })
+})
+
+describe('settingsProblem', () => {
+  it('names what keeps a video from printing', () => {
+    expect(settingsProblem({ fps: 8, grid: GRID_PRESETS['2x2'], duration: 0 })).toBe('tooShort')
+    expect(settingsProblem({ fps: 8, grid: GRID_PRESETS['2x2'], duration: 60 })).toBe('tooManyPages')
+    expect(settingsProblem({ fps: 8, grid: GRID_PRESETS['2x2'], duration: 5 })).toBeNull()
+    // A larger grid brings the same video back under the limit.
+    expect(settingsProblem({ fps: 8, grid: GRID_PRESETS['4x3'], duration: 60 })).toBeNull()
   })
 })
 
@@ -68,9 +85,9 @@ describe('QR payload', () => {
     // The v1 JSON took 41 modules, too dense in 16 mm for a 300 dpi scan of an inkjet print.
     expect(qrModules(encodeQrPayload(goal, 3)).length).toBe(25)
     expect(qrModules(encodeQrPayload(goal, 10)).length).toBeLessThanOrEqual(29)
-    const large = createProjectSettings({ projectId: 'AbCdEfGh', fps: 30, grid: { cols: 10, rows: 10 }, dims: { width: 3840, height: 2160 }, duration: 300 })
-    expect(large.pageCount).toBe(90)
-    expect(qrModules(encodeQrPayload(large, 90)).length).toBeLessThanOrEqual(29)
+    const large = createProjectSettings({ projectId: 'AbCdEfGh', fps: 30, grid: { cols: 10, rows: 10 }, dims: { width: 3840, height: 2160 }, duration: 206 })
+    expect(large.pageCount).toBe(MAX_PAGES)
+    expect(qrModules(encodeQrPayload(large, MAX_PAGES)).length).toBeLessThanOrEqual(29)
   })
   it('round-trips through encode/decode for every page', () => {
     for (let page = 1; page <= goal.pageCount; page++) {
