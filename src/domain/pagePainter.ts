@@ -4,11 +4,11 @@
  * same thing. All coordinates handed to the Painter are millimetres in page
  * space (origin top-left).
  */
-import { frameLabel, framesOnPage, framesPerPage } from '../../domain/frameMap'
-import { insetRect, type CellLayout, type Layout, type MarkerLayout, type Point, type Rect } from '../../domain/layout'
-import { markerId, markerModules } from '../../domain/markers'
-import { encodeQrPayload, type ProjectSettings } from '../../domain/settings'
-import { qrModules } from '../../lib/qr'
+import { frameLabel, framesOnPage, framesPerPage } from './frameMap'
+import { insetRect, type CellLayout, type Layout, type MarkerLayout, type Point, type Rect } from './layout'
+import { markerId, markerModules } from './markers'
+import { encodeQrPayload, type ProjectSettings } from './settings'
+import { qrModules } from './qrEncode'
 
 export interface Color {
   r: number

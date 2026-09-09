@@ -3,7 +3,7 @@ import { useAppStore } from '../../app/store'
 import { Button } from '../../components/ui/Button'
 import { Spinner, Upload } from '../../components/ui/icons'
 import { firstFileFromDrop, formatBytes, isVideoFile } from '../../lib/files'
-import { useObjectUrl } from '../../lib/useObjectUrls'
+import { useObjectUrl } from './useObjectUrls'
 import { useT } from '../../i18n'
 
 /** Page-wide drag target: while a file is dragged anywhere over the window, show where to drop it. */

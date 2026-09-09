@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GRID_PRESETS, rectContains, type Point, type Rect } from '../src/domain/layout'
 import { createProjectSettings, layoutFromSettings } from '../src/domain/settings'
-import { buildPageSpec, paintModules, paintPage, type Color, type Painter } from '../src/features/print/pagePainter'
+import { buildPageSpec, paintModules, paintPage, type Color, type Painter } from '../src/domain/pagePainter'
 
 type Op =
   | { op: 'fillRect'; rect: Rect; color: Color }

@@ -3,7 +3,7 @@ import { PDFDocument } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
 import { GRID_PRESETS, mmToPt } from '../src/domain/layout'
 import { createProjectSettings } from '../src/domain/settings'
-import { buildPrintPdf } from '../src/features/print/buildPdf'
+import { buildPrintPdf } from '../src/lib/print/buildPdf'
 
 /** Minimal valid RGB PNG so the image path gets exercised without fixtures. */
 function tinyPng(width: number, height: number): Uint8Array {
