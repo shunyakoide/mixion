@@ -4,7 +4,7 @@ import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { pageToScanHomography, reprojectionError, type Homography } from '../domain/homography'
 import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, sameProject, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
-import { QR_QUICK_WIDTHS, QR_THOROUGH_WIDTHS, readPageQr, type QrReadResult } from '../features/scan/qrPage'
+import { QR_QUICK_PASSES, QR_THOROUGH_PASSES, readPageQr, type QrReadResult } from '../features/scan/qrPage'
 import { detectMarkers, detectMarkersBlind, type BlindDetectResult } from '../features/scan/detectMarkers'
 import { orientationMismatch, quarterTurnsToUpright, rotateQrCorners } from '../features/scan/orientation'
 import { warmUpWarpPool, warpCells } from '../features/scan/warpClient'
@@ -147,13 +147,13 @@ async function prepareScan(file: File, settings: ProjectSettings | null, options
   const lap = stopwatch(`prepare ${file.name}`)
   let bitmap = await loadBitmap(file)
   lap('decode')
-  let qr: QrReadResult = options.quickQr ?? readPageQr(bitmap, QR_QUICK_WIDTHS)
+  let qr: QrReadResult = options.quickQr ?? readPageQr(bitmap, QR_QUICK_PASSES)
   lap(options.quickQr ? 'qr cached' : 'qr quick')
   let thorough = false
   const readThorough = (current: QrReadResult): QrReadResult => {
     if (current.ok || thorough) return current
     thorough = true
-    const r = readPageQr(bitmap, QR_THOROUGH_WIDTHS, current.tried)
+    const r = readPageQr(bitmap, QR_THOROUGH_PASSES, current.tried)
     lap('qr thorough')
     return r
   }
@@ -343,7 +343,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       for (const file of images) {
         try {
           const bitmap = await loadBitmap(file)
-          const qr = readPageQr(bitmap, QR_QUICK_WIDTHS)
+          const qr = readPageQr(bitmap, QR_QUICK_PASSES)
           bitmap.close()
           lap(file.name)
           quickQr.set(file, qr)

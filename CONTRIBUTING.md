@@ -30,7 +30,7 @@ A few conventions:
 - UI strings live in `src/i18n/en.ts` (source of truth) and `src/i18n/ja.ts`. Add every new key to both; a test fails when they drift.
 - Design tokens (colours, type, radius, shadows) are in `@theme` in `src/index.css`. Prefer them over raw values in components.
 - Nothing may be uploaded or stored. The only browser storage is the locale preference.
-- The printed page layout is versioned (`LAYOUT_VERSION` in `src/domain/layout.ts`, `QR_VERSION` in `src/domain/settings.ts`). A change that moves markers, cells or the QR, or alters the QR payload, needs a version bump so old printouts are recognised as such.
+- The printed page layout is versioned (`LAYOUT_VERSION` in `src/domain/layout.ts`, `QR_VERSION` in `src/domain/settings.ts`). A change that moves markers, cells or the QR, or alters the QR payload, needs a version bump so old printouts are recognised as such. QR payload v2 is `2/<project>/<page>/<frames>/<fps>/<grid>/<width>x<height>`; v1 was the same fields as JSON and is still read. Keep the text short: the code sits in a 16 mm square, and a 300 dpi scan of an inkjet print only decodes reliably up to about 29 modules (roughly 40 characters).
 
 ## How the code is organised
 

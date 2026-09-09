@@ -1,31 +1,49 @@
 import jsQR from 'jsqr'
 import { t } from '../../i18n'
 import { decodeQrPayload, type QrPayload } from '../../domain/settings'
-import { bitmapToRgba } from '../../lib/image'
+import { bitmapToRgba, rgbaToCanvas, thinBlack } from '../../lib/image'
 import type { QrCornersPx } from './detectMarkers'
 
 export type QrReadResult =
   | { ok: true; payload: QrPayload; text: string; corners: QrCornersPx }
-  | { ok: false; error: string; text: string | null; /** Image widths (px) already searched, so a later pass can skip them. */ tried: number[] }
+  | { ok: false; error: string; text: string | null; /** Passes already searched (see `passKey`), so a later call can skip them. */ tried: string[] }
 
-/** Downscaled pass: 1600 px across gives a 16 mm code on A4 about 4 px per module, enough for a clean print. */
-export const QR_QUICK_WIDTHS: (number | undefined)[] = [1600]
-/** Slow passes for a small or blurry code; `undefined` is full resolution. */
-export const QR_THOROUGH_WIDTHS: (number | undefined)[] = [2600, undefined]
+/** One attempt at finding the QR: an image width to search at (undefined = full resolution), optionally after thinning the ink. */
+export interface QrPass {
+  width?: number
+  /** Thin every dark feature by a pixel first (see `thinBlack`); this is what makes an inkjet print readable. */
+  thin?: boolean
+}
 
 /**
- * Find and decode the Mixion QR on a scanned page, trying each width in
- * `widths` (undefined = full resolution) and skipping any already in `tried`.
+ * Downscaled passes: 1600 px across gives a 16 mm code on A4 about 6 px per module.
+ * The plain pass suits a laser print or a digital page; the thinned one an inkjet print, where ink spread makes the black modules bolder.
+ */
+export const QR_QUICK_PASSES: QrPass[] = [{ width: 1600 }, { width: 1600, thin: true }]
+/** Slow passes for a small or blurry code. Thinned first: on a real scan it is the more likely to succeed. */
+export const QR_THOROUGH_PASSES: QrPass[] = [{ width: 2600, thin: true }, { thin: true }, { width: 2600 }, {}]
+
+function passKey(width: number, thin: boolean): string {
+  return thin ? `${width}t` : `${width}`
+}
+
+/**
+ * Find and decode the Mixion QR on a scanned page, trying each pass in
+ * `passes` and skipping any already in `tried`.
  * Corner positions are returned in the bitmap's own pixel coordinates.
  */
-export function readPageQr(bitmap: ImageBitmap, widths: (number | undefined)[] = [...QR_QUICK_WIDTHS, ...QR_THOROUGH_WIDTHS], tried: number[] = []): QrReadResult {
+export function readPageQr(bitmap: ImageBitmap, passes: QrPass[] = [...QR_QUICK_PASSES, ...QR_THOROUGH_PASSES], tried: string[] = []): QrReadResult {
   const done = new Set(tried)
   let lastText: string | null = null
-  for (const maxWidth of widths) {
-    const effective = maxWidth === undefined ? bitmap.width : Math.min(maxWidth, bitmap.width)
-    if (done.has(effective)) continue
-    done.add(effective)
-    const img = bitmapToRgba(bitmap, maxWidth)
+  let thinned: OffscreenCanvas | null = null
+  for (const pass of passes) {
+    const effective = pass.width === undefined ? bitmap.width : Math.min(pass.width, bitmap.width)
+    const key = passKey(effective, pass.thin === true)
+    if (done.has(key)) continue
+    done.add(key)
+    // Thin at full resolution, then downscale: thinning an already downscaled copy takes away too much.
+    if (pass.thin && !thinned) thinned = rgbaToCanvas(thinBlack(bitmapToRgba(bitmap)))
+    const img = bitmapToRgba(pass.thin && thinned ? thinned : bitmap, pass.width)
     const res = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' })
     if (!res) continue
     lastText = res.data

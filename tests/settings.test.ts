@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GRID_PRESETS } from '../src/domain/layout'
+import { qrModules } from '../src/lib/qr'
 import {
   buildQrPayload,
   createProjectSettings,
@@ -49,7 +50,7 @@ describe('generateProjectId', () => {
 describe('QR payload', () => {
   it('builds the expected payload for page 3', () => {
     expect(buildQrPayload(goal, 3)).toEqual({
-      v: 1,
+      v: 2,
       p: 'k7Qz',
       pg: 3,
       of: 10,
@@ -60,8 +61,16 @@ describe('QR payload', () => {
       d: [1920, 1080],
     })
   })
-  it('stays short enough for a small QR', () => {
-    expect(encodeQrPayload(goal, 10).length).toBeLessThan(100)
+  it('encodes as a short slash-separated string', () => {
+    expect(encodeQrPayload(goal, 3)).toBe('2/k7Qz/3/40/8/2x2/1920x1080')
+  })
+  it('needs at most 29 modules, even for a large project', () => {
+    // The v1 JSON took 41 modules, too dense in 16 mm for a 300 dpi scan of an inkjet print.
+    expect(qrModules(encodeQrPayload(goal, 3)).length).toBe(25)
+    expect(qrModules(encodeQrPayload(goal, 10)).length).toBeLessThanOrEqual(29)
+    const large = createProjectSettings({ projectId: 'AbCdEfGh', fps: 30, grid: { cols: 10, rows: 10 }, dims: { width: 3840, height: 2160 }, duration: 300 })
+    expect(large.pageCount).toBe(90)
+    expect(qrModules(encodeQrPayload(large, 90)).length).toBeLessThanOrEqual(29)
   })
   it('round-trips through encode/decode for every page', () => {
     for (let page = 1; page <= goal.pageCount; page++) {
@@ -85,33 +94,57 @@ describe('QR payload', () => {
 
 describe('decodeQrPayload', () => {
   const good = buildQrPayload(goal, 3)
-  const mutate = (patch: Record<string, unknown>) => decodeQrPayload(JSON.stringify({ ...good, ...patch }))
+  const v1 = { ...good, v: 1 }
+  const mutateJson = (patch: Record<string, unknown>) => decodeQrPayload(JSON.stringify({ ...v1, ...patch }))
+  const compact = (parts: (string | number)[]) => decodeQrPayload(parts.join('/'))
 
-  it('rejects non-JSON and foreign QR codes', () => {
+  it('rejects foreign QR codes', () => {
     expect(decodeQrPayload('https://example.com').ok).toBe(false)
     expect(decodeQrPayload('').ok).toBe(false)
     expect(decodeQrPayload('{"hello":"world"}').ok).toBe(false)
+    expect(decodeQrPayload('2/k7Qz/3/40/8/2x2').ok).toBe(false)
+    expect(decodeQrPayload('2/k7Qz/3/40/8/2x2/1920x1080/extra').ok).toBe(false)
   })
-  it('rejects a different version', () => {
-    expect(mutate({ v: 2 }).ok).toBe(false)
+  it('still reads version 1 JSON from older printouts', () => {
+    const r = mutateJson({})
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.payload).toEqual(v1)
+      expect(settingsFromQr(r.payload)).toEqual(goal)
+    }
+  })
+  it('rejects a different version in either format', () => {
+    expect(mutateJson({ v: 2 }).ok).toBe(false)
+    expect(mutateJson({ v: 3 }).ok).toBe(false)
+    expect(compact([1, 'k7Qz', 3, 40, 8, '2x2', '1920x1080']).ok).toBe(false)
+    expect(compact([3, 'k7Qz', 3, 40, 8, '2x2', '1920x1080']).ok).toBe(false)
   })
   it('rejects unknown keys', () => {
-    expect(mutate({ extra: 1 }).ok).toBe(false)
+    expect(mutateJson({ extra: 1 }).ok).toBe(false)
   })
   it('rejects inconsistent page/frame data', () => {
-    expect(mutate({ pg: 11 }).ok).toBe(false)
-    expect(mutate({ f: [9, 13] }).ok).toBe(false)
-    expect(mutate({ f: [5, 8] }).ok).toBe(false)
-    expect(mutate({ of: 9 }).ok).toBe(false)
-    expect(mutate({ n: 41 }).ok).toBe(false)
+    expect(mutateJson({ pg: 11 }).ok).toBe(false)
+    expect(mutateJson({ f: [9, 13] }).ok).toBe(false)
+    expect(mutateJson({ f: [5, 8] }).ok).toBe(false)
+    expect(mutateJson({ of: 9 }).ok).toBe(false)
+    expect(mutateJson({ n: 41 }).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 11, 40, 8, '2x2', '1920x1080']).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 0, 40, 8, '2x2', '1920x1080']).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 1, 0, 8, '2x2', '1920x1080']).ok).toBe(false)
   })
-  it('rejects bad grid or fps', () => {
-    expect(mutate({ g: '2x' }).ok).toBe(false)
-    expect(mutate({ fps: 0 }).ok).toBe(false)
-    expect(mutate({ fps: 8.5 }).ok).toBe(false)
+  it('rejects bad grid, fps, dims or project id', () => {
+    expect(mutateJson({ g: '2x' }).ok).toBe(false)
+    expect(mutateJson({ fps: 0 }).ok).toBe(false)
+    expect(mutateJson({ fps: 8.5 }).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 3, 40, 8, '2x', '1920x1080']).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 3, 40, 0, '2x2', '1920x1080']).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 3, 40, 8.5, '2x2', '1920x1080']).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 3, 40, 8, '2x2', '1920']).ok).toBe(false)
+    expect(compact([2, 'k7', 3, 40, 8, '2x2', '1920x1080']).ok).toBe(false)
+    expect(compact([2, 'k7Qz', 3, 40, 8, '2x2', '0x1080']).ok).toBe(false)
   })
   it('reports an error message', () => {
-    const r = mutate({ n: 41 })
+    const r = mutateJson({ n: 41 })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.error.length).toBeGreaterThan(0)
   })
@@ -122,5 +155,8 @@ describe('sameProject', () => {
     expect(sameProject(buildQrPayload(goal, 1), buildQrPayload(goal, 10))).toBe(true)
     const other = createProjectSettings({ projectId: 'Abcd', fps: 8, grid: GRID_PRESETS['2x2'], dims: HD, duration: 5 })
     expect(sameProject(buildQrPayload(goal, 1), buildQrPayload(other, 1))).toBe(false)
+  })
+  it('treats a version 1 printout as a different run', () => {
+    expect(sameProject(buildQrPayload(goal, 1), { ...buildQrPayload(goal, 2), v: 1 })).toBe(false)
   })
 })
