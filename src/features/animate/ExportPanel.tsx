@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useAnimateStore, type ResolvedFrames } from '../../app/animateStore'
 import { useExportStore } from '../../app/exportStore'
-import { useScanStore, type ResolvedFrames } from '../../app/scanStore'
 import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
 import { gifWidthOptions, MP4_QUALITIES, mp4Bitrate, outputDims, resolveGifWidth, resolveSize, sizeOptionsFor } from '../../domain/exportOptions'
@@ -25,13 +25,16 @@ function OptionRow({ label, note, children }: { label: string; note?: string; ch
 }
 
 export function ExportPanel({ settings, resolved }: { settings: ProjectSettings; resolved: ResolvedFrames | null }) {
-  const original = useScanStore((s) => s.original)
-  const markExported = useScanStore((s) => s.markExported)
+  const original = useAnimateStore((s) => s.original)
+  const markExported = useAnimateStore((s) => s.markExported)
   const options = useExportStore()
   const [withAudio, setWithAudio] = useState(true)
   const [busy, setBusy] = useState<Busy>(null)
   const [note, setNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /** The export in progress. Leaving the screen stops it, so no save dialog turns up elsewhere. */
+  const running = useRef<AbortController | null>(null)
+  useEffect(() => () => running.current?.abort(), [])
   const audioAvailable = !!original?.info.hasAudio
   const audioOn = withAudio && audioAvailable
   const t = useT()
@@ -50,6 +53,9 @@ export function ExportPanel({ settings, resolved }: { settings: ProjectSettings;
     setError(null)
     setNote(null)
     setBusy({ kind, done: 0, total: resolved.frames.length })
+    const controller = new AbortController()
+    running.current = controller
+    const { signal } = controller
     try {
       if (kind === 'mp4') {
         const r = await encodeMp4({
@@ -60,19 +66,24 @@ export function ExportPanel({ settings, resolved }: { settings: ProjectSettings;
           bitrate,
           audioFrom: audioOn ? original?.file : null,
           onProgress: (done, total) => setBusy({ kind, done, total }),
+          signal,
         })
+        if (signal.aborted) return
         const saved = await saveBlob(r.blob, `${base}.mp4`, 'video/mp4')
         if (saved !== 'cancelled') markExported('mp4', `${base}.mp4`)
         setNote(saved === 'cancelled' ? null : t.animate.savedMp4((r.blob.size / 1024 / 1024).toFixed(1), r.audioCopied ? t.common.withAudio : r.audioNote ? describeAudioNote(r.audioNote, t) : null))
       } else {
-        const blob = await encodeGif({ frames: resolved.frames, fps: settings.fps, width: gifWidth, onProgress: (done, total) => setBusy({ kind, done, total }) })
+        const blob = await encodeGif({ frames: resolved.frames, fps: settings.fps, width: gifWidth, onProgress: (done, total) => setBusy({ kind, done, total }), signal })
+        if (signal.aborted) return
         const saved = await saveBlob(blob, `${base}.gif`, 'image/gif')
         if (saved !== 'cancelled') markExported('gif', `${base}.gif`)
         setNote(saved === 'cancelled' ? null : t.animate.savedGif((blob.size / 1024 / 1024).toFixed(1)))
       }
     } catch (e) {
-      setError(describeError(e, t))
+      // A cancelled export is not a failure.
+      if (!signal.aborted) setError(describeError(e, t))
     } finally {
+      if (running.current === controller) running.current = null
       setBusy(null)
     }
   }
@@ -136,7 +147,17 @@ export function ExportPanel({ settings, resolved }: { settings: ProjectSettings;
           </>
         )}
       </Button>
-      <p className="text-center font-mono text-xs text-ink-3">{base}.mp4</p>
+      {busy ? (
+        <button
+          type="button"
+          onClick={() => running.current?.abort()}
+          className="self-center py-1 text-center text-[13px] leading-[18px] text-ink-2 underline underline-offset-2 hover:text-ink"
+        >
+          {t.common.cancel}
+        </button>
+      ) : (
+        <p className="text-center font-mono text-xs text-ink-3">{base}.mp4</p>
+      )}
       {note && <p className="text-[13px] text-ink-2">{note}</p>}
       {error && <p className="text-[13px] text-danger">{error}</p>}
     </div>

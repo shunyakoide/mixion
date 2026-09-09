@@ -215,6 +215,8 @@ export const en = {
     gifWidth: 'GIF width',
     originalOptional: 'Original video (optional)',
     originalDrop: 'Drop it here for audio and to fill in unscanned frames',
+    filling: (done: number, total: number) => `Taking frames from the original ${done} / ${total}`,
+    audioOnly: 'Audio only: this browser cannot decode its video, so no frames are taken from it',
     framesTitle: 'Frames',
     fromScan: (n: number) => `from scans ${n}`,
     fromOriginal: (n: number) => `from the original ${n}`,

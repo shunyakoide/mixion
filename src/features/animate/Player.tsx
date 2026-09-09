@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ResolvedFrames } from '../../app/scanStore'
+import type { ResolvedFrames } from '../../app/animateStore'
 import { Pause, Play } from '../../components/ui/icons'
 import { frameLabel } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'

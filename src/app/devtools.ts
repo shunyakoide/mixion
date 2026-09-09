@@ -8,6 +8,7 @@ import { encodeGif } from '../lib/video/gif'
 import { layoutFromSettings } from '../domain/settings'
 import { deriveSettings, useAppStore } from './store'
 import { useScanStore } from './scanStore'
+import { useAnimateStore } from './animateStore'
 import { decodeMarker, detectMarkersBlind, findMarkerNear } from '../domain/scan/detectMarkers'
 import { bitmapToRgba, loadBitmap } from '../lib/image'
 import { readPageQr } from '../lib/qrPage'
@@ -62,6 +63,6 @@ async function simulateScan(page: number, options: { dpi?: number; rotateDeg?: n
   return { file, markerCentersPx: rendered.markerCentersPx, width: rendered.width, height: rendered.height }
 }
 
-const dev = { renderPageToBlob, imageDiff, simulateScan, deriveSettings, encodeMp4, encodeGif, appStore: useAppStore, scanStore: useScanStore, decodeMarker, detectMarkersBlind, findMarkerNear, bitmapToRgba, loadBitmap, readPageQr, layoutFromSettings }
+const dev = { renderPageToBlob, imageDiff, simulateScan, deriveSettings, encodeMp4, encodeGif, appStore: useAppStore, scanStore: useScanStore, animateStore: useAnimateStore, decodeMarker, detectMarkersBlind, findMarkerNear, bitmapToRgba, loadBitmap, readPageQr, layoutFromSettings }
 ;(window as unknown as { __dev?: typeof dev }).__dev = dev
 export type DevTools = typeof dev

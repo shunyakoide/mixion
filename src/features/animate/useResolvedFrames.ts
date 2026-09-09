@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react'
-import { useScanStore, type ResolvedFrames } from '../../app/scanStore'
+import { useAnimateStore, type ResolvedFrames } from '../../app/animateStore'
+import { useScanStore } from '../../app/scanStore'
+import { isAbort } from '../../lib/abort'
 
 type Deps = readonly [unknown, unknown, unknown]
 
-/** Resolved frame list, recomputed when scans or the original change. */
+/**
+ * Resolved frame list, recomputed when the cut frames, the original or the
+ * settings change. A resolve still taking frames from the original is stopped
+ * when any of them changes or the screen goes away.
+ */
 export function useResolvedFrames(): { resolved: ResolvedFrames | null; loading: boolean } {
   const outputFrames = useScanStore((s) => s.outputFrames)
-  const original = useScanStore((s) => s.original)
   const settings = useScanStore((s) => s.settings)
-  const resolveFrames = useScanStore((s) => s.resolveFrames)
+  const original = useAnimateStore((s) => s.original)
+  const resolveFrames = useAnimateStore((s) => s.resolveFrames)
   const [state, setState] = useState<{ resolved: ResolvedFrames | null; deps: Deps } | null>(null)
 
   const deps: Deps = [outputFrames, original, settings]
@@ -16,17 +22,16 @@ export function useResolvedFrames(): { resolved: ResolvedFrames | null; loading:
 
   useEffect(() => {
     if (!settings) return
-    let cancelled = false
-    void resolveFrames()
+    const controller = new AbortController()
+    void resolveFrames(settings, outputFrames, { signal: controller.signal })
       .then((r) => {
-        if (!cancelled) setState({ resolved: r, deps: [outputFrames, original, settings] })
+        if (!controller.signal.aborted) setState({ resolved: r, deps: [outputFrames, original, settings] })
       })
-      .catch(() => {
-        if (!cancelled) setState({ resolved: null, deps: [outputFrames, original, settings] })
+      .catch((e: unknown) => {
+        // A fill the store stopped (original cleared or replaced) is followed by a new resolve; keep the old frames until then.
+        if (!controller.signal.aborted && !isAbort(e)) setState({ resolved: null, deps: [outputFrames, original, settings] })
       })
-    return () => {
-      cancelled = true
-    }
+    return () => controller.abort()
   }, [outputFrames, original, settings, resolveFrames])
 
   return { resolved: state?.resolved ?? null, loading: !!settings && !fresh }
