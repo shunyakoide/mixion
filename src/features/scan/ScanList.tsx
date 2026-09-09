@@ -3,7 +3,7 @@ import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Upload, X } from '../../components/ui/icons'
 import { framesPerPage } from '../../domain/frameMap'
 import { useT } from '../../i18n'
-import { pageDuplicates } from './duplicates'
+import { pageDuplicates } from '../../domain/scan/duplicates'
 
 const DOT: Record<ScanItem['status'], string> = {
   reading: 'bg-ink-3',

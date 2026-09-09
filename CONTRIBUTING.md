@@ -26,7 +26,7 @@ Node 24 is required (see `.node-version`). CI runs lint, tests and a production 
 
 A few conventions:
 
-- `src/domain/` is pure TypeScript with no DOM dependencies and is covered by unit tests in `tests/`. Layout, marker, homography and QR changes belong there, with a test.
+- `src/domain/` is pure TypeScript with no DOM dependencies and is covered by unit tests in `tests/`. Layout, marker, homography, QR and warp changes belong there, with a test. `src/lib/` and `src/workers/` build on it and never import from the screens or the stores; `tests/layers.test.ts` checks that.
 - UI strings live in `src/i18n/en.ts` (source of truth) and `src/i18n/ja.ts`. Add every new key to both; a test fails when they drift.
 - Design tokens (colours, type, radius, shadows) are in `@theme` in `src/index.css`. Prefer them over raw values in components.
 - Nothing may be uploaded. The only browser storage is the locale preference and the export options (size, quality, GIF width); video, frames and scans never leave memory.
@@ -37,10 +37,11 @@ A few conventions:
 ```
 src/
   domain/      page layout (mm), frame mapping, homography, markers, QR settings. Pure TS, covered by vitest
+  domain/scan/ the pure half of the scan pipeline: QR reading, marker detection, orientation, warp, duplicate handling
   features/    the print / scan / animate screens and their logic
   lib/         file save helpers (File System Access API with download fallback), store-only zip writer, image utils
   lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
-  workers/     the warp Web Worker
+  workers/     the warp Web Worker and its pool
   app/         zustand stores, header stepper, dev helpers
   components/  Button / Chip / icons / logo
   i18n/        en (source) and ja dictionaries, locale switch

@@ -7,9 +7,9 @@
  * prediction, and look for a dark square of the right size. No ArUco decoding
  * is needed while the QR is readable.
  */
-import { CORNERS, LAYOUT_CONSTANTS, type Corner, type Layout, type Point, type Rect } from '../../domain/layout'
-import { MARKER_COUNT, MARKER_MODULES, decodeMarkerId, markerModules } from '../../domain/markers'
-import type { RgbaImage } from './warp'
+import { CORNERS, LAYOUT_CONSTANTS, type Corner, type Layout, type Point, type Rect } from '../layout'
+import { MARKER_COUNT, MARKER_MODULES, decodeMarkerId, markerModules } from '../markers'
+import type { RgbaImage } from './rgba'
 
 export interface QrCornersPx {
   topLeft: Point

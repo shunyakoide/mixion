@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GRID_PRESETS, computeLayout } from '../src/domain/layout'
-import { applySimilarity, detectMarkers, findMarkerNear, labelComponents, otsu, similarityFromQr } from '../src/features/scan/detectMarkers'
-import type { RgbaImage } from '../src/features/scan/warp'
+import { applySimilarity, detectMarkers, findMarkerNear, labelComponents, otsu, similarityFromQr } from '../src/domain/scan/detectMarkers'
+import type { RgbaImage } from '../src/domain/scan/rgba'
 
 const layout = computeLayout({ grid: GRID_PRESETS['2x2'], dims: { width: 1920, height: 1080 } })
 

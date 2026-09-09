@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { GRID_PRESETS, computeLayout, type Corner } from '../src/domain/layout'
 import { markerId, markerModules } from '../src/domain/markers'
-import { decodeMarker, detectMarkersBlind, findMarkerNear } from '../src/features/scan/detectMarkers'
-import type { RgbaImage } from '../src/features/scan/warp'
+import { decodeMarker, detectMarkersBlind, findMarkerNear } from '../src/domain/scan/detectMarkers'
+import type { RgbaImage } from '../src/domain/scan/rgba'
 
 const layout = computeLayout({ grid: GRID_PRESETS['2x2'], dims: { width: 1920, height: 1080 } })
 

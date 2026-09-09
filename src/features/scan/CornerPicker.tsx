@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { MarkerGlyph } from './MarkerGlyph'
-import { cornerFromPosition, cornersConsistent } from './cornerGeometry'
-import { checkOrientation } from './orientation'
+import { cornerFromPosition, cornersConsistent } from '../../domain/scan/cornerGeometry'
+import { checkOrientation } from '../../domain/scan/orientation'
 import { useScanStore, type ScanItem } from '../../app/scanStore'
 import { Check, RotateCw } from '../../components/ui/icons'
 import { Button } from '../../components/ui/Button'
@@ -10,7 +10,7 @@ import { CORNERS, type Corner, type Layout, type Point } from '../../domain/layo
 import { framesOnPage, framesPerPage } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
 import { useT } from '../../i18n'
-import { pageDuplicates } from './duplicates'
+import { pageDuplicates } from '../../domain/scan/duplicates'
 
 const HIT_RADIUS = { mouse: 14, touch: 28 }
 /** Corner handles and marker outlines: orange so they stand apart from the black-and-white markers and the green frame boxes. */

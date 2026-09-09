@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pageDuplicates, splitDuplicateFiles } from '../src/features/scan/duplicates'
+import { pageDuplicates, splitDuplicateFiles } from '../src/domain/scan/duplicates'
 import { hashBlob } from '../src/lib/files'
 
 const f = (name: string) => ({ name })

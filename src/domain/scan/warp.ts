@@ -4,14 +4,9 @@
  * rectangle. Pure function on typed arrays so it runs in a Worker and in
  * tests; no DOM types beyond the ImageData-shaped input.
  */
-import { applyHomography, type Homography } from '../../domain/homography'
-import type { Rect } from '../../domain/layout'
-
-export interface RgbaImage {
-  width: number
-  height: number
-  data: Uint8ClampedArray<ArrayBuffer>
-}
+import { applyHomography, type Homography } from '../homography'
+import type { Rect } from '../layout'
+import type { RgbaImage } from './rgba'
 
 export interface WarpJob {
   /** Page-mm rectangle to cut out. */

@@ -1,4 +1,4 @@
-import type { Corner, Point } from '../../domain/layout'
+import type { Corner, Point } from '../layout'
 
 /** Which corner a click means, from where it lands on the scan. Click order then does not matter. */
 export function cornerFromPosition(p: Point, width: number, height: number): Corner {
