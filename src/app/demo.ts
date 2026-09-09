@@ -51,14 +51,15 @@ async function importPrintedPages(onProgress?: (label: string) => void): Promise
   await useScanStore.getState().importScans(files)
 }
 
-/** One click from the empty start page to a playing animation. */
+/** One click from the empty start page to the Scan step with every sample page imported and cut. */
 export async function runDemo(): Promise<void> {
   if (useDemoStore.getState().running) return
   useDemoStore.setState({ running: true, label: t().demo.loadingSample, error: null })
   try {
     await loadSampleVideo()
     await importPrintedPages((label) => useDemoStore.setState({ label }))
-    useAppStore.getState().setStep('animate')
+    // Stop at Scan so the imported pages and the cut frames can be looked at before Animate.
+    useAppStore.getState().setStep('scan')
     useDemoStore.setState({ running: false, label: null })
   } catch (e) {
     useDemoStore.setState({ running: false, label: null, error: e instanceof Error ? e.message : String(e) })
