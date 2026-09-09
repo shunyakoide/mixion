@@ -26,7 +26,7 @@ Node 24 is required (see `.node-version`). CI runs lint, tests and a production 
 
 A few conventions:
 
-- `src/domain/` is pure TypeScript with no DOM dependencies and is covered by unit tests in `tests/`. Layout, marker, homography, QR and warp changes belong there, with a test. `src/lib/` and `src/workers/` build on it and never import from the screens or the stores; `tests/layers.test.ts` checks that.
+- `src/domain/` is pure TypeScript with no DOM dependencies and is covered by unit tests in `tests/`. Layout, marker, homography, QR, warp and page-painting changes belong there, with a test. `src/lib/` and `src/workers/` build on it and never import from the screens or the stores, and `src/app/` (the stores) never imports from `src/features/` (the screens); the three screens do not import each other; nothing below `src/app/` imports react or zustand. `tests/layers.test.ts` checks all of that, so a new file that breaks a rule fails the build rather than the next reader.
 - `tests/scanPipeline.test.ts` paints a page, scans it with rotation, margin and ink spread, and runs it through the QR read, marker detection, homography and warp, next to a real inkjet scan in `tests/fixtures/`. Before changing the QR payload, the read passes or the detector, add the case there; a pass there is what says a printed page still reads.
 - UI strings live in `src/i18n/en.ts` (source of truth) and `src/i18n/ja.ts`. Add every new key to both; a test fails when they drift.
 - Design tokens (colours, type, radius, shadows) are in `@theme` in `src/index.css`. Prefer them over raw values in components.
@@ -37,15 +37,17 @@ A few conventions:
 
 ```
 src/
-  domain/      page layout (mm), frame mapping, homography, markers, QR settings. Pure TS, covered by vitest
+  domain/      page layout (mm), frame mapping, homography, markers, QR settings, the page painter (what goes where on a printed page) and the QR encoder. Pure TS, covered by vitest
   domain/scan/ the pure half of the scan pipeline: QR reading, marker detection, orientation, warp, duplicate handling
-  features/    the print / scan / animate screens and their logic
-  lib/         file save helpers (File System Access API with download fallback), store-only zip writer, image utils
+  lib/         browser adapters over domain: file save (File System Access API with download fallback), store-only zip writer, image/bitmap utils, the page QR reader, error codes, feature detection, timing, frame cache
+  lib/print/   the page painter's two backends (canvas, pdf-lib), the PDF builder and the page-to-PNG renderer
   lib/video/   decoding and MP4/GIF encoding on WebCodecs (mediabunny)
   workers/     the warp Web Worker and its pool
-  app/         zustand stores, header stepper, dev helpers
+  app/         zustand stores (store = Print, scanStore = Scan and Animate, exportStore = export options), header stepper, hooks, the sample run and dev helpers
+  features/    the print / scan / animate screens: React components and their hooks only
   components/  Button / Chip / icons / logo
   i18n/        en (source) and ja dictionaries, locale switch
+tests/         vitest, flat, one file per source module or scenario; fixtures/ holds a real inkjet scan
 ```
 
 | Area | Built with | Used for |
@@ -60,7 +62,7 @@ src/
 | Markers / QR | own ArUco (MIP_36h12) detector and decoder, jsqr, qrcode | finding the corners, recovering orientation and page number, embedding and reading the page settings |
 | Geometry | own homography | straightening scans and cutting out frames; heavy work runs in Web Workers |
 | Validation | zod | the settings embedded in the QR code |
-| Quality | vitest, oxlint, GitHub Actions (lint → test → build) | unit tests for the domain layer (layout, markers, homography, i18n parity) |
+| Quality | vitest, oxlint, GitHub Actions (lint → test → build) | unit tests for the domain layer (layout, markers, homography, page painter), the stores, the PDF builder, the scan pipeline end to end, i18n parity and the layer rules |
 | Saving | File System Access API (`showSaveFilePicker`), download fallback | save dialogs for PDF / MP4 / GIF |
 
 ## Working without a printer

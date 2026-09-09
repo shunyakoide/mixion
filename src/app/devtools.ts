@@ -2,7 +2,7 @@
  * Dev-only helpers reachable from the browser console (window.__dev).
  * Not imported in production builds.
  */
-import { renderPageToBlob } from '../features/print/renderPage'
+import { renderPageToBlob } from '../lib/print/renderPage'
 import { encodeMp4 } from '../lib/video/encode'
 import { encodeGif } from '../lib/video/gif'
 import { layoutFromSettings } from '../domain/settings'
@@ -10,7 +10,7 @@ import { deriveSettings, useAppStore } from './store'
 import { useScanStore } from './scanStore'
 import { decodeMarker, detectMarkersBlind, findMarkerNear } from '../domain/scan/detectMarkers'
 import { bitmapToRgba, loadBitmap } from '../lib/image'
-import { readPageQr } from '../features/scan/qrPage'
+import { readPageQr } from '../lib/qrPage'
 
 /** Mean absolute RGB difference between two image blobs, resized to the first's size. */
 async function imageDiff(a: Blob, b: Blob, maxWidth = 480): Promise<{ meanAbs: number; width: number; height: number }> {

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { deriveLayout, deriveSettings, previewFrameNumbers, useAppStore } from '../../app/store'
 import type { Layout } from '../../domain/layout'
 import type { ProjectSettings } from '../../domain/settings'
-import { CanvasPainter } from './canvasPainter'
-import { buildPageSpec, paintPage } from './pagePainter'
+import { CanvasPainter } from '../../lib/print/canvasPainter'
+import { buildPageSpec, paintPage } from '../../domain/pagePainter'
 import { useT } from '../../i18n'
 
 /** All pages in order, painted with the same painter the PDF uses. Pages render as they scroll into view. */

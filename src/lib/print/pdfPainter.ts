@@ -1,6 +1,6 @@
 import { rgb, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib'
 import { mmToPt, type Point, type Rect } from '../../domain/layout'
-import type { Color, Painter } from './pagePainter'
+import type { Color, Painter } from '../../domain/pagePainter'
 
 /** Helvetica's ascender as a fraction of the em box; used to place text by its top edge. */
 const ASCENT = 0.72

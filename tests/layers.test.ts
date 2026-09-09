@@ -1,8 +1,11 @@
 /**
  * The layer rule from CONTRIBUTING: `src/domain` is pure and depends on
  * nothing else in src; `src/lib` and `src/workers` build on it and never
- * reach up into the screens or the stores. A worker or a test that imports
- * from a screen folder is how the rule used to break.
+ * reach up into the screens or the stores; `src/app` holds the stores and
+ * reaches down only, so a screen can import a store but a store never
+ * imports a screen. The three screens under `src/features` do not import
+ * each other. A worker or a test that imports from a screen folder is how
+ * the rule used to break.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -15,7 +18,14 @@ const ALLOWED: Record<string, string[]> = {
   domain: [],
   lib: ['domain'],
   workers: ['domain', 'lib'],
+  i18n: ['lib'],
+  components: [],
+  app: ['domain', 'lib', 'workers', 'i18n', 'components'],
 }
+
+/** Layers that run in a worker or in Node tests, so they must not pull in the UI runtime. */
+const NO_UI_RUNTIME = ['domain', 'lib', 'workers']
+const UI_PACKAGES = /^(react|react-dom|zustand)(\/|$)/
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -24,14 +34,25 @@ function walk(dir: string): string[] {
   })
 }
 
-/** Relative import specifiers of a file, static and dynamic. */
-function imports(file: string): string[] {
+/** Import specifiers of a file, static and dynamic, relative and package alike. */
+function allImports(file: string): string[] {
   const text = readFileSync(file, 'utf8')
-  return [...text.matchAll(/(?:from|import)\s*\(?\s*'(\.[^']+)'/g)].map((m) => m[1])
+  return [...text.matchAll(/(?:from|import)\s*\(?\s*'([^']+)'/g)].map((m) => m[1])
+}
+
+/** Relative import specifiers of a file. */
+function imports(file: string): string[] {
+  return allImports(file).filter((spec) => spec.startsWith('.'))
 }
 
 function layerOf(file: string): string {
   return relative(SRC, file).split('/')[0]
+}
+
+/** `features/print` for a file under it, `''` for anything else. */
+function featureOf(file: string): string {
+  const [top, feature] = relative(SRC, file).split('/')
+  return top === 'features' && feature ? `${top}/${feature}` : ''
 }
 
 describe('src layers', () => {
@@ -47,4 +68,28 @@ describe('src layers', () => {
       expect(offences).toEqual([])
     })
   }
+
+  for (const layer of NO_UI_RUNTIME) {
+    it(`${layer} does not import react or zustand`, () => {
+      const offences: string[] = []
+      for (const file of walk(join(SRC, layer))) {
+        for (const spec of allImports(file)) {
+          if (UI_PACKAGES.test(spec)) offences.push(`${relative(SRC, file)} → ${spec}`)
+        }
+      }
+      expect(offences).toEqual([])
+    })
+  }
+
+  it('the print, scan and animate screens do not import each other', () => {
+    const offences: string[] = []
+    for (const file of walk(join(SRC, 'features'))) {
+      const own = featureOf(file)
+      for (const spec of imports(file)) {
+        const target = featureOf(resolve(dirname(file), spec))
+        if (target && target !== own) offences.push(`${relative(SRC, file)} → ${spec}`)
+      }
+    }
+    expect(offences).toEqual([])
+  })
 })

@@ -2,7 +2,7 @@ import { PDFDocument, StandardFonts, type PDFImage } from 'pdf-lib'
 import { framesOnPage, framesPerPage } from '../../domain/frameMap'
 import { mmToPt, type Layout } from '../../domain/layout'
 import { layoutFromSettings, type ProjectSettings } from '../../domain/settings'
-import { buildPageSpec, paintPage } from './pagePainter'
+import { buildPageSpec, paintPage } from '../../domain/pagePainter'
 import { PdfPainter } from './pdfPainter'
 
 interface FrameImageBytes {

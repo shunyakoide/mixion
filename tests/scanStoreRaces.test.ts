@@ -18,8 +18,8 @@ vi.mock('../src/workers/warpPool', () => ({
   warmUpWarpPool: () => undefined,
   warpCells: () => new Promise<Blob[]>((resolve) => pending.warps.push(resolve)),
 }))
-vi.mock('../src/features/scan/qrPage', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../src/features/scan/qrPage')>()),
+vi.mock('../src/lib/qrPage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/lib/qrPage')>()),
   readPageQr: () => ({ ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }),
 }))
 vi.mock('../src/lib/files', async (importOriginal) => ({

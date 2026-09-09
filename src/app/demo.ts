@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { layoutFromSettings } from '../domain/settings'
-import { renderPageToBlob } from '../features/print/renderPage'
+import { renderPageToBlob } from '../lib/print/renderPage'
 import { describeError, t } from '../i18n'
 import { useScanStore } from './scanStore'
 import { deriveSettings, useAppStore } from './store'

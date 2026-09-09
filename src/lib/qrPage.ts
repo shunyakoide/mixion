@@ -1,8 +1,8 @@
-import { readQrFromRgba, type QrPass, type QrRead } from '../../domain/scan/qrRead'
-import type { RgbaImage } from '../../domain/scan/rgba'
-import { bitmapToRgba, rgbaToCanvas } from '../../lib/image'
+import { readQrFromRgba, type QrPass, type QrRead } from '../domain/scan/qrRead'
+import type { RgbaImage } from '../domain/scan/rgba'
+import { bitmapToRgba, rgbaToCanvas } from './image'
 
-export { QR_ALL_PASSES, QR_QUICK_PASSES, QR_THOROUGH_PASSES, type QrPass, type QrRead } from '../../domain/scan/qrRead'
+export { QR_ALL_PASSES, QR_QUICK_PASSES, QR_THOROUGH_PASSES, type QrPass, type QrRead } from '../domain/scan/qrRead'
 
 /**
  * Downscale on a canvas, as the browser does it best. The page itself is

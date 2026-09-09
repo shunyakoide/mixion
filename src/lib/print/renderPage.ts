@@ -1,7 +1,7 @@
 import type { Layout, Point } from '../../domain/layout'
 import type { ProjectSettings } from '../../domain/settings'
 import { CanvasPainter } from './canvasPainter'
-import { buildPageSpec, paintPage } from './pagePainter'
+import { buildPageSpec, paintPage } from '../../domain/pagePainter'
 
 export interface RenderPageOptions {
   dpi?: number

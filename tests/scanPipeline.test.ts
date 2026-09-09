@@ -22,8 +22,8 @@ import { QR_ALL_PASSES, QR_QUICK_PASSES, readQrFromRgba, type QrPass } from '../
 import type { RgbaImage } from '../src/domain/scan/rgba'
 import { warpCell } from '../src/domain/scan/warp'
 import { MAX_PAGES, createProjectSettings, encodeQrPayload, layoutFromSettings, settingsFromQr, type ProjectSettings } from '../src/domain/settings'
-import { buildPageSpec, paintPage, type Color, type Painter } from '../src/features/print/pagePainter'
-import { qrModules } from '../src/lib/qr'
+import { buildPageSpec, paintPage, type Color, type Painter } from '../src/domain/pagePainter'
+import { qrModules } from '../src/domain/qrEncode'
 
 // ---------------------------------------------------------------- painting
 

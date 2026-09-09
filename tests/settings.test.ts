@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GRID_PRESETS } from '../src/domain/layout'
-import { qrModules } from '../src/lib/qr'
+import { qrModules } from '../src/domain/qrEncode'
 import {
   buildQrPayload,
   createProjectSettings,

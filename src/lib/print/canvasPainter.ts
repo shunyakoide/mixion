@@ -1,5 +1,5 @@
 import type { Point, Rect } from '../../domain/layout'
-import type { Color, Painter } from './pagePainter'
+import type { Color, Painter } from '../../domain/pagePainter'
 
 function css(c: Color): string {
   return `rgb(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)})`
