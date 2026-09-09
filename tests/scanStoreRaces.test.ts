@@ -20,7 +20,7 @@ vi.mock('../src/workers/warpPool', () => ({
 }))
 vi.mock('../src/features/scan/qrPage', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/features/scan/qrPage')>()),
-  readPageQr: () => ({ ok: false, error: 'no qr', text: null, tried: [] }),
+  readPageQr: () => ({ ok: false, failure: { kind: 'noQr' }, text: null, tried: [] }),
 }))
 vi.mock('../src/lib/files', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/lib/files')>()),

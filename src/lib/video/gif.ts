@@ -1,5 +1,5 @@
-import { t } from '../../i18n'
 import { GIFEncoder, applyPalette, quantize } from 'gifenc'
+import { MediaError } from '../errors'
 
 export interface EncodeGifOptions {
   frames: Blob[]
@@ -13,7 +13,7 @@ export interface EncodeGifOptions {
 /** Looping GIF with a per-frame 256-colour palette. Runs on the main thread, yielding between frames. */
 export async function encodeGif(options: EncodeGifOptions): Promise<Blob> {
   const { frames, fps } = options
-  if (frames.length === 0) throw new Error(t().errors.noFrames)
+  if (frames.length === 0) throw new MediaError({ code: 'noFrames' })
   const first = await createImageBitmap(frames[0])
   const width = Math.max(2, Math.round(options.width ?? 640))
   const height = Math.max(2, Math.round((first.height / first.width) * width))

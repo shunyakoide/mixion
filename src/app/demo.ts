@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { layoutFromSettings } from '../domain/settings'
 import { renderPageToBlob } from '../features/print/renderPage'
-import { t } from '../i18n'
+import { describeError, t } from '../i18n'
 import { useScanStore } from './scanStore'
 import { deriveSettings, useAppStore } from './store'
 
@@ -62,7 +62,7 @@ export async function runDemo(): Promise<void> {
     useAppStore.getState().setStep('scan')
     useDemoStore.setState({ running: false, label: null })
   } catch (e) {
-    useDemoStore.setState({ running: false, label: null, error: e instanceof Error ? e.message : String(e) })
+    useDemoStore.setState({ running: false, label: null, error: describeError(e) })
   }
 }
 
@@ -74,7 +74,7 @@ export async function runScanWithoutPaper(): Promise<void> {
     await importPrintedPages((label) => useDemoStore.setState({ label }))
     useDemoStore.setState({ running: false, label: null })
   } catch (e) {
-    useDemoStore.setState({ running: false, label: null, error: e instanceof Error ? e.message : String(e) })
+    useDemoStore.setState({ running: false, label: null, error: describeError(e) })
   }
 }
 

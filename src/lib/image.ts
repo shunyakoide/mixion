@@ -1,11 +1,11 @@
 import type { RgbaImage } from '../domain/scan/rgba'
-import { t } from '../i18n'
+import { MediaError } from './errors'
 
 export async function loadBitmap(file: Blob): Promise<ImageBitmap> {
   try {
     return await createImageBitmap(file)
   } catch {
-    throw new Error(t().errors.cannotLoadImage((file as File).name ?? ''))
+    throw new MediaError({ code: 'cannotLoadImage', name: (file as File).name ?? '' })
   }
 }
 

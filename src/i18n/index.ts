@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { MediaError, type AudioNote, type MediaErrorInfo } from '../lib/errors'
 import { en, type Dict } from './en'
 import { ja } from './ja'
 
@@ -61,3 +62,32 @@ export function t(): Dict {
 }
 
 export type { Dict }
+
+function describeMediaError(info: MediaErrorInfo, dict: Dict): string {
+  const e = dict.errors
+  switch (info.code) {
+    case 'cannotLoadImage':
+      return e.cannotLoadImage(info.name)
+    case 'cannotDecodeCodec':
+      return e.cannotDecodeCodec(info.codec)
+    case 'frameFailed':
+      return e.frameFailed(info.at)
+    case 'noVideoTrackInFile':
+    case 'noVideoTrack':
+    case 'noFrames':
+    case 'cannotEncodeH264':
+    case 'mp4Failed':
+      return e[info.code]
+  }
+}
+
+/** The message to show for something thrown: lib's coded errors in the current language, anything else as it is. */
+export function describeError(e: unknown, dict: Dict = t()): string {
+  if (e instanceof MediaError) return describeMediaError(e.info, dict)
+  return e instanceof Error ? e.message : String(e)
+}
+
+/** Why an MP4 export has no audio, in the current language. */
+export function describeAudioNote(note: AudioNote, dict: Dict = t()): string {
+  return dict.errors[note]
+}

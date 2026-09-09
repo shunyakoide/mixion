@@ -3,7 +3,7 @@
  * browser; nothing is uploaded.
  */
 import { ALL_FORMATS, BlobSource, CanvasSink, Input } from 'mediabunny'
-import { t } from '../../i18n'
+import { MediaError } from '../errors'
 
 export interface VideoInfo {
   duration: number
@@ -25,7 +25,7 @@ export async function probeVideo(file: Blob): Promise<VideoInfo> {
   const input = openInput(file)
   try {
     const video = await input.getPrimaryVideoTrack()
-    if (!video) throw new Error(t().errors.noVideoTrackInFile)
+    if (!video) throw new MediaError({ code: 'noVideoTrackInFile' })
     const audio = await input.getPrimaryAudioTrack()
     const [end, start, width, height, canDecodeVideo] = await Promise.all([
       input.computeDuration(),
@@ -97,8 +97,8 @@ export class FrameExtractor {
 
   private static async open(input: Input): Promise<{ sink: CanvasSink; start: number }> {
     const video = await input.getPrimaryVideoTrack()
-    if (!video) throw new Error(t().errors.noVideoTrack)
-    if (!(await video.canDecode())) throw new Error(t().errors.cannotDecodeCodec(video.codec ?? null))
+    if (!video) throw new MediaError({ code: 'noVideoTrack' })
+    if (!(await video.canDecode())) throw new MediaError({ code: 'cannotDecodeCodec', codec: video.codec ?? null })
     return { sink: new CanvasSink(video, { poolSize: 2 }), start: await video.getFirstTimestamp() }
   }
 
@@ -130,7 +130,7 @@ export class FrameExtractor {
       } else if (last) {
         frame = { ...last, index, requested }
       } else {
-        throw new Error(t().errors.frameFailed(requested))
+        throw new MediaError({ code: 'frameFailed', at: requested })
       }
       out.push(frame)
       last = frame

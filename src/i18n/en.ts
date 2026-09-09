@@ -1,3 +1,5 @@
+import type { AudioNote, MediaErrorCode } from '../lib/errors'
+
 /** English is the source of truth: every other locale must provide the same shape. */
 export const en = {
   common: {
@@ -232,7 +234,7 @@ export const en = {
     unknownAudioCodec: 'the audio codec could not be identified',
     noAudioPackets: 'no audio packets were found',
     mp4Failed: 'MP4 export failed',
-  },
+  } satisfies Record<MediaErrorCode | AudioNote, string | ((...args: never[]) => string)>,
 }
 
 export type Dict = typeof en
