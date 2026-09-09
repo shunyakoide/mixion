@@ -71,10 +71,14 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
   let audioCodec: string | null = null
   let audioDecoderConfig: AudioDecoderConfig | null = null
   let audioTrackForPackets: Awaited<ReturnType<Input['getPrimaryAudioTrack']>> = null
+  /** Where the source's video starts: frame 1 was taken there, so the audio has to start there too. */
+  let videoStart = 0
 
   if (options.audioFrom) {
     audioInput = new Input({ formats: ALL_FORMATS, source: new BlobSource(options.audioFrom) })
     const track = await audioInput.getPrimaryAudioTrack()
+    const videoTrack = await audioInput.getPrimaryVideoTrack()
+    if (videoTrack) videoStart = await videoTrack.getFirstTimestamp()
     if (!track) audioNote = t().errors.noAudioTrack
     else if (!track.codec) audioNote = t().errors.unknownAudioCodec
     else {
@@ -109,11 +113,14 @@ export async function encodeMp4(options: EncodeMp4Options): Promise<EncodeMp4Res
       const sink = new EncodedPacketSink(audioTrackForPackets)
       let first = true
       let count = 0
-      // AAC streams usually start slightly negative (encoder priming). Shift so the
-      // first packet lands at 0; the output container does not accept negative times.
-      let offset = 0
+      // Packets are moved so the video's first frame is at 0, and whatever is left
+      // before it is dropped. AAC streams also usually start slightly negative
+      // (encoder priming); the first kept packet is pulled up to 0, since the output
+      // container does not accept negative times.
+      let offset = -videoStart
       for await (const packet of sink.packets()) {
-        if (first) offset = packet.timestamp < 0 ? -packet.timestamp : 0
+        if (packet.timestamp + packet.duration + offset <= 0) continue
+        if (first && packet.timestamp + offset < 0) offset = -packet.timestamp
         const timestamp = packet.timestamp + offset
         if (timestamp >= videoDuration) break
         const shifted = offset === 0 ? packet : packet.clone({ timestamp })

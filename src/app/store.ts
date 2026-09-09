@@ -33,6 +33,8 @@ interface PrintSlice {
   projectId: string
   /** JPEG blobs by 1-based frame number. Cleared when the source or fps changes. */
   frames: Map<number, Blob>
+  /** Why the last preview extraction failed, shown on the page instead of the spinner. */
+  frameError: string | null
   status: PrintStatus
   progress: Progress | null
   pdfError: string | null
@@ -91,6 +93,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   gridKey: '4x3',
   projectId: generateProjectId(),
   frames: new Map(),
+  frameError: null,
   status: 'idle',
   progress: null,
   pdfError: null,
@@ -101,7 +104,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadVideo: async (file, options) => {
     void get().extractor?.dispose()
-    set({ file, sample: options?.sample === true, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), status: 'idle', pdfError: null, lastSaved: null, savedKind: null, projectId: generateProjectId() })
+    set({ file, sample: options?.sample === true, info: null, extractor: null, probing: true, loadError: null, frames: new Map(), frameError: null, status: 'idle', pdfError: null, lastSaved: null, savedKind: null, projectId: generateProjectId() })
     try {
       const info = await probeVideo(file)
       if (get().file !== file) return
@@ -118,12 +121,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   clearVideo: () => {
     void get().extractor?.dispose()
-    set({ file: null, sample: false, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), status: 'idle', progress: null, pdfError: null, lastSaved: null, savedKind: null })
+    set({ file: null, sample: false, info: null, extractor: null, probing: false, loadError: null, frames: new Map(), frameError: null, status: 'idle', progress: null, pdfError: null, lastSaved: null, savedKind: null })
   },
 
   setFps: (fps) => {
     if (fps === get().fps) return
-    set({ fps, frames: new Map(), status: 'idle', pdfError: null, lastSaved: null, savedKind: null })
+    set({ fps, frames: new Map(), frameError: null, status: 'idle', pdfError: null, lastSaved: null, savedKind: null })
   },
 
   setGrid: (gridKey) => set({ gridKey, status: 'idle', pdfError: null, lastSaved: null, savedKind: null }),
@@ -134,13 +137,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!file || !extractor) return
     const missing = frameNumbers.filter((f) => !frames.has(f))
     if (missing.length === 0) return
-    const extracted = await extractor.extract(missing.map((f) => frameTimestamp(f, fps)))
+    let extracted
+    try {
+      extracted = await extractor.extract(missing.map((f) => frameTimestamp(f, fps)))
+    } catch (e) {
+      const now = get()
+      if (now.file === file && now.fps === fps) set({ frameError: e instanceof Error ? e.message : String(e) })
+      return
+    }
     // Ignore results if the source changed meanwhile.
     const now = get()
     if (now.file !== file || now.fps !== fps) return
     const next = new Map(now.frames)
     extracted.forEach((e, i) => next.set(missing[i], e.blob))
-    set({ frames: next })
+    set({ frames: next, frameError: null })
   },
 
   createPdf: async () => {
