@@ -11,35 +11,45 @@ interface Task {
   reject: (err: Error) => void
 }
 
-const workers: { worker: Worker; busy: boolean }[] = []
+/** One task per worker at a time; a worker that dies takes only its own task down. */
+const workers: { worker: Worker; task: Task | null }[] = []
 const queue: Task[] = []
-const inFlight = new Map<number, Task>()
 let nextId = 1
 
 function spawn() {
-  const slot = { worker: new Worker(new URL('../../workers/warp.worker.ts', import.meta.url), { type: 'module' }), busy: false }
+  const slot: { worker: Worker; task: Task | null } = { worker: new Worker(new URL('../../workers/warp.worker.ts', import.meta.url), { type: 'module' }), task: null }
   slot.worker.onmessage = (e: MessageEvent<WarpResponse>) => {
-    const task = inFlight.get(e.data.id)
-    inFlight.delete(e.data.id)
-    slot.busy = false
-    if (task) {
+    const task = slot.task
+    slot.task = null
+    if (task && task.req.id === e.data.id) {
       if ('blob' in e.data) task.resolve(e.data.blob)
       else task.reject(new Error(e.data.error))
     }
     pump()
   }
+  // The worker crashed or failed to load: fail its job, drop it, and let the next job start a fresh one.
+  const fail = (message: string) => {
+    const task = slot.task
+    slot.task = null
+    slot.worker.terminate()
+    const i = workers.indexOf(slot)
+    if (i >= 0) workers.splice(i, 1)
+    task?.reject(new Error(message))
+    pump()
+  }
+  slot.worker.onerror = (e) => fail(e.message || 'warp worker failed')
+  slot.worker.onmessageerror = () => fail('warp worker sent an unreadable message')
   workers.push(slot)
   return slot
 }
 
 function pump() {
   while (queue.length > 0) {
-    let slot = workers.find((w) => !w.busy)
+    let slot = workers.find((w) => w.task === null)
     if (!slot && workers.length < POOL_SIZE) slot = spawn()
     if (!slot) return
     const task = queue.shift() as Task
-    slot.busy = true
-    inFlight.set(task.req.id, task)
+    slot.task = task
     slot.worker.postMessage(task.req, [task.req.image.data.buffer])
   }
 }
