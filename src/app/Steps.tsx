@@ -33,7 +33,7 @@ export function Steps() {
               title={s.lockedHint}
               aria-current={active ? 'step' : undefined}
               className={[
-                'flex items-center gap-2 whitespace-nowrap px-2 text-[15px] transition-colors sm:gap-2.5 sm:px-3.5',
+                'flex items-center gap-2 whitespace-nowrap px-1.5 text-[15px] transition-colors sm:gap-2.5 sm:px-3.5',
                 active
                   ? 'font-semibold text-ink shadow-[inset_0_-2px_0_#0e0e0e]'
                   : s.enabled
@@ -49,8 +49,8 @@ export function Steps() {
               >
                 {s.done ? <Check size={12} strokeWidth={3} /> : String(s.index + 1).padStart(2, '0')}
               </span>
-              {/* Inactive labels need a wide screen; the current one shows whenever the list has room for it (about 13rem). */}
-              <span className={active ? 'hidden @min-[13rem]:inline sm:inline' : 'hidden sm:inline'}>{s.label}</span>
+              {/* Inactive labels need a wide screen; the current one shows whenever the list has room for it (about 11rem: three badges plus the longest label). */}
+              <span className={active ? 'hidden @min-[11rem]:inline sm:inline' : 'hidden sm:inline'}>{s.label}</span>
             </button>
           </li>
         )

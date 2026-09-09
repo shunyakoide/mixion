@@ -26,10 +26,10 @@ export default function App() {
             type="button"
             onClick={goHome}
             title={t.header.home}
-            className="flex shrink-0 items-center gap-[5px] rounded-md font-logo text-2xl font-bold leading-none tracking-[-0.04em] transition-opacity hover:opacity-70"
+            className="flex shrink-0 items-center gap-[5px] rounded-md font-logo text-xl font-bold leading-none tracking-[-0.04em] transition-opacity hover:opacity-70 sm:text-2xl"
           >
             <Logo size={24} />
-            <span className="hidden sm:inline">mixion</span>
+            <span>mixion</span>
           </button>
           <Steps />
           <LanguageToggle className="shrink-0" />
