@@ -47,8 +47,8 @@ export default function App() {
         {missing.length > 0 ? <Unsupported missing={missing} /> : step === 'print' ? <PrintStep /> : step === 'scan' ? <ScanStep /> : <AnimateStep />}
       </main>
       {/* On phones the header has no room for the link without hiding the current step's label, so it moves down here. */}
-      <footer className="flex justify-center pb-8 sm:hidden">
-        <SourceLink className="flex items-center gap-1.5 text-[13px] text-ink-3 transition-colors hover:text-ink">
+      <footer className="flex justify-center pb-6 sm:hidden">
+        <SourceLink className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] text-ink-3 transition-colors hover:bg-surface hover:text-ink">
           <GitHub size={14} />
           GitHub
         </SourceLink>
