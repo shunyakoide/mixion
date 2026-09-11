@@ -6,8 +6,9 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" />
-    <title>Mixion</title>
+    <title>Mixion — Print a video, draw on it, turn it back into video</title>
     <meta name="description" content="Mixed media animation: print video frames, draw on them, scan them back, and turn them into an animation. Runs entirely in the browser." />
+    <link rel="canonical" href="https://shunyakoide.github.io/mixion/" />
     <meta property="og:title" content="Mixion" />
     <meta property="og:description" content="Print video frames, draw on them, scan them back, and turn them into an animation. Runs entirely in the browser." />
     <meta property="og:type" content="website" />
@@ -22,6 +23,10 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <p>Mixion prints video frames on A4 pages, lets you draw on them, and turns the scans back into an animation. It runs entirely in the browser and needs JavaScript.</p>
+      <p><a href="https://github.com/shunyakoide/mixion">Source code on GitHub</a></p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

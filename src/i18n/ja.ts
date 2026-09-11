@@ -15,6 +15,7 @@ export const ja: Dict = {
     home: '最初の画面に戻る',
     startOverConfirm: '最初の画面に戻りますか？ 読み込んだ動画と取り込んだスキャンは破棄されます。作業内容はどこにも保存されていません。',
     switchLanguage: '言語を切り替える',
+    source: 'GitHub でソースコードを見る',
   },
   steps: {
     print: 'Print',
