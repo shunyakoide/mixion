@@ -16,6 +16,7 @@ export const en = {
     home: 'Back to the start',
     startOverConfirm: 'Go back to the start? The loaded video and imported scans will be dropped. Nothing is saved.',
     switchLanguage: 'Switch language',
+    source: 'Source code on GitHub',
   },
   steps: {
     print: 'Print',
