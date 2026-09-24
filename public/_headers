@@ -1,0 +1,6 @@
+# Keep the temporary Cloudflare deployment out of search results.
+# Remove X-Robots-Tag when the canonical custom domain goes live.
+/*
+  X-Robots-Tag: noindex
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
