@@ -81,6 +81,38 @@ The `pages` job in `.github/workflows/ci.yml` builds with `BASE_PATH=/mixion/` o
 BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
 ```
 
+### Cloudflare trial deployment
+
+The Cloudflare copy runs on a `workers.dev` URL and on `mixion.shunyakoide.com` (the custom
+domain in `wrangler.jsonc`'s `routes`) while GitHub Pages remains the canonical site. Only the built `dist/`
+assets are uploaded; video processing and user files remain in the browser.
+
+Use Node 24 and the repository's pinned Wrangler dependency:
+
+```bash
+npm ci
+npm run lint
+npm test
+npm run preview:cloudflare
+# After checking the local preview, authenticate and deploy:
+npx wrangler login
+npm run deploy:cloudflare
+```
+
+`build:cloudflare` explicitly builds at `/`, even if `BASE_PATH` is set for GitHub Pages.
+`preview:cloudflare` rebuilds before starting the local Cloudflare runtime.
+`deploy:cloudflare` rebuilds before uploading, so a previous `/mixion/` Pages build cannot
+accidentally be deployed to the root. Cloudflare receives no server script, database, or secrets.
+
+`public/_headers` adds `X-Robots-Tag: noindex` to the Cloudflare trial. GitHub Pages does
+not interpret this Cloudflare configuration file. Keep the current canonical URL, sitemap,
+README links, and GitHub Pages workflow until the custom domain is ready. On the final
+cutover, update those URLs and remove the noindex header together. Do not add secrets to
+this repository; a later CI deployment should use GitHub Secrets and run after checks pass.
+
+Smoke-check `?sample`, Print → Scan → Animate, PDF/PNG and MP4/GIF exports, language switching,
+and the Web Worker asset in a supported browser before switching the public URL.
+
 ## Pull requests
 
 - Keep a pull request to one change. Small ones are reviewed quickly.
