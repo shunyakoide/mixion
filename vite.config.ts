@@ -4,8 +4,8 @@ import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // GitHub Pages serves the site under /<repo>/; the deploy workflow sets BASE_PATH.
-  base: process.env.BASE_PATH ?? '/',
+  // Relative, so the same build works at the custom domain's root and under the old github.io/mixion/ path.
+  base: './',
   plugins: [react(), tailwindcss()],
   // Bundled deps (MPL-2.0, Apache-2.0) require their license texts to ship with the build.
   build: { license: { fileName: 'third-party-licenses.md' } },

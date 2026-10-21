@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Mixed media animation in the browser: print video frames, draw on them, scan them back, animate.",
   "license": "MIT",
-  "homepage": "https://shunyakoide.github.io/mixion/",
+  "homepage": "https://mixion.shunyakoide.com/",
   "repository": {
     "type": "git",
     "url": "https://github.com/shunyakoide/mixion.git"
@@ -19,10 +19,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "build:cloudflare": "tsc -b && vite build --base /",
-    "preview:cloudflare": "npm run build:cloudflare && wrangler dev",
-    "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "gifenc": "^1.0.3",
@@ -47,7 +44,6 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
-    "vitest": "^5.0.0",
-    "wrangler": "4.133.0"
+    "vitest": "^5.0.0"
   }
 }
