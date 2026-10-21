@@ -130,7 +130,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ probing: false, loadError: t().app.cannotDecode(info.videoCodec ?? null) })
         return
       }
-      set({ info, gridKey: coerceGridPreset(get().gridKey, info), probing: false, extractor: new FrameExtractor(file) })
+      set({ info, gridKey: coerceGridPreset(get().gridKey, info), probing: false, extractor: new FrameExtractor(file, { maxSide: PRINT_FRAME_MAX_SIDE }) })
     } catch (e) {
       if (get().file !== file) return
       set({ probing: false, loadError: describeError(e) })
@@ -253,6 +253,12 @@ async function printRun(work: (settings: ProjectSettings, signal: AbortSignal) =
     if (job === own) job = null
   }
 }
+
+/**
+ * Longest side of the frames decoded for printing. The largest cell (A4, 2x2) is
+ * about 1450 px at 300 dpi, so a 4K clip need not be decoded, encoded and embedded at full size.
+ */
+const PRINT_FRAME_MAX_SIDE = 1600
 
 /** Resolution of the PNG pages: the same 300 dpi that is recommended for scans. */
 export const PNG_PAGE_DPI = 300

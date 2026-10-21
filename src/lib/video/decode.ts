@@ -88,18 +88,22 @@ export class FrameExtractor {
   private queue: Promise<unknown> = Promise.resolve()
   private disposed = false
 
-  constructor(file: Blob) {
+  /** `maxSide` caps the longer side of the decoded frames; smaller videos keep their size. */
+  constructor(file: Blob, options: { maxSide?: number } = {}) {
     const input = openInput(file)
     this.input = input
-    this.ready = FrameExtractor.open(input)
+    this.ready = FrameExtractor.open(input, options.maxSide)
     this.ready.catch(() => {})
   }
 
-  private static async open(input: Input): Promise<{ sink: CanvasSink; start: number }> {
+  private static async open(input: Input, maxSide = Infinity): Promise<{ sink: CanvasSink; start: number }> {
     const video = await input.getPrimaryVideoTrack()
     if (!video) throw new MediaError({ code: 'noVideoTrack' })
     if (!(await video.canDecode())) throw new MediaError({ code: 'cannotDecodeCodec', codec: video.codec ?? null })
-    return { sink: new CanvasSink(video, { poolSize: 2 }), start: await video.getFirstTimestamp() }
+    const [width, height] = await Promise.all([video.getDisplayWidth(), video.getDisplayHeight()])
+    // Only one side is given, so the sink keeps the aspect ratio.
+    const size = Math.max(width, height) <= maxSide ? {} : width >= height ? { width: maxSide } : { height: maxSide }
+    return { sink: new CanvasSink(video, { poolSize: 2, ...size }), start: await video.getFirstTimestamp() }
   }
 
   /**
