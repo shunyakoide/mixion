@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ResolvedFrames } from '../../app/animateStore'
+import type { FrameSource } from '../../app/animateStore'
 import { Pause, Play } from '../../components/ui/icons'
 import { frameLabel } from '../../domain/frameMap'
 import type { ProjectSettings } from '../../domain/settings'
@@ -9,10 +9,12 @@ import { decodeScaled } from '../../lib/image'
 
 interface PlayerProps {
   settings: ProjectSettings
-  resolved: ResolvedFrames | null
+  /** Without `sources` the corner pill saying where each frame came from is left out. */
+  resolved: { frames: Blob[]; sources?: FrameSource[] } | null
   /** Set by the parent to jump to a frame (0-based) and pause. */
-  seek: { index: number; nonce: number } | null
+  seek?: { index: number; nonce: number } | null
   onFrame?: (index: number) => void
+  autoPlay?: boolean
 }
 
 /** Decoded frames kept ahead of the playhead, in bytes; sets how far ahead we read. */
@@ -30,7 +32,7 @@ interface Size {
  * they are shown, so each tick is one `drawImage`; swapping an `<img>` would
  * fetch and decode a full-size JPEG on every frame instead.
  */
-export function Player({ settings, resolved, seek, onFrame }: PlayerProps) {
+export function Player({ settings, resolved, seek = null, onFrame, autoPlay = true }: PlayerProps) {
   const t = useT()
   const frames = resolved?.frames ?? null
   const boxRef = useRef<HTMLDivElement>(null)
@@ -39,7 +41,7 @@ export function Player({ settings, resolved, seek, onFrame }: PlayerProps) {
   /** The frame wanted right now; the canvas catches up when it is decoded. */
   const indexRef = useRef(0)
   const [shown, setShown] = useState(0)
-  const [playing, setPlaying] = useState(true)
+  const [playing, setPlaying] = useState(autoPlay)
   const [target, setTarget] = useState<Size | null>(null)
 
   // A seek from the strip pauses and moves the playhead; derived, not synced.
@@ -149,7 +151,7 @@ export function Player({ settings, resolved, seek, onFrame }: PlayerProps) {
         <span className="hidden h-4 w-px bg-rule-3 sm:block" aria-hidden />
         <span className="hidden whitespace-nowrap font-mono sm:inline">{settings.fps} fps</span>
       </div>
-      <div className={`${pill} absolute bottom-3 right-3 px-3.5 font-mono text-xs sm:bottom-4 sm:right-4`}>{t.animate.source[resolved.sources[shown]]}</div>
+      {resolved.sources && <div className={`${pill} absolute bottom-3 right-3 px-3.5 font-mono text-xs sm:bottom-4 sm:right-4`}>{t.animate.source[resolved.sources[shown]]}</div>}
     </div>
   )
 }

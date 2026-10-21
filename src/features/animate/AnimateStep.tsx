@@ -5,7 +5,7 @@ import { useStartOver } from '../../app/useStartOver'
 import { FrameStrip } from './FrameStrip'
 import { ExportPanel } from './ExportPanel'
 import { OriginalDrop } from './OriginalDrop'
-import { Player } from './Player'
+import { Player } from '../shared/Player'
 import { useResolvedFrames } from './useResolvedFrames'
 import { useT } from '../../i18n'
 
