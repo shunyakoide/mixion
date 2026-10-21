@@ -4,6 +4,8 @@
  * Dictionary: ARUCO_MIP_36h12 (250 markers, 6x6 data bits inside a 1-module
  * black border, minimum Hamming distance 12). Code list taken from js-aruco2
  * (MIT) so that a js-aruco2 detector can read our markers back in v0.2.
+ * Copyright (c) 2020 Damiano Falcioni, Copyright (c) 2011 Juan Mellado;
+ * full notice in public/third-party-notices.md.
  *
  * Bit convention (matches js-aruco2's generateSVG): the 36-bit code is read
  * MSB first, row-major over the 6x6 grid; a 1 bit is a WHITE module.

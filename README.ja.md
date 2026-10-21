@@ -71,4 +71,4 @@ npm run dev
 
 ## ライセンス
 
-[MIT](LICENSE)
+[MIT](LICENSE)。他のプロジェクトからコピーしたコードとその著作権表示は [public/third-party-notices.md](public/third-party-notices.md) にあります。同梱している npm パッケージのライセンスは、ビルド時に `third-party-licenses.md` として書き出され、アプリと一緒に配信されます。
