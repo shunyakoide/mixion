@@ -4,6 +4,7 @@ import { deriveSettings, useAppStore } from '../../app/store'
 import { Button } from '../../components/ui/Button'
 import { ArrowRight, Check, Scan, Spinner } from '../../components/ui/icons'
 import { useT } from '../../i18n'
+import { FpsPreview } from './FpsPreview'
 import { PagePreview } from './PagePreview'
 import { SettingsPanel } from './SettingsPanel'
 import { VideoDrop } from './VideoDrop'
@@ -134,7 +135,8 @@ export function PrintStep() {
           </div>
         )}
       </div>
-      <div className="min-w-0">
+      <div className="flex min-w-0 flex-col gap-6">
+        {settings && <FpsPreview settings={settings} />}
         <PagePreview />
       </div>
     </div>

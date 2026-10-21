@@ -4,7 +4,7 @@
  * reach up into the screens or the stores; `src/app` holds the stores and
  * reaches down only, so a screen can import a store but a store never
  * imports a screen. The three screens under `src/features` do not import
- * each other. A worker or a test that imports from a screen folder is how
+ * each other; what two of them share lives in `src/features/shared`. A worker or a test that imports from a screen folder is how
  * the rule used to break.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -49,10 +49,10 @@ function layerOf(file: string): string {
   return relative(SRC, file).split('/')[0]
 }
 
-/** `features/print` for a file under it, `''` for anything else. */
+/** `features/print` for a file under it, `''` for anything else, `features/shared` included. */
 function featureOf(file: string): string {
   const [top, feature] = relative(SRC, file).split('/')
-  return top === 'features' && feature ? `${top}/${feature}` : ''
+  return top === 'features' && feature && feature !== 'shared' ? `${top}/${feature}` : ''
 }
 
 describe('src layers', () => {
