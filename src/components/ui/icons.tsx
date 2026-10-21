@@ -1,5 +1,8 @@
 import type { SVGProps } from 'react'
 
+// Check, ChevronLeft/Right, ArrowRight and RotateCw copy Lucide's paths; Upload, Spinner and X adapt them
+// (ISC; partly Feather, MIT). Notices in public/third-party-notices.md.
+
 type P = SVGProps<SVGSVGElement> & { size?: number }
 const base = (size: number, rest: SVGProps<SVGSVGElement>): SVGProps<SVGSVGElement> => ({
   width: size,

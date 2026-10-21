@@ -71,4 +71,4 @@ npm run dev
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Code copied from other projects is listed with its notices in [public/third-party-notices.md](public/third-party-notices.md); the licenses of the bundled npm packages are written to `third-party-licenses.md` at build time and served next to the app.
