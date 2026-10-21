@@ -53,7 +53,7 @@ tests/         vitest, flat, one file per source module or scenario; fixtures/ h
 
 | Area | Built with | Used for |
 |---|---|---|
-| Build | Vite 8, TypeScript 6, Node 24 | dev server, type check, production build; `BASE_PATH` selects the deploy sub-path |
+| Build | Vite 8, TypeScript 6, Node 24 | dev server, type check, production build |
 | UI | React 19, Tailwind CSS v4 | the screens; design tokens live in `@theme` in `src/index.css` |
 | Type | Instrument Sans, Noto Sans JP, JetBrains Mono, Space Grotesk (Google Fonts) | text, Japanese, numbers/IDs/file names, the wordmark |
 | State | zustand | stores for Print, Scan, Animate, export options, the sample run and the locale; only the export options and the locale are persisted (localStorage) |
@@ -75,43 +75,7 @@ Use **Try the sample** on the first screen, or **Preview the flow before printin
 
 ## Deployment
 
-The `pages` job in `.github/workflows/ci.yml` builds with `BASE_PATH=/mixion/` on every push to `main`, after lint, tests and the default build have passed, and publishes to GitHub Pages (Settings → Pages → Source must be "GitHub Actions"). To reproduce that build locally:
-
-```bash
-BASE_PATH=/mixion/ npm run build && npx vite preview --base /mixion/
-```
-
-### Cloudflare trial deployment
-
-The Cloudflare copy runs on a `workers.dev` URL and on `mixion.shunyakoide.com` (the custom
-domain in `wrangler.jsonc`'s `routes`) while GitHub Pages remains the canonical site. Only the built `dist/`
-assets are uploaded; video processing and user files remain in the browser.
-
-Use Node 24 and the repository's pinned Wrangler dependency:
-
-```bash
-npm ci
-npm run lint
-npm test
-npm run preview:cloudflare
-# After checking the local preview, authenticate and deploy:
-npx wrangler login
-npm run deploy:cloudflare
-```
-
-`build:cloudflare` explicitly builds at `/`, even if `BASE_PATH` is set for GitHub Pages.
-`preview:cloudflare` rebuilds before starting the local Cloudflare runtime.
-`deploy:cloudflare` rebuilds before uploading, so a previous `/mixion/` Pages build cannot
-accidentally be deployed to the root. Cloudflare receives no server script, database, or secrets.
-
-`public/_headers` adds `X-Robots-Tag: noindex` to the Cloudflare trial. GitHub Pages does
-not interpret this Cloudflare configuration file. Keep the current canonical URL, sitemap,
-README links, and GitHub Pages workflow until the custom domain is ready. On the final
-cutover, update those URLs and remove the noindex header together. Do not add secrets to
-this repository; a later CI deployment should use GitHub Secrets and run after checks pass.
-
-Smoke-check `?sample`, Print → Scan → Animate, PDF/PNG and MP4/GIF exports, language switching,
-and the Web Worker asset in a supported browser before switching the public URL.
+The `pages` job in `.github/workflows/ci.yml` publishes to GitHub Pages on every push to `main`, after lint, tests and the build have passed (Settings → Pages → Source must be "GitHub Actions"). The site is served at https://mixion.shunyakoide.com/, the custom domain set in Settings → Pages; the old `shunyakoide.github.io/mixion/` address redirects there. The build uses relative asset paths, so `npm run build && npx vite preview` reproduces it.
 
 ## Pull requests
 

@@ -10,4 +10,4 @@ Include the steps to reproduce, the browser and version, and the impact you expe
 
 ## Supported versions
 
-Only the latest `main`, deployed at https://shunyakoide.github.io/mixion/, receives fixes.
+Only the latest `main`, deployed at https://mixion.shunyakoide.com/, receives fixes.

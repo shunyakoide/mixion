@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://shunyakoide.github.io/mixion/"><strong>Open the app</strong></a> ·
+  <a href="https://mixion.shunyakoide.com/"><strong>Open the app</strong></a> ·
   <a href="README.ja.md">日本語</a>
 </p>
 

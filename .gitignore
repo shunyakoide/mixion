@@ -26,7 +26,3 @@ dist-ssr
 
 # local outputs (print tests, exports)
 out
-
-# Cloudflare local state
-.wrangler/
-.dev.vars*
