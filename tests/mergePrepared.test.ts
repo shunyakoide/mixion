@@ -180,4 +180,9 @@ describe('image and corners', () => {
     expect(r.item.status).toBe('ready')
     expect(r.item.qrRect).toEqual({ x: 100, y: 100, w: 160, h: 160 })
   })
+  it('is not ready, so import does not cut it, when the four corners fold over each other', () => {
+    const folded = { ...found, 0: found[2], 2: found[0] }
+    const r = merge(scan('a'), prepared({ qr: read(settings, 1), detected: { corners: folded, missing: [] } }), withSettings())
+    expect(r.item.status).toBe('needs_corners')
+  })
 })

@@ -6,6 +6,7 @@
  * with a page number from import order. This is the one place that decides.
  */
 import type { Corner, Point } from '../domain/layout'
+import { cornersConsistent } from '../domain/scan/cornerGeometry'
 import type { QrRead } from '../domain/scan/qrRead'
 import { sameSettings, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
 import type { QrNote, ScanItem, ScanStatus } from './scanStore'
@@ -158,11 +159,19 @@ export function cornersComplete(c: Partial<Record<Corner, Point>>): c is Record<
   return c[0] !== undefined && c[1] !== undefined && c[2] !== undefined && c[3] !== undefined
 }
 
+/**
+ * Whether the page can be cut: four corners that do not fold over each other, and a page number.
+ * The one rule for both the automatic cut after a read and the cut button.
+ */
+export function cuttable<T extends Pick<ScanItem, 'corners' | 'page'>>(item: T): item is T & { corners: Record<Corner, Point>; page: number } {
+  return cornersComplete(item.corners) && cornersConsistent(item.corners) && item.page !== null
+}
+
 /** The status a scan derives from its fields, once it is not busy or broken. */
 export function statusFor(item: ScanItem): ScanStatus {
   if (item.status === 'applied' || item.status === 'applying' || item.status === 'reading' || item.status === 'detecting') return item.status
   if (item.error) return 'error'
-  return cornersComplete(item.corners) && item.page !== null ? 'ready' : 'needs_corners'
+  return cuttable(item) ? 'ready' : 'needs_corners'
 }
 
 function bbox(pts: Point[]): { x: number; y: number; w: number; h: number } {

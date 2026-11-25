@@ -110,6 +110,72 @@ describe('applyScan', () => {
     expect(s.scans).toEqual([])
     expect(s.outputFrames.size).toBe(0)
   })
+
+  /** Let the cut that is running decode its page and hand its cells to the warp. */
+  async function reachWarp(count = 1) {
+    await until('bitmaps')
+    pending.bitmaps.shift()!()
+    await until('warps', count)
+  }
+  const blobs = (tag: string) => [1, 2, 3, 4].map((f) => new Blob([`${tag}${f}`]))
+
+  it('cuts again with the corner moved while its cells were being warped', async () => {
+    useScanStore.setState({ settings, scans: [scan('a', { page: 1, corners, status: 'ready' })] })
+    const done = useScanStore.getState().applyScan('a')
+    await reachWarp()
+    const moved = { x: corners[0]!.x + 30, y: corners[0]!.y + 20 }
+    useScanStore.getState().setCorner('a', 0, moved)
+    pending.warps.shift()!(blobs('old'))
+    // The frames from the old corners are not taken; the page is cut again from the new ones.
+    await reachWarp()
+    expect(useScanStore.getState().outputFrames.size).toBe(0)
+    expect(useScanStore.getState().scans[0].status).toBe('applying')
+    pending.warps.shift()!(blobs('new'))
+    await done
+    const s = useScanStore.getState()
+    expect(s.scans[0]).toMatchObject({ status: 'applied', corners: { 0: moved } })
+    expect(await s.outputFrames.get(1)!.blob.text()).toBe('new1')
+  })
+  it('does not cut again when the corners moved during the cut cannot be cut', async () => {
+    useScanStore.setState({ settings, scans: [scan('a', { page: 1, corners, status: 'ready' })] })
+    const done = useScanStore.getState().applyScan('a')
+    await reachWarp()
+    // Top-left dragged past the bottom-right: the quad folds over itself.
+    useScanStore.getState().setCorner('a', 0, { x: corners[2]!.x + 50, y: corners[2]!.y + 50 })
+    pending.warps.shift()!(blobs('old'))
+    await done
+    await settle()
+    const s = useScanStore.getState()
+    expect(s.scans[0].status).toBe('needs_corners')
+    expect(s.outputFrames.size).toBe(0)
+    expect(pending.bitmaps).toHaveLength(0)
+  })
+  it('cuts the new page when the page number is changed during the cut', async () => {
+    const twoPages = createProjectSettings({ projectId: 'test', fps: 8, grid: GRID_PRESETS['2x2'], dims: { width: 640, height: 360 }, duration: 2 })
+    useScanStore.setState({ settings: twoPages, scans: [scan('a', { page: 1, corners, status: 'ready' })] })
+    const done = useScanStore.getState().applyScan('a')
+    await reachWarp()
+    useScanStore.getState().setPage('a', 2)
+    pending.warps.shift()!(blobs('old'))
+    await reachWarp()
+    pending.warps.shift()!(blobs('new'))
+    await done
+    const s = useScanStore.getState()
+    expect(s.scans[0]).toMatchObject({ status: 'applied', page: 2 })
+    expect([...s.outputFrames.keys()]).toEqual([5, 6, 7, 8])
+  })
+  it('cuts again along the new grid when the settings are changed during the cut', async () => {
+    useScanStore.setState({ settings, scans: [scan('a', { page: 1, corners, status: 'ready' })] })
+    const done = useScanStore.getState().applyScan('a')
+    await reachWarp()
+    const typed = createProjectSettings({ projectId: 'test', fps: 8, grid: GRID_PRESETS['2x2'], dims: { width: 640, height: 360 }, duration: 1.5 })
+    useScanStore.getState().setManualSettings(typed)
+    pending.warps.shift()!(blobs('old'))
+    await reachWarp()
+    pending.warps.shift()!(blobs('new'))
+    await done
+    expect(await useScanStore.getState().outputFrames.get(1)!.blob.text()).toBe('new1')
+  })
 })
 
 describe('importScans', () => {
