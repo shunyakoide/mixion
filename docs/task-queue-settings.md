@@ -29,7 +29,7 @@ Linear cannot require the sections of an issue.
 
 - The check that always runs: `npm run lint && npm test && npm run build`, the same steps as the `check` job in `.github/workflows/ci.yml`, which `main` requires. It need not be listed in an issue.
 - Editing a pull request's title or body runs no check.
-- Extra checks an issue may list: a check in the running app with `npm run dev`, starting from **Try the sample** on the first screen, or from **Preview the flow before printing** on the Scan step; a simulated scan through `window.__dev.simulateScan` in the dev server's console (see "Working without a printer" in `CONTRIBUTING.md`).
+- Extra checks an issue may list: a check in the running app with `npm run dev`, starting from **Try the sample** on the first screen, or from **Check the flow before printing** on the Scan step (`tryWithoutPaper` in `src/i18n/en.ts`); a simulated scan through `window.__dev.simulateScan` in the dev server's console (see "Working without a printer" in `CONTRIBUTING.md`).
 
 ## Output
 
