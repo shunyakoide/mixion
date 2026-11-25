@@ -42,13 +42,13 @@ A pull request needs the owner when, after it, either of these is true:
 - a screen shows something it did not show before, or shows it differently: text, a value, a status or message, the layout, or how a control answers a key or the pointer
 - the same video gives a different printed page or export: the pages of the print PDF, or the MP4, GIF or PNG that is written out
 
-The owner also merges a pull request whose issue carries the `Medium` or `Large` label, as those labels' descriptions in Linear say.
+The owner also merges a pull request whose issue carries the `Medium` or `Large` label, as those labels' descriptions in Linear say. Treat it as a one-way door is treated: do not merge it, and comment on the issue that it waits for the owner. Do not add the owner-review label for this alone, so it needs no preview and no owner's steps unless it also changes a screen or an output.
 
 ## One-way doors
 
 A pull request is always a one-way door ("Merge Danger" in the task-queue skill) when it changes any of these:
 
-- the printed page: its format, `QR_VERSION` and the QR payload (`src/domain/settings.ts`), the QR's error correction (`src/domain/qrEncode.ts`), where the markers, cells and QR sit (`src/domain/layout.ts`, `src/domain/markers.ts`, `src/domain/pagePainter.ts`), and which frame goes in which cell (`src/domain/frameMap.ts`). Pages printed between the merge and a revert stay in the new format, and the reverted app may not read them.
+- the printed page: its format, `QR_VERSION` and the QR payload (`src/domain/settings.ts`), the QR's error correction (`src/domain/qrEncode.ts`), where the markers, cells and QR sit (`src/domain/layout.ts`, `src/domain/markers.ts`, `src/domain/pagePainter.ts`), which frame goes in which cell (`src/domain/frameMap.ts`), and how a page is drawn into the PDF and the PNG (`src/lib/print/`). Pages printed between the merge and a revert stay in the new format, and the reverted app may not read them.
 - what the browser keeps: the storage keys and the stored shape and values of the locale preference (`src/i18n/index.ts`) and the export options (`src/domain/exportOptions.ts`, `src/app/exportStore.ts`).
 - what is published: the site on GitHub Pages, its custom domain, and the `pages` job in `.github/workflows/ci.yml`.
 - the rules the agent works by: the CI checks and workflows (`.github/`), the branch protection of `main`, this file, and the line in `CLAUDE.md` that points to it.
