@@ -4,7 +4,7 @@ import { framesOnPage, framesPerPage } from '../domain/frameMap'
 import { pageToScanHomography, reprojectionError, type Homography } from '../domain/homography'
 import type { Corner, Point } from '../domain/layout'
 import { layoutFromSettings, settingsFromQr, type ProjectSettings, type QrPayload } from '../domain/settings'
-import { cornersComplete, mergePrepared, statusFor, type Prepared } from './mergePrepared'
+import { cuttable, mergePrepared, statusFor, type Prepared } from './mergePrepared'
 import { useAnimateStore } from './animateStore'
 import { QR_QUICK_PASSES, QR_THOROUGH_PASSES, readPageQr, type QrRead } from '../lib/qrPage'
 import type { QrReadFailure } from '../domain/scan/qrRead'
@@ -289,48 +289,111 @@ export const useScanStore = create<ScanState>((set, get) => ({
   applyScan: async (id) => {
     const { settings } = get()
     const item = get().scans.find((x) => x.id === id)
-    if (!settings || !item || !cornersComplete(item.corners) || item.page === null) return
+    if (!settings || !item || !cuttable(item)) return
     const page = item.page
     const layout = layoutFromSettings(settings)
     let h: Homography
     try {
       h = pageToScanHomography(layout, item.corners)
     } catch (e) {
-      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: t().scan.errBadCorners(describeError(e)) } : x)) }))
+      updateScan(id, (x) => ({ ...x, status: 'error', error: t().scan.errBadCorners(describeError(e)) }))
       return
     }
     const fitError = reprojectionError(
       h,
       layout.markers.map((m) => m.center),
-      layout.markers.map((m) => item.corners[m.corner] as Point),
+      layout.markers.map((m) => item.corners[m.corner]),
     )
-    set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'applying', error: null } : x)) }))
-    try {
-      const lap = stopwatch(`apply ${item.name}`)
-      const bitmap = await loadBitmap(item.file)
-      const rgba = bitmapToRgba(bitmap)
-      bitmap.close()
-      lap('decode')
-      const frames = framesOnPage(page, framesPerPage(settings.grid), settings.frameCount)
-      const outWidth = settings.dims.width - (settings.dims.width % 2)
-      const outHeight = settings.dims.height - (settings.dims.height % 2)
-      const jobs = frames.map((_, i) => ({ cropRect: layout.cells[i].cropRect, outWidth, outHeight }))
-      const blobs = await warpCells(rgba, h, jobs)
-      lap(`warp ${jobs.length}`)
-      set((s) => {
-        // Removed while its cells were being cut: the frames went with it.
-        if (!s.scans.some((x) => x.id === id)) return {}
-        const outputFrames = new Map(s.outputFrames)
-        // Drop frames previously produced by this scan (page may have changed).
-        for (const [f, o] of outputFrames) if (o.scanId === id) outputFrames.delete(f)
-        frames.forEach((f, i) => outputFrames.set(f, { blob: blobs[i], source: 'scan', scanId: id }))
-        return { outputFrames, scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'applied', fitError } : x)) }
-      })
-    } catch (e) {
-      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: describeError(e) } : x)) }))
-    }
+    updateScan(id, (x) => ({ ...x, status: 'applying', error: null }))
+    const end = await runOnScan(
+      id,
+      cutInputs,
+      async () => {
+        const lap = stopwatch(`apply ${item.name}`)
+        const bitmap = await loadBitmap(item.file)
+        const rgba = bitmapToRgba(bitmap)
+        bitmap.close()
+        lap('decode')
+        const frames = framesOnPage(page, framesPerPage(settings.grid), settings.frameCount)
+        const outWidth = settings.dims.width - (settings.dims.width % 2)
+        const outHeight = settings.dims.height - (settings.dims.height % 2)
+        const jobs = frames.map((_, i) => ({ cropRect: layout.cells[i].cropRect, outWidth, outHeight }))
+        const blobs = await warpCells(rgba, h, jobs)
+        lap(`warp ${jobs.length}`)
+        return { frames, blobs }
+      },
+      ({ frames, blobs }) =>
+        set((s) => {
+          const outputFrames = new Map(s.outputFrames)
+          // Drop frames previously produced by this scan (page may have changed).
+          for (const [f, o] of outputFrames) if (o.scanId === id) outputFrames.delete(f)
+          frames.forEach((f, i) => outputFrames.set(f, { blob: blobs[i], source: 'scan', scanId: id }))
+          return { outputFrames, scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'applied', fitError } : x)) }
+        }),
+    )
+    if (end !== 'changed') return
+    // Corners, page or settings moved on while the cells were cut: cut again from what is there now, or wait for corners that can be cut.
+    updateScan(id, (x) => statusUpdate({ ...x, status: 'needs_corners' }))
+    if (get().scans.find((x) => x.id === id)?.status === 'ready') await get().applyScan(id)
   },
 }))
+
+/** Replace the scan `id` with `change(scan)`; nothing happens when it is no longer listed. */
+function updateScan(id: string, change: (x: ScanItem) => ScanItem): void {
+  useScanStore.setState((s) => ({ scans: s.scans.map((x) => (x.id === id ? change(x) : x)) }))
+}
+
+/** What a run on one scan was started from; when any of it changes meanwhile, the result is out of date. */
+type RunInputs = (item: ScanItem, state: ScanState) => unknown[]
+/** A cut is made from the image, the corners, the page number and the settings (its grid and frame size). */
+const cutInputs: RunInputs = (x, s) => [x.file, x.corners, x.page, s.settings]
+/**
+ * A read is merged into the scan as it is when the read ends, so only removal makes it stale.
+ * A second read cannot start on a scan while one runs: `reanalyze` refuses busy scans.
+ */
+const readInputs: RunInputs = () => []
+
+/**
+ * Run `work` on the scan `id` and hand its result to `write`, or mark the scan as an error when it
+ * fails, but only while the scan is still listed, the list was not cleared since, and `inputs` give
+ * what they gave when the work started (compared with `===`; the store replaces what it changes).
+ * - 'written': the result or the error was written.
+ * - 'changed': still listed but its inputs moved on, so nothing was written and the scan keeps its
+ *   busy status for the caller to settle.
+ * - 'gone': removed, or the list was cleared; nothing was written.
+ */
+async function runOnScan<T>(id: string, inputs: RunInputs, work: (item: ScanItem) => Promise<T>, write: (result: T) => void): Promise<'written' | 'changed' | 'gone'> {
+  const get = useScanStore.getState
+  const gen = generation
+  const item = get().scans.find((x) => x.id === id)
+  if (!item) return 'gone'
+  const before = inputs(item, get())
+  const stale = (): 'changed' | 'gone' | null => {
+    const now = generation === gen ? get().scans.find((x) => x.id === id) : undefined
+    if (!now) return 'gone'
+    return inputs(now, get()).every((v, i) => v === before[i]) ? null : 'changed'
+  }
+  let result: T
+  try {
+    result = await work(item)
+  } catch (e) {
+    const end = stale()
+    if (end) return end
+    updateScan(id, (x) => ({ ...x, status: 'error', error: describeError(e) }))
+    return 'written'
+  }
+  const end = stale()
+  if (end) return end
+  write(result)
+  return 'written'
+}
+
+/** Read the page `id` (QR, orientation, markers), take over what was found, and cut it when that is enough. */
+async function readScan(id: string, options: { forceTurns?: number; autoRotate: boolean; quickQr?: QrRead }): Promise<void> {
+  const get = useScanStore.getState
+  const end = await runOnScan(id, readInputs, (item) => prepareScan(item.file, get().settings, options), (prepared) => takeOver(id, prepared))
+  if (end === 'written' && get().scans.find((x) => x.id === id)?.status === 'ready') await get().applyScan(id)
+}
 
 /** One import: hash, read the QR, find the markers and cut every page that comes out complete. */
 async function importBatch(files: File[]): Promise<void> {
@@ -403,24 +466,11 @@ async function importBatch(files: File[]): Promise<void> {
       }
     }
   }
-  for (const item of items) {
-    const { id, file } = item
+  for (const { id, file } of items) {
     if (generation !== gen) return
     if (!listed(id)) continue
-    try {
-      set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting' } : x)) }))
-      const prepared = await prepareScan(file, get().settings, { autoRotate: true, quickQr: quickQr.get(file) })
-      // Removed while it was being read: its URL is already revoked and nothing must be written back.
-      if (!listed(id)) continue
-      takeOver(id, prepared)
-      // Everything found: cut the page out right away.
-      const after = get().scans.find((x) => x.id === id)
-      if (after && after.status === 'ready') await get().applyScan(id)
-    } catch (e) {
-      set((s) => ({
-        scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: describeError(e) } : x)),
-      }))
-    }
+    updateScan(id, (x) => ({ ...x, status: 'detecting' }))
+    await readScan(id, { autoRotate: true, quickQr: quickQr.get(file) })
   }
   if (generation !== gen) return
   // Pages read before any QR fixed the settings had no layout to work with; give them one now.
@@ -456,20 +506,10 @@ function takeOver(id: string, prepared: Prepared): void {
 
 /** Run `prepareScan` again on an imported page and take over its image, corners and page number. */
 async function reanalyze(id: string, options: { forceTurns?: number; autoRotate: boolean }): Promise<void> {
-  const { set, get } = { set: useScanStore.setState, get: useScanStore.getState }
-  const item = get().scans.find((x) => x.id === id)
+  const item = useScanStore.getState().scans.find((x) => x.id === id)
   if (!item || item.status === 'reading' || item.status === 'detecting' || item.status === 'applying') return
-  set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'detecting', error: null } : x)) }))
-  try {
-    const prepared = await prepareScan(item.file, get().settings, options)
-    // Removed meanwhile: its URL is already revoked and nothing must be written back.
-    if (!get().scans.some((x) => x.id === id)) return
-    takeOver(id, prepared)
-    const after = get().scans.find((x) => x.id === id)
-    if (after && after.status === 'ready') await get().applyScan(id)
-  } catch (e) {
-    set((s) => ({ scans: s.scans.map((x) => (x.id === id ? { ...x, status: 'error', error: describeError(e) } : x)) }))
-  }
+  updateScan(id, (x) => ({ ...x, status: 'detecting', error: null }))
+  await readScan(id, options)
 }
 
 if (import.meta.env.DEV && typeof window !== 'undefined') {

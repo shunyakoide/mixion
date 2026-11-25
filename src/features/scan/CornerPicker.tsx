@@ -3,6 +3,7 @@ import { MarkerGlyph } from './MarkerGlyph'
 import { cornerFromPosition, cornersConsistent } from '../../domain/scan/cornerGeometry'
 import { checkOrientation } from '../../domain/scan/orientation'
 import { useScanStore, type QrNote, type ScanItem } from '../../app/scanStore'
+import { cuttable } from '../../app/mergePrepared'
 import { Check, RotateCw, X } from '../../components/ui/icons'
 import { Button } from '../../components/ui/Button'
 import { pageToScanHomography, projectRect, type Homography } from '../../domain/homography'
@@ -273,7 +274,7 @@ export function CornerPicker({ scan, settings, layout }: Props) {
   })
 
   const busy = scan.status === 'applying'
-  const canApply = (complete && homography !== null && scan.page !== null && !busy) && consistent
+  const canApply = cuttable(scan) && !busy
 
   return (
     <div className="flex flex-col gap-3.5">
