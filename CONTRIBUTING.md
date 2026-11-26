@@ -68,7 +68,7 @@ tests/         vitest, flat, one file per source module or scenario; fixtures/ h
 
 ## Working without a printer
 
-Use **Try the sample** on the first screen, or **Preview the flow before printing** on the Scan step with your own video. With `npm run dev` there are also two hooks in the browser console:
+Use **Try the sample** on the first screen, or **Check the flow before printing: import the printed pages as they are** on the Scan step with your own video. With `npm run dev` there are also two hooks in the browser console:
 
 - `window.__dev`: `simulateScan(page, { dpi, rotateDeg })` renders a print page as a fake scan from the current settings; also `imageDiff`, `encodeMp4`, `encodeGif`, `deriveSettings`, the stores and the marker/QR detectors.
 - `window.__timings`: per-stage timings of the last scan import.
